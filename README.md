@@ -5,6 +5,7 @@ Sistema Multi-Agentes para **Engenharia e Análise de Dados**, construído sobre
 ---
 
 ### 👤 Autor
+
 - **Desenvolvido por:** Thomaz Antonio Rossito Neto
 - **Professional:** Specialist Data & AI Solutions Architect | Center of Excellence CoE @CI&T | Enterprise AI Agents, Microsoft Fabric & Databricks Expert
 - **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)
@@ -42,12 +43,12 @@ Usuário (linguagem natural)
 
 ## Agentes
 
-| Agente | Modelo | Responsabilidade |
-|--------|--------|-----------------|
-| **Supervisor** | Claude Opus 4.6 | Interpretar intenção, planejar e delegar |
-| **SQL Expert** | Claude Sonnet 4.6 | SQL, KQL, descoberta de metadados |
-| **Spark Expert** | Claude Sonnet 4.6 | PySpark, Delta Lake, DLT/LakeFlow |
-| **Pipeline Architect** | Claude Opus 4.6 | ETL/ELT cross-platform, Jobs, execução |
+| Agente                       | Modelo            | Responsabilidade                           |
+| ---------------------------- | ----------------- | ------------------------------------------ |
+| **Supervisor**         | Claude Opus 4.6   | Interpretar intenção, planejar e delegar |
+| **SQL Expert**         | Claude Sonnet 4.6 | SQL, KQL, descoberta de metadados          |
+| **Spark Expert**       | Claude Sonnet 4.6 | PySpark, Delta Lake, DLT/LakeFlow          |
+| **Pipeline Architect** | Claude Opus 4.6   | ETL/ELT cross-platform, Jobs, execução   |
 
 ## Pré-requisitos
 
@@ -147,7 +148,3 @@ data-agents/
 ├── skills/                          # Conhecimento especializado em Markdown
 └── tests/                           # Testes automatizados
 ```
-
-## Licença
-
-MIT
