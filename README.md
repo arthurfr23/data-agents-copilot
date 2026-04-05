@@ -168,6 +168,58 @@ Não pense neste sistema como um "Search Engine", mas como um colega sênior emb
 
 ---
 
+## 🎯 Case de Uso: O Método BMAD na Prática
+
+Esse é o fluxo exato que você fará no seu terminal.
+O grande segredo do projeto agora é: você não pode mais *vomitar* uma requisição imediata de código; o agente atua ativamente como uma equipe de projetos corporativos.
+
+Siga esta "receita de bolo" quando executar o seu Orchestrator:
+
+### Passo 1: Iniciar a Interface
+Abra seu terminal e digite:
+```bash
+python main.py
+```
+O CLI do Data Agents será iniciado e você terá o prompt de chat livre.
+
+### Passo 2: O Comando `/plan` (Context Engineering)
+Aqui começa o Método BMAD. Em vez de pedir o código agora, você forçará o agente a agir como o seu Arquiteto de Soluções e Product Manager.
+
+Copie e cole isto no terminal:
+> `/plan Sou um engenheiro de dados e preciso desenvolver um pipeline utilizando Lakeflow Pipelines (SDP) Spark Declarative Pipelines. Utilizarei comandos SQL com AUTO CDC Tipo 2 e MATERIALIZED VIEWS (não deve utilizar APPLY CHANGES). O pipeline será voltado para e-commerce e seguirá uma arquitetura medalhão com um Star Schema na Gold, tabelas (Clientes, Produtos, Vendas, Data). Todos os códigos gerados para este pipeline deverão ir exclusivamente para o diretório "output/databricks/". Faça uma especificação passo a passo dos arquivos.`
+
+**O que vai acontecer:**
+1. Veremos um log `[BMAD Agile] Iniciando sessão de Context Engineering...`
+2. O Supervisor NÃO gerará código. Ele usará o Bash internamente e irá criar (ou atualizar) um arquivo PRD detalhado na pasta `output/` (ex: `output/prd_ecommerce_sdp.md`).
+3. O agente devolverá um resumo dizendo que o documento foi feito e pedirá a sua aprovação da modelagem.
+
+### Passo 3: Adicionar a Restrição para o `.gitignore`
+Para garantir que o agente não mande seu código temporário pro GitHub, como você pediu, você pode responder de maneira natural a ele antes de aprovar:
+
+> `A arquitetura ficou ótima, mas adicione neste PRD uma tarefa inicial que determine que antes de qualquer código SQL ser gerado, seja criado um arquivo .gitignore dentro da pasta output/databricks/ contendo um "*" para garantir que nada vá para o GitHub.`
+
+**O que vai acontecer:** Ele vai regravar a estratégia e alinhar o documento PRD de acordo com este direcionamento prático.
+
+### Passo 4: O Comando `/sql` (Modo BMAD Express)
+Com o plano salvo fisicamente pela IA, chegou a hora do *bypass*. O Supervisor cumpriu seu trabalho de desenhar as fundações de alto nível. Agora você engata a segunda marcha focada nos arquivos e no desenvolvimento.
+
+Copie e cole isto na mesma tela:
+> `/sql Leia o documento de arquitetura que você acabou de salvar na pasta output/ e implemente rigorosamente todos os algoritmos. Crie o .gitignore primeiro, e na sequência, solte os scripts .sql na pasta output/databricks/ conforme planejado.`
+
+**O que vai acontecer:**
+A interface detectará a sua flag ignorando as checagens e te mostrará o status: `[BMAD Express] Direcionando para: data_modeling_agent...`
+
+O agente de Modelagem de Dados entrará solando na execução. Como ele está lendo um PRD escrito por outro Agent-Arquiteto (passo anterior), não vai ter alucinação sobre onde ficarão os arquivos ou quais comandos utilizar.
+A mágica acontecerá de olhos fechados: O diretório `output/databricks/` se encherá com seus arquivos e todos de fato mascarados para não poluir sua master class!
+
+> [!TIP]  
+> **Resumo do Fluxo BMAD que aplicamos hoje**  
+> 1. Usar o `/plan` para forçar o Agent a virar PM e documentar a Arquitetura e Diretórios num arquivo Markdown.  
+> 2. Validar o artefato do PM e realizar os ajustes finais (ignorar pastas, delimitar escopo).  
+> 3. Invocar via Comando Rápido (Ex: `/sql`, `/spark`) o Agente Desenvolvedor, instruindo-o a ler aquele arquivo planejado em primeiríssimo lugar para a partir dali escrever os códigos.
+
+---
+
 ## 🛠️ DataOps e Enterprise Readiness
 
 Este projeto incorpora as maiores tendências do MLOps corporativo:
