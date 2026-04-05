@@ -22,11 +22,37 @@ Construído sobre o **Claude Agent SDK** da Anthropic com integração nativa vi
 
 ## 👤 Autor
 
-- **Desenvolvido por:** Thomaz Antonio Rossito Neto
-- **Professional:** Specialist Data & AI Solutions Architect | Center of Excellence CoE @CI&T | Enterprise AI Agents, Microsoft Fabric & Databricks Expert
-- **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)
-- **GitHub:** [https://github.com/ThomazRossito/](https://github.com/ThomazRossito/)
-- **Versão:** 0.1.0
+> ## Thomaz Antonio Rossito Neto
+> Specialist Data & AI Solutions Architect | Center of Excellence CoE @CI&T | Enterprise AI Agents, Microsoft Fabric & Databricks Expert
+
+## Educação Acadêmica :
+> **MBA: Ciência de Dados com ênfase em Big Data**
+> **MBA: Engenharia de Dados com ênfase em Big Data**
+
+## Contatos: 
+> **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)
+> **GitHub:** [https://github.com/ThomazRossito/](https://github.com/ThomazRossito/)
+
+---
+
+#### 🏆 Profissional Certificado Databricks
+
+<img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/125134719" alt="Databricks Certified Spark Developer" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/169321258" alt="Databricks Certified Generative AI Engineer Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/167127257" alt="Databricks Certified Data Analyst Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/125134780" alt="Databricks Certified Data Engineer Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/157011932" alt="Databricks Certified Data Engineer Professional" width="155"/>
+
+[Todas certificações](https://credentials.databricks.com/profile/thomazantoniorossitoneto39867/wallet)
+
+---
+
+#### 🏆 Profissional Certificado Microsoft
+
+<a href="https://www.credly.com/badges/052e5133-0c67-4ab7-bb3a-c99efa7b4406/public_url" target="_blank">
+  <img src="https://images.credly.com/images/70eb1e3f-d4de-4377-a062-b20fb29594ea/azure-data-fundamentals-600x600.png" alt="Microsoft Certified: Azure Data Fundamentals (DP-900 )" width="155"/>
+</a>
+<a href="https://learn.microsoft.com/pt-br/users/thomazantoniorossitoneto/credentials/certification/fabric-data-engineer-associate" target="_blank">
+  <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663028569643/ftqfVZsrmaGyfUha.png" alt="Microsoft Certified: Fabric Data Engineer Associate (DP-700 )" width="155"/>
+</a>
+
+[Todas certificações](https://www.credly.com/users/thomaz-antonio-rossito-neto/badges#credly)
 
 ---
 
@@ -40,79 +66,15 @@ O diferencial deste projeto é o seu **Hub de Conhecimento (Skills)**. Os agente
   <img src="img/readme/architecture.png" alt="Arquitetura Multi-Agent System" width="100%">
 </p>
 
-```mermaid
-flowchart TD
-    US["🧑‍💻 Usuário — Linguagem Natural"] --> AS
-
-    subgraph BMAD["Orquestração + BMAD Method"]
-        PLAN["/plan\n(Context Engineering)"]
-        AS["Agent Supervisor / Data Orchestrator\nClaude Opus 4.6"]
-        EXPRESS["/sql  /spark  /pipeline\n(BMAD Express)"]
-        PLAN --> AS
-        EXPRESS --> AS
-    end
-
-    subgraph AGENTS["Hub de Especialistas"]
-        SQL["SQL Expert\nClaude Sonnet 4.6"]
-        SPK["Spark Expert\nClaude Sonnet 4.6"]
-        PL["Pipeline Architect\nClaude Sonnet 4.6"]
-    end
-
-    subgraph SKILLS["📚 Skills / Knowledge Hub"]
-        S1["SDP/Lakeflow"]
-        S2["Unity Catalog"]
-        S3["Medallion"]
-        S4["CDC/AUTO CDC"]
-        S5["Direct Lake"]
-        S6["Eventhouse RTI"]
-        S7["Data Factory"]
-        S8["Cross-Platform"]
-        S9["Jobs/DABs"]
-    end
-
-    subgraph HOOKS["🛡️ Hooks de Proteção"]
-        H1["Audit Hook"]
-        H2["Security Hook"]
-        H3["Cost Guard"]
-    end
-
-    subgraph MCP["Camada de Integração MCP Corporativa"]
-        DB["🟠 Databricks MCP Server"]
-        FB["🔵 Fabric Official MCP Server"]
-        FBC["🔵 Fabric Community MCP"]
-        FBR["🔵 Fabric RTI MCP"]
-    end
-
-    AS --> |"Delega sub-tarefas"| SQL
-    AS --> |"Delega sub-tarefas"| SPK
-    AS --> |"Delega sub-tarefas"| PL
-
-    AS -.-> |"Lê skills antes de planejar"| SKILLS
-
-    SQL -.-> |"Descoberta, Unity Catalog"| DB
-    SQL -.-> |"Lakehouse, Workspaces"| FB
-    SQL -.-> |"KQL, Eventhouse"| FBR
-    SQL -.-> |"Jobs, Lineage"| FBC
-
-    SPK -.-> |"PySpark, Lakeflow, Delta Lake"| DB
-    SPK -.-> |"Medallion, Direct Lake"| FB
-
-    PL -.-> |"Deployments, MLflow, DABs"| DB
-    PL -.-> |"Data Factory, Workspaces"| FB
-    PL -.-> |"Lakehouses, Jobs"| FBC
-    PL -.-> |"RTI, Eventstreams"| FBR
-
-    HOOKS -.-> |"Intercepta chamadas e bloqueia destruição"| MCP
-```
 
 ## 🤖 Nossos Agentes
 
-| Agente | Modelo | Papel e Responsabilidades |
-|---|---|---|
-| **Supervisor** | `Claude Opus 4.6` | Atua como líder técnico. Recebe a sua requisição, quebra o problema em subtarefas, avalia as *skills* da base e aciona o especialista correto para construir a solução. |
-| **SQL Expert** | `Claude Sonnet 4.6` | Especialista em dados relacionais e modelagem (KQL, T-SQL, Spark SQL). Consulta metadados de forma *read-only*, analisa schemas de tabelas Fato/Dimensão e constrói analíticas diretas. |
-| **Spark Expert** | `Claude Sonnet 4.6` | O ás da Engenharia Big Data. **Focado exclusivamente em geração de código (sem acesso MCP direto)**. Estrutura código PySpark, manipula arquiteturas Delta Lake (Medallion) e otimiza partições. |
-| **Pipeline Architect** | `Claude Sonnet 4.6` | Engenheiro focado em DataOps e SRE. O único com permissões amplas de execução. Automatiza pipelines completos, gerencia Databricks Asset Bundles (DABs), Workflows e integrações cross-platform. |
+| Agente                       | Modelo                | Papel e Responsabilidades                                                                                                                                                                                    |
+| ---------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Supervisor**         | `Claude Opus 4.6`   | Atua como líder técnico. Recebe a sua requisição, quebra o problema em subtarefas, avalia as*skills* da base e aciona o especialista correto para construir a solução.                               |
+| **SQL Expert**         | `Claude Sonnet 4.6` | Especialista em dados relacionais e modelagem (KQL, T-SQL, Spark SQL). Consulta metadados de forma*read-only*, analisa schemas de tabelas Fato/Dimensão e constrói analíticas diretas.                  |
+| **Spark Expert**       | `Claude Sonnet 4.6` | O ás da Engenharia Big Data.**Focado exclusivamente em geração de código (sem acesso MCP direto)**. Estrutura código PySpark, manipula arquiteturas Delta Lake (Medallion) e otimiza partições. |
+| **Pipeline Architect** | `Claude Sonnet 4.6` | Engenheiro focado em DataOps e SRE. O único com permissões amplas de execução. Automatiza pipelines completos, gerencia Databricks Asset Bundles (DABs), Workflows e integrações cross-platform.       |
 
 ---
 
@@ -141,24 +103,28 @@ Sua máquina ou pipeline automatizado precisa atender os seguintes requisitos:
 Para não perder tempo e testar rapidamente no seu terminal:
 
 1. **Clone do repositório:**
+
 ```bash
 git clone git@github.com:ThomazRossito/data-agents.git
 cd data-agents
 ```
 
 2. **Inicialize o Virtual Environment:**
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 ```
 
 3. **Instale os Módulos do Sistema:**
-Certifique-se de estar na respectiva branch (ex: `dev`) e faça o *Editable Install*.
+   Certifique-se de estar na respectiva branch (ex: `dev`) e faça o *Editable Install*.
+
 ```bash
 pip install -e "."
 ```
 
 4. **Configure as Variáveis de Ambiente:**
+
 ```bash
 cp .env.example .env
 # Edite o arquivo .env com suas credenciais
@@ -174,22 +140,27 @@ A premissa principal do **Data Agents** é que ele é um parceiro corporativo e 
 
 **1. Modo Interativo / Chat Contínuo (Recomendado para Arquitetura e Code-Review)**
 Inicie um loop onde o Supervisor debaterá os problemas passo-a-passo com você:
+
 ```bash
 data-agents
 # ou
 python main.py
 ```
+
 *Dica: Durante o chat, digite `limpar` ou `clear` para resetar o histórico da sessão, ou `sair` para encerrar.*
 
 **2. Modo Single-Query (Ideal para Automação CI/CD / Scripts)**
 Direto ao ponto, execute, receba a resposta ou código e o processo se encerra:
+
 ```bash
 data-agents "Inspecione o OneLake e sugira 3 otimizações de partição para a tabela silver_users seguindo as melhores práticas do guide lakehouse-medallion.md."
 ```
 
 ### ✅ Scripts de Health Check (Valide antes de viajar na nuvem!)
+
 Sempre que configurar uma máquina nova, valide suas chaves de API:
-- Para pingar a API do **Databricks**: 
+
+- Para pingar a API do **Databricks**:
   ```bash
   python tools/databricks_health_check.py
   ```
@@ -205,16 +176,19 @@ Sempre que configurar uma máquina nova, valide suas chaves de API:
 Não pense neste sistema como um "Search Engine", mas como um colega sênior embutido no seu terminal com acesso as suas contas de nuvem.
 
 **Integrações com Databricks:**
+
 * *"Encontre a declaração do job diário de ingestão que cria a tabela externa `raw.transactions`. Consegue transcrever isso para Databricks Asset Bundles (DABs) e gerar o `databricks.yml`?"*
 * *"O servidor databricks_mcp_server falhou de forma intermitente ontem. Você pode invocar o MCP para diagnosticar no Log de Eventos do cluster se foi falta de memória ou falha de preemptable nodes?"*
 * *"Gere a classe Python PyFunc wrapper pro MLflow para servir a nossa biblioteca principal como um endpoint de REST usando o Model Serving."*
 
 **Integrações com Microsoft Fabric:**
+
 * *"Leia as nossas skills internas de Arquitetura KQL e otimize esta consulta gigantesca de Eventhouse para usar filtros temporais mais eficientes."*
 * *"Como eu garanto que os dataframes PySpark que escrevi na Lakehouse do Fabric mantenham o V-Order ativo para alavancar a velocidade máxima no Direct Lake mode do Power BI?"*
 * *"Meu modelo de classificação Semântica parou de atualizar. Use o semantic-link para diagnosticar dependências diretas de metadados das partições."*
 
 **Tarefas de Dia a Dia:**
+
 * *"Baseado no layout da camada Bronze, construa um pipeline Lakeflow (SDP) com STREAMING TABLEs e AUTO CDC INTO para tratar e promover os dados para a camada Silver com SCD Type 2."*
 * *"Refatore o arquivo `main.py` respeitando princípios do SOLID e injetando Pydantic para validação de configurações de `.env`."*
 
@@ -225,26 +199,33 @@ Não pense neste sistema como um "Search Engine", mas como um colega sênior emb
 Siga esta "receita de bolo" quando executar o seu Orchestrator:
 
 ### Passo 1: Iniciar a Interface
+
 Abra seu terminal e digite:
+
 ```bash
 data-agents
 ```
 
 ### Passo 2: O Comando `/plan` (Context Engineering)
+
 Em vez de pedir o código agora, você forçará o agente a agir como o seu Arquiteto de Soluções e Product Manager.
 
 Copie e cole isto no terminal:
+
 > `/plan Sou um engenheiro de dados e preciso desenvolver um pipeline utilizando Lakeflow Pipelines (SDP) Spark Declarative Pipelines. Utilizarei comandos SQL com AUTO CDC Tipo 2 e MATERIALIZED VIEWS (não deve utilizar APPLY CHANGES). O pipeline será voltado para e-commerce e seguirá uma arquitetura medalhão com um Star Schema na Gold, tabelas (Clientes, Produtos, Vendas, Data). Todos os códigos gerados para este pipeline deverão ir exclusivamente para o diretório "output/databricks/". Faça uma especificação passo a passo dos arquivos.`
 
 **O que vai acontecer:**
+
 1. Veremos um log `[BMAD Agile] Iniciando Context Engineering — lendo skills relevantes...`
 2. O Supervisor **lerá os Skills relevantes** (ex: `SKILL.md` do Lakeflow), NÃO gerará código. Usará o Bash internamente para criar um PRD detalhado na pasta `output/` (ex: `output/prd_ecommerce_sdp.md`).
 3. O agente devolverá um resumo dizendo que o documento foi feito e pedirá a sua aprovação da modelagem.
 
 ### Passo 3: O Comando `/sql` ou `/spark` (Modo BMAD Express)
+
 Com o plano salvo fisicamente pela IA, chegou a hora do *bypass*.
 
 Copie e cole isto na mesma tela:
+
 > `/sql Leia o documento de arquitetura que você acabou de salvar na pasta output/ e implemente rigorosamente todos os algoritmos. Crie o .gitignore primeiro, e na sequência, solte os scripts .sql na pasta output/databricks/ conforme planejado.`
 
 **O que vai acontecer:**
@@ -253,10 +234,10 @@ A interface detectará a sua flag ignorando as checagens e te mostrará o status
 O agente **SQL Expert** entrará solando na execução. Como ele está lendo um PRD escrito por outro Agent-Arquiteto (passo anterior), não vai ter alucinação sobre onde ficarão os arquivos ou quais comandos utilizar.
 A mágica acontecerá de olhos fechados: O diretório `output/databricks/` se encherá com seus arquivos, todos seguindo os padrões modernos de Lakeflow (Bronze com `cloud_files`, Silver com `AUTO CDC INTO`, Gold com `MATERIALIZED VIEW`).
 
-> [!TIP]  
-> **Resumo do Fluxo BMAD**  
-> 1. Usar o `/plan` para forçar o Agent a virar PM e documentar a Arquitetura.  
-> 2. Validar o artefato do PM e realizar os ajustes finais.  
+> [!TIP]**Resumo do Fluxo BMAD**
+>
+> 1. Usar o `/plan` para forçar o Agent a virar PM e documentar a Arquitetura.
+> 2. Validar o artefato do PM e realizar os ajustes finais.
 > 3. Invocar via Comando Rápido (`/sql`, `/spark`, `/pipeline`) o Agente Desenvolvedor para escrever os códigos.
 
 ---
@@ -272,7 +253,7 @@ Este projeto incorpora as maiores tendências do MLOps corporativo:
 
 ---
 
-## 📂 Estrutura de Diretórios 
+## 📂 Estrutura de Diretórios
 
 ```text
 data-agents/
@@ -331,6 +312,7 @@ data-agents/
 O projeto inclui uma suíte de testes assíncronos via `pytest` para validar agentes, hooks de segurança e configurações MCP.
 
 Para executar os testes:
+
 ```bash
 # Instale as dependências de desenvolvimento
 pip install -e ".[dev]"
