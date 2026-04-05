@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="img/readme/banner.png" alt="Data Agents Banner" width="100%">
+</p>
+
+<p align="center">
   <h1 align="center">Data Agents</h1>
   <p align="center">
     <strong>Sistema Multi-Agentes para Engenharia de Dados, Análise e MLOps Corporativo</strong>
@@ -29,38 +33,69 @@ Construído sobre o **Claude Agent SDK** da Anthropic com integração nativa vi
 
 ## 🏗️ Visão Geral e Arquitetura
 
-O **Data Agents** é projetado para atuar como uma *squad* autônoma de dados. Através de um Supervisor de Agentes, a sua intenção em linguagem natural é orquestrada para especialistas capacitados em SQL, Spark e Pipelines de Dados.
+O **Data Agents** é projetado para atuar como uma *squad* autônoma de dados. Através de um Supervisor de Agentes e o **Método BMAD** (Breakthrough Method for Agile AI-Driven Development), a sua intenção em linguagem natural é orquestrada para especialistas capacitados em SQL, Spark e Pipelines de Dados.
 
-O diferencial deste projeto é o seu **Hub de Conhecimento (Skills)**. Os agentes não apenas geram códigos genéricos, mas **nativamente leem documentações oficiais e guias de melhores práticas armazenados no repositório** para interagir corretamente com o Model Context Protocol (MCP) da Databricks e Fabric.
+O diferencial deste projeto é o seu **Hub de Conhecimento (Skills)**. Os agentes não apenas geram códigos genéricos, mas **nativamente leem documentações oficiais e guias de melhores práticas armazenados no repositório** para interagir corretamente com o Model Context Protocol (MCP) da Databricks e Fabric. Antes de qualquer geração de código, o supervisor consulta os skills relevantes (**Context Engineering**) para garantir que o PRD e os artefatos sigam os padrões arquiteturais mais modernos.
+
+<p align="center">
+  <img src="img/readme/architecture.png" alt="Arquitetura Multi-Agent System" width="100%">
+</p>
 
 ```mermaid
 flowchart TD
-    US[Usuário - Linguagem Natural] --> AS
-    
-    subgraph Orquestração
-    AS[Agent Supervisor<br>Claude Opus 4.6]
-    end
-    
-    subgraph Hub de Especialistas
-    SQL[SQL Expert<br>Claude Sonnet 4.6]
-    SPK[Spark Expert<br>Claude Sonnet 4.6]
-    PL[Pipeline Architect<br>Claude Opus 4.6]
-    end
-    
-    subgraph Camada de Integração MCP Corporativa
-    DB[Databricks MCP Server]
-    FB[Fabric Official MCP Server]
+    US["🧑‍💻 Usuário — Linguagem Natural"] --> AS
+
+    subgraph BMAD["Orquestração + BMAD Method"]
+        PLAN["/plan\n(Context Engineering)"]
+        AS["Agent Supervisor / Data Orchestrator\nClaude Opus 4.6"]
+        EXPRESS["/sql  /spark\n(BMAD Express)"]
+        PLAN --> AS
+        EXPRESS --> AS
     end
 
-    AS --> |Delega sub-tarefas| SQL
-    AS --> |Delega sub-tarefas| SPK
-    AS --> |Delega sub-tarefas| PL
-    
-    SQL -.-> |Descoberta, Unity Catalog / OneLake| DB
-    SPK -.-> |Medallion, Direct Lake, DataFrames| FB
-    SPK -.-> |Automação PySpark| DB
-    PL -.-> |DABs, Real-Time Intelligence| FB
-    PL -.-> |Deployments, MLflow| DB
+    subgraph AGENTS["Hub de Especialistas"]
+        SQL["SQL Expert\nClaude Sonnet 4.6"]
+        SPK["Spark Expert\nClaude Sonnet 4.6"]
+        PL["Pipeline Architect\nClaude Sonnet 4.6"]
+    end
+
+    subgraph SKILLS["📚 Skills / Knowledge Hub"]
+        S1["SDP/Lakeflow"]
+        S2["Unity Catalog"]
+        S3["Medallion"]
+        S4["CDC/AUTO CDC"]
+        S5["Direct Lake"]
+        S6["Eventhouse RTI"]
+        S7["Data Factory"]
+        S8["Cross-Platform"]
+        S9["Jobs/DABs"]
+    end
+
+    subgraph HOOKS["🛡️ Hooks de Proteção"]
+        H1["Audit Hook"]
+        H2["Security Hook"]
+        H3["Cost Guard"]
+    end
+
+    subgraph MCP["Camada de Integração MCP Corporativa"]
+        DB["🟠 Databricks MCP Server"]
+        FB["🔵 Fabric Official MCP Server"]
+    end
+
+    AS --> |"Delega sub-tarefas"| SQL
+    AS --> |"Delega sub-tarefas"| SPK
+    AS --> |"Delega sub-tarefas"| PL
+
+    AS -.-> |"Lê skills antes de planejar"| SKILLS
+
+    SQL -.-> |"Descoberta, Unity Catalog"| DB
+    SQL -.-> |"KQL, OneLake"| FB
+    SPK -.-> |"PySpark, Lakeflow, Delta Lake"| DB
+    SPK -.-> |"Medallion, Direct Lake"| FB
+    PL -.-> |"Deployments, MLflow, DABs"| DB
+    PL -.-> |"Data Factory, RTI"| FB
+
+    HOOKS -.-> |"Intercepta chamadas"| MCP
 ```
 
 ## 🤖 Nossos Agentes
@@ -163,7 +198,7 @@ Não pense neste sistema como um "Search Engine", mas como um colega sênior emb
 * *"Meu modelo de classificação Semântica parou de atualizar. Use o semantic-link para diagnosticar dependências diretas de metadados das partições."*
 
 **Tarefas de Dia a Dia:**
-* *"Baseado no layout da camada Bronze, construa um DLT (Delta Live Tables) para tratar e jogar os dados para a camada Silver aplicando `dropDuplicates`."*
+* *"Baseado no layout da camada Bronze, construa um pipeline Lakeflow (SDP) com STREAMING TABLEs e AUTO CDC INTO para tratar e promover os dados para a camada Silver com SCD Type 2."*
 * *"Refatore o arquivo `main.py` respeitando princípios do SOLID e injetando Pydantic para validação de configurações de `.env`."*
 
 ---
@@ -189,8 +224,8 @@ Copie e cole isto no terminal:
 > `/plan Sou um engenheiro de dados e preciso desenvolver um pipeline utilizando Lakeflow Pipelines (SDP) Spark Declarative Pipelines. Utilizarei comandos SQL com AUTO CDC Tipo 2 e MATERIALIZED VIEWS (não deve utilizar APPLY CHANGES). O pipeline será voltado para e-commerce e seguirá uma arquitetura medalhão com um Star Schema na Gold, tabelas (Clientes, Produtos, Vendas, Data). Todos os códigos gerados para este pipeline deverão ir exclusivamente para o diretório "output/databricks/". Faça uma especificação passo a passo dos arquivos.`
 
 **O que vai acontecer:**
-1. Veremos um log `[BMAD Agile] Iniciando sessão de Context Engineering...`
-2. O Supervisor NÃO gerará código. Ele usará o Bash internamente e irá criar (ou atualizar) um arquivo PRD detalhado na pasta `output/` (ex: `output/prd_ecommerce_sdp.md`).
+1. Veremos um log `[BMAD Agile] Iniciando Context Engineering — lendo skills relevantes...`
+2. O Supervisor **lerá os Skills relevantes** (ex: `SKILL.md` do Lakeflow), NÃO gerará código. Usará o Bash internamente para criar um PRD detalhado na pasta `output/` (ex: `output/prd_ecommerce_sdp.md`).
 3. O agente devolverá um resumo dizendo que o documento foi feito e pedirá a sua aprovação da modelagem.
 
 ### Passo 3: Adicionar a Restrição para o `.gitignore`
@@ -207,10 +242,10 @@ Copie e cole isto na mesma tela:
 > `/sql Leia o documento de arquitetura que você acabou de salvar na pasta output/ e implemente rigorosamente todos os algoritmos. Crie o .gitignore primeiro, e na sequência, solte os scripts .sql na pasta output/databricks/ conforme planejado.`
 
 **O que vai acontecer:**
-A interface detectará a sua flag ignorando as checagens e te mostrará o status: `[BMAD Express] Direcionando para: data_modeling_agent...`
+A interface detectará a sua flag ignorando as checagens e te mostrará o status: `[BMAD Express] Direcionando para: sql-expert...`
 
-O agente de Modelagem de Dados entrará solando na execução. Como ele está lendo um PRD escrito por outro Agent-Arquiteto (passo anterior), não vai ter alucinação sobre onde ficarão os arquivos ou quais comandos utilizar.
-A mágica acontecerá de olhos fechados: O diretório `output/databricks/` se encherá com seus arquivos e todos de fato mascarados para não poluir sua master class!
+O agente **SQL Expert** entrará solando na execução. Como ele está lendo um PRD escrito por outro Agent-Arquiteto (passo anterior), não vai ter alucinação sobre onde ficarão os arquivos ou quais comandos utilizar.
+A mágica acontecerá de olhos fechados: O diretório `output/databricks/` se encherá com seus arquivos, todos seguindo os padrões modernos de Lakeflow (Bronze com `cloud_files`, Silver com `AUTO CDC INTO`, Gold com `MATERIALIZED VIEW`).
 
 > [!TIP]  
 > **Resumo do Fluxo BMAD que aplicamos hoje**  
@@ -234,34 +269,52 @@ Este projeto incorpora as maiores tendências do MLOps corporativo:
 
 ```text
 data-agents/
-├── main.py                          # Entry point principal da aplicação
-├── databricks.yml                   # Empacotamento de CI/CD para o Databricks (DABs)
+├── main.py                          # Entry point + Slash Commands (/plan, /sql, /spark)
+├── databricks.yml                   # Empacotamento de CI/CD (Databricks Asset Bundles)
 ├── fabric_environment.yml           # Dependências para Fabric Notebooks / Spark Compute
 ├── pyproject.toml                   # Dependências PIP (azure-identity, databricks-sdk, etc)
-├── .env.example                     # GDD de variáveis de ambiente
+├── .env.example                     # Variáveis de ambiente (DATABRICKS_HOST, AZURE_TENANT_ID)
 │
 ├── config/                          # Configurações do ecossistema e SDKs
-│   └── mcp_servers.py               # Mapeamento do Databricks e Fabric MCP Servers
+│   ├── mcp_servers.py               # Registro de MCP Servers (Databricks + Fabric)
+│   └── settings.py                  # Modelos, limites de custo, max_turns
 │
 ├── agents/                          # Cérebros e Personas
-│   ├── supervisor.py                # Setup Principal de Routing de Intents
-│   ├── mlflow_wrapper.py            # MLOps: Agrupador PyFunc para subir pro Databricks Serving
-│   └── definitions/                 # Scripts do Spark Expert, SQL Expert, etc
+│   ├── supervisor.py                # Orquestrador Principal (BMAD Method)
+│   ├── mlflow_wrapper.py            # MLOps: PyFunc wrapper para Model Serving
+│   ├── definitions/                 # Agentes especialistas (sql, spark, pipeline)
+│   └── prompts/                     # System prompts com regras mandatórias
+│       ├── supervisor_prompt.py     # Mapa de Skills + BMAD Protocol
+│       ├── sql_expert_prompt.py     # Padrões SQL/KQL/T-SQL
+│       ├── spark_expert_prompt.py   # Lakeflow/SDP + regras por camada
+│       └── pipeline_architect_prompt.py  # Cross-platform + DABs
 │
-├── mcp_servers/                     # Connectors Locais
-│   ├── databricks/                  # Adaptador Server do Databricks AI-DEV-KIT
-│   └── fabric/                      # Microsoft Fabric Integration
+├── hooks/                           # 🛡️ Camada de Proteção
+│   ├── audit_hook.py                # Log de todas as tool calls
+│   ├── security_hook.py             # Bloqueio de comandos destrutivos
+│   └── cost_guard_hook.py           # Controle de custo em operações MCP
 │
 ├── tools/                           # Ferramentas auxiliares Python
 │   ├── databricks_health_check.py   # Ping de conexão Auth Databricks
 │   └── fabric_health_check.py       # Ping de Auth Azure/Entra ID para Fabric
 │
-└── skills/                          # 📥 HUB DE CONHECIMENTO CIENTÍFICO E PADRÕES A SEREM LIDOS PELOS AGENTES
-    ├── databricks/                  # Manuais oficiais e design patterns exportados
-    └── fabric/                      
-        ├── direct-lake-patterns.md
-        ├── kql-rti-optimizations.md
-        └── lakehouse-medallion.md
+└── skills/                          # 📚 HUB DE CONHECIMENTO (lido pelos agentes via Read)
+    ├── pipeline_design.md           # Medallion Architecture + regras por camada
+    ├── spark_patterns.md            # PySpark + pyspark.pipelines (API moderna)
+    ├── sql_generation.md            # SQL generation patterns
+    ├── data_quality.md              # Expectations + reconciliação
+    ├── databricks/                  # Skills Databricks
+    │   ├── databricks-spark-declarative-pipelines/  # Lakeflow/SDP
+    │   ├── databricks-unity-catalog/                # Unity Catalog
+    │   ├── databricks-jobs/                         # Workflows/Jobs
+    │   ├── databricks-bundles/                      # DABs CI/CD  
+    │   └── ...                                      # +6 skills
+    └── fabric/                      # Skills Microsoft Fabric
+        ├── fabric-medallion/        # Lakehouse Medallion
+        ├── fabric-direct-lake/      # Direct Lake + Power BI
+        ├── fabric-eventhouse-rti/   # Eventhouse / KQL / Activator
+        ├── fabric-data-factory/     # Data Factory / Pipelines
+        └── fabric-cross-platform/   # Fabric ↔ Databricks
 ```
 
 ---
