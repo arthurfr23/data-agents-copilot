@@ -1,0 +1,131 @@
+"""Testes do parser de slash commands."""
+
+import pytest
+from commands.parser import parse_command, get_help_text, COMMAND_REGISTRY
+
+
+class TestParseCommand:
+    """Testes para o parsing de slash commands."""
+
+    def test_sql_command(self):
+        result = parse_command("/sql SELECT * FROM tabela")
+        assert result is not None
+        assert result.command == "/sql"
+        assert result.agent == "sql-expert"
+        assert result.bmad_mode == "express"
+        assert "sql-expert" in result.bmad_prompt
+
+    def test_spark_command(self):
+        result = parse_command("/spark Crie um DataFrame com filtro")
+        assert result is not None
+        assert result.command == "/spark"
+        assert result.agent == "spark-expert"
+        assert result.bmad_mode == "express"
+
+    def test_pipeline_command(self):
+        result = parse_command("/pipeline Crie um pipeline Medallion")
+        assert result is not None
+        assert result.command == "/pipeline"
+        assert result.agent == "pipeline-architect"
+        assert result.bmad_mode == "express"
+
+    def test_fabric_command(self):
+        result = parse_command("/fabric Crie um Lakehouse com Direct Lake")
+        assert result is not None
+        assert result.command == "/fabric"
+        assert result.agent == "pipeline-architect"
+        assert result.bmad_mode == "express"
+        assert "Fabric" in result.bmad_prompt
+
+    def test_plan_command(self):
+        result = parse_command("/plan Crie um pipeline completo com SCD2")
+        assert result is not None
+        assert result.command == "/plan"
+        assert result.agent is None
+        assert result.bmad_mode == "full"
+        assert "PRD" in result.bmad_prompt
+
+    def test_health_command(self):
+        result = parse_command("/health")
+        assert result is not None
+        assert result.command == "/health"
+        assert result.bmad_mode == "internal"
+
+    def test_status_command(self):
+        result = parse_command("/status")
+        assert result is not None
+        assert result.command == "/status"
+        assert result.bmad_mode == "internal"
+
+    def test_review_command(self):
+        result = parse_command("/review prd_pipeline.md")
+        assert result is not None
+        assert result.command == "/review"
+        assert result.bmad_mode == "internal"
+
+    def test_unknown_command_returns_none(self):
+        result = parse_command("/unknown teste")
+        assert result is None
+
+    def test_non_command_returns_none(self):
+        result = parse_command("Analise a tabela de vendas")
+        assert result is None
+
+    def test_empty_string_returns_none(self):
+        result = parse_command("")
+        assert result is None
+
+    def test_command_without_args(self):
+        result = parse_command("/health")
+        assert result is not None
+        assert result.bmad_prompt  # Deve ter prompt mesmo sem args
+
+    def test_case_insensitive_command(self):
+        result = parse_command("/SQL SELECT 1")
+        assert result is not None
+        assert result.command == "/sql"
+
+    def test_task_is_injected_in_prompt(self):
+        result = parse_command("/sql SELECT count(*) FROM users")
+        assert "SELECT count(*) FROM users" in result.bmad_prompt
+
+
+class TestCommandRegistry:
+    """Testes para o registry de comandos."""
+
+    def test_all_commands_have_required_fields(self):
+        for name, definition in COMMAND_REGISTRY.items():
+            assert definition.name == name
+            assert definition.bmad_mode in ("express", "full", "internal")
+            assert definition.description
+            assert definition.prompt_template
+            assert definition.display_template
+
+    def test_express_commands_have_agent(self):
+        for name, definition in COMMAND_REGISTRY.items():
+            if definition.bmad_mode == "express":
+                assert definition.agent is not None, f"/{name} express sem agent"
+
+    def test_prompt_template_has_task_placeholder(self):
+        for name, definition in COMMAND_REGISTRY.items():
+            if definition.bmad_mode in ("express", "full"):
+                assert "{task}" in definition.prompt_template, (
+                    f"/{name} sem {{task}} no prompt_template"
+                )
+
+
+class TestHelpText:
+    """Testes para o texto de ajuda."""
+
+    def test_help_text_lists_all_commands(self):
+        help_text = get_help_text()
+        for name in COMMAND_REGISTRY:
+            assert f"/{name}" in help_text
+
+    def test_help_text_includes_exit(self):
+        help_text = get_help_text()
+        assert "/exit" in help_text
+
+    def test_help_text_includes_help(self):
+        help_text = get_help_text()
+        assert "/help" in help_text

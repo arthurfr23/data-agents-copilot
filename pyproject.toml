@@ -34,8 +34,10 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
     "ruff>=0.4",
     "mypy>=1.10",
+    "bandit>=1.7",
 ]
 
 [project.scripts]
@@ -54,6 +56,7 @@ include = [
     "/agents",
     "/mcp_servers",
     "/hooks",
+    "/commands",
     "/skills",
     "/tools",
     "/tests",
