@@ -24,16 +24,17 @@ Construído sobre o **Claude Agent SDK** da Anthropic com integração nativa vi
 ## 👤 Autor
 
 > ## Thomaz Antonio Rossito Neto
+>
 > Specialist Data & AI Solutions Architect | Center of Excellence CoE @CI&T | Enterprise AI Agents, Microsoft Fabric & Databricks Expert
 
 ## Educação Acadêmica
 
-> **MBA: Ciência de Dados com ênfase em Big Data**
+> **MBA: Ciência de Dados com ênfase em Big Data**                           
 > **MBA: Engenharia de Dados com ênfase em Big Data**
 
 ## Contatos
 
-> **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)
+> **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)                            
 > **GitHub:** [https://github.com/ThomazRossito/](https://github.com/ThomazRossito/)
 
 ---
@@ -78,12 +79,12 @@ O diferencial deste projeto é o seu **Hub de Conhecimento (Skills)**. Os agente
 
 ## 🤖 Agentes Especialistas
 
-| Agente | Modelo | Papel e Responsabilidades |
-|---|---|---|
-| **Supervisor** | `claude-opus-4-6` | Líder técnico. Recebe a requisição, quebra em subtarefas, lê os *skills* necessários (Context Engineering), cria PRDs e aciona o especialista correto via BMAD. |
-| **SQL Expert** | `claude-sonnet-4-6` | Especialista em dados relacionais, analítica e modelagem (KQL, T-SQL, Spark SQL). Consulta metadados *read-only*, analisa schemas Fato/Dimensão e gera SQL com Liquid Clustering. |
-| **Spark Expert** | `claude-sonnet-4-6` | Ás da Engenharia Big Data. **Focado exclusivamente em geração de código SDP/LakeFlow moderno** — lê obrigatoriamente os SKILL.md antes de gerar qualquer pipeline. |
-| **Pipeline Architect** | `claude-sonnet-4-6` | Engenheiro DataOps/SRE. Único com permissões amplas de execução. Automatiza pipelines completos, gerencia DABs, Workflows e integrações cross-platform Databricks ↔ Fabric. |
+| Agente                       | Modelo                | Papel e Responsabilidades                                                                                                                                                            |
+| ---------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Supervisor**         | `claude-opus-4-6`   | Líder técnico. Recebe a requisição, quebra em subtarefas, lê os*skills* necessários (Context Engineering), cria PRDs e aciona o especialista correto via BMAD.               |
+| **SQL Expert**         | `claude-sonnet-4-6` | Especialista em dados relacionais, analítica e modelagem (KQL, T-SQL, Spark SQL). Consulta metadados*read-only*, analisa schemas Fato/Dimensão e gera SQL com Liquid Clustering. |
+| **Spark Expert**       | `claude-sonnet-4-6` | Ás da Engenharia Big Data.**Focado exclusivamente em geração de código SDP/LakeFlow moderno** — lê obrigatoriamente os SKILL.md antes de gerar qualquer pipeline.        |
+| **Pipeline Architect** | `claude-sonnet-4-6` | Engenheiro DataOps/SRE. Único com permissões amplas de execução. Automatiza pipelines completos, gerencia DABs, Workflows e integrações cross-platform Databricks ↔ Fabric.   |
 
 ---
 
@@ -101,11 +102,11 @@ Passo 4: Síntese      — Valida e consolida os artefatos produzidos
 
 **Modos disponíveis:**
 
-| Modo | Comando | Descrição |
-|---|---|---|
-| **BMAD Full** | `/plan` | Fluxo completo com PRD e aprovação antes de delegar |
-| **BMAD Express** | `/sql`, `/spark`, `/pipeline`, `/fabric` | Bypass do PRD — vai direto ao agente especialista |
-| **Internal** | `/health`, `/status`, `/review` | Diagnóstico, listagem de PRDs e revisão de artefatos |
+| Modo                   | Comando                                          | Descrição                                            |
+| ---------------------- | ------------------------------------------------ | ------------------------------------------------------ |
+| **BMAD Full**    | `/plan`                                        | Fluxo completo com PRD e aprovação antes de delegar  |
+| **BMAD Express** | `/sql`, `/spark`, `/pipeline`, `/fabric` | Bypass do PRD — vai direto ao agente especialista     |
+| **Internal**     | `/health`, `/status`, `/review`            | Diagnóstico, listagem de PRDs e revisão de artefatos |
 
 ---
 
@@ -153,19 +154,19 @@ data-agents
 
 Digite `/help` no CLI para ver a lista completa. Os comandos disponíveis são:
 
-| Comando | Modo | Agente | Descrição |
-|---|---|---|---|
-| `/sql <tarefa>` | Express | sql-expert | Geração de SQL, análise e modelagem dimensional |
-| `/spark <tarefa>` | Express | spark-expert | Pipelines SDP/LakeFlow, Structured Streaming, PySpark |
-| `/pipeline <tarefa>` | Express | pipeline-architect | Pipelines completos, DABs, DataOps |
-| `/fabric <tarefa>` | Express | pipeline-architect | Microsoft Fabric: Lakehouse, Direct Lake, Data Factory |
-| `/plan <tarefa>` | Full | supervisor | Cria PRD completo em `output/` e aguarda aprovação |
-| `/health` | Internal | supervisor | Verifica conectividade com Databricks e Fabric via MCP |
-| `/status` | Internal | supervisor | Lista PRDs gerados em `output/` com resumos |
-| `/review [arquivo]` | Internal | supervisor | Revisita um PRD existente para continuar ou ajustar |
-| `/help` | — | — | Exibe ajuda com todos os comandos |
-| `sair` / `exit` | — | — | Encerra a sessão |
-| `limpar` / `clear` | — | — | Limpa a tela e inicia nova sessão |
+| Comando                | Modo     | Agente             | Descrição                                            |
+| ---------------------- | -------- | ------------------ | ------------------------------------------------------ |
+| `/sql <tarefa>`      | Express  | sql-expert         | Geração de SQL, análise e modelagem dimensional     |
+| `/spark <tarefa>`    | Express  | spark-expert       | Pipelines SDP/LakeFlow, Structured Streaming, PySpark  |
+| `/pipeline <tarefa>` | Express  | pipeline-architect | Pipelines completos, DABs, DataOps                     |
+| `/fabric <tarefa>`   | Express  | pipeline-architect | Microsoft Fabric: Lakehouse, Direct Lake, Data Factory |
+| `/plan <tarefa>`     | Full     | supervisor         | Cria PRD completo em `output/` e aguarda aprovação |
+| `/health`            | Internal | supervisor         | Verifica conectividade com Databricks e Fabric via MCP |
+| `/status`            | Internal | supervisor         | Lista PRDs gerados em `output/` com resumos          |
+| `/review [arquivo]`  | Internal | supervisor         | Revisita um PRD existente para continuar ou ajustar    |
+| `/help`              | —       | —                 | Exibe ajuda com todos os comandos                      |
+| `sair` / `exit`    | —       | —                 | Encerra a sessão                                      |
+| `limpar` / `clear` | —       | —                 | Limpa a tela e inicia nova sessão                     |
 
 ---
 
@@ -227,6 +228,7 @@ com Star Schema na Gold. Salvar em output/databricks/.
 ```
 
 O que acontece:
+
 1. Log: `[BMAD Agile] Iniciando Context Engineering — lendo skills relevantes...`
 2. O Supervisor **lê os SKILL.md relevantes** (SDP, Unity Catalog, etc.), cria um PRD detalhado em `output/prd_<nome>.md` e apresenta o resumo para aprovação.
 
@@ -242,6 +244,7 @@ salvando em output/databricks/.
 O SQL Expert entra em ação, lê o PRD criado pelo Supervisor (sem alucinações de contexto), e gera os scripts seguindo os padrões SDP modernos.
 
 > **Resumo do Fluxo BMAD:**
+>
 > 1. `/plan` — Supervisor vira PM, documenta arquitetura e aguarda aprovação
 > 2. Validar o artefato e ajustar se necessário
 > 3. `/sql`, `/spark` ou `/pipeline` — Agente especialista implementa com contexto completo
@@ -254,57 +257,57 @@ Os agentes **leem obrigatoriamente os SKILL.md** antes de gerar qualquer código
 
 ### Skills Databricks (26 módulos)
 
-| Skill | Conteúdo |
-|---|---|
+| Skill                                      | Conteúdo                                                                   |
+| ------------------------------------------ | --------------------------------------------------------------------------- |
 | `databricks-spark-declarative-pipelines` | SDP/LakeFlow: STREAMING TABLE, AUTO CDC INTO, MATERIALIZED VIEW, CLUSTER BY |
-| `databricks-spark-structured-streaming` | Kafka, checkpoints, stateful ops, stream-stream joins |
-| `databricks-bundles` | Databricks Asset Bundles (DABs), YAML, CI/CD |
-| `databricks-jobs` | Workflows, schedules, task types, notifications |
-| `databricks-dbsql` | SQL Warehouse, Materialized Views, AI Functions, scripting |
-| `databricks-unity-catalog` | Governance, volumes, system tables, data profiling |
-| `databricks-model-serving` | Custom PyFunc, GenAI agents, AI Gateway, deployment |
-| `databricks-mlflow-evaluation` | Evaluation, scorers, judge alignment, traces |
-| `databricks-vector-search` | Delta Sync, Direct Access, RAG end-to-end |
-| `databricks-agent-bricks` | Knowledge assistants, supervisor agents |
-| `databricks-ai-functions` | AI_QUERY, AI_FORECAST, document pipelines |
-| `databricks-aibi-dashboards` | Widgets, filtros, troubleshooting |
-| `databricks-app-python` | Databricks Apps, frameworks, MCP approach |
-| `databricks-genie` | Genie Spaces, conversational analytics |
-| `databricks-iceberg` | Managed Iceberg, UniForm, REST Catalog, Snowflake interop |
-| `databricks-lakebase-autoscale` | Branches, autoscale, reverse ETL |
-| `databricks-lakebase-provisioned` | Provisioned Lakebase, connection patterns |
-| `databricks-metric-views` | Metric Views YAML, patterns |
-| `databricks-python-sdk` | SDK authentication, clusters, jobs, UC, serving |
-| `databricks-execution-compute` | Clusters, políticas, compute types |
-| `databricks-config` | Configurações globais, env vars |
-| `databricks-synthetic-data-gen` | Geração de dados sintéticos para testes |
-| `databricks-unstructured-pdf-generation` | PDF processing pipelines |
-| `databricks-zerobus-ingest` | ZeroBus ingestion, protobuf schema |
-| `spark-python-data-source` | Custom Data Sources, partitioning, streaming |
-| `databricks-docs` | Referências gerais da documentação |
+| `databricks-spark-structured-streaming`  | Kafka, checkpoints, stateful ops, stream-stream joins                       |
+| `databricks-bundles`                     | Databricks Asset Bundles (DABs), YAML, CI/CD                                |
+| `databricks-jobs`                        | Workflows, schedules, task types, notifications                             |
+| `databricks-dbsql`                       | SQL Warehouse, Materialized Views, AI Functions, scripting                  |
+| `databricks-unity-catalog`               | Governance, volumes, system tables, data profiling                          |
+| `databricks-model-serving`               | Custom PyFunc, GenAI agents, AI Gateway, deployment                         |
+| `databricks-mlflow-evaluation`           | Evaluation, scorers, judge alignment, traces                                |
+| `databricks-vector-search`               | Delta Sync, Direct Access, RAG end-to-end                                   |
+| `databricks-agent-bricks`                | Knowledge assistants, supervisor agents                                     |
+| `databricks-ai-functions`                | AI_QUERY, AI_FORECAST, document pipelines                                   |
+| `databricks-aibi-dashboards`             | Widgets, filtros, troubleshooting                                           |
+| `databricks-app-python`                  | Databricks Apps, frameworks, MCP approach                                   |
+| `databricks-genie`                       | Genie Spaces, conversational analytics                                      |
+| `databricks-iceberg`                     | Managed Iceberg, UniForm, REST Catalog, Snowflake interop                   |
+| `databricks-lakebase-autoscale`          | Branches, autoscale, reverse ETL                                            |
+| `databricks-lakebase-provisioned`        | Provisioned Lakebase, connection patterns                                   |
+| `databricks-metric-views`                | Metric Views YAML, patterns                                                 |
+| `databricks-python-sdk`                  | SDK authentication, clusters, jobs, UC, serving                             |
+| `databricks-execution-compute`           | Clusters, políticas, compute types                                         |
+| `databricks-config`                      | Configurações globais, env vars                                           |
+| `databricks-synthetic-data-gen`          | Geração de dados sintéticos para testes                                  |
+| `databricks-unstructured-pdf-generation` | PDF processing pipelines                                                    |
+| `databricks-zerobus-ingest`              | ZeroBus ingestion, protobuf schema                                          |
+| `spark-python-data-source`               | Custom Data Sources, partitioning, streaming                                |
+| `databricks-docs`                        | Referências gerais da documentação                                       |
 
 ### Skills Microsoft Fabric (5 módulos + referências)
 
-| Skill | Conteúdo |
-|---|---|
-| `fabric-medallion` | Bronze/Silver/Gold com V-Order, MERGE, Auto Loader no Fabric |
-| `fabric-direct-lake` | Regras V-Order, causas de fallback, limites por SKU |
-| `fabric-eventhouse-rti` | KQL reference table, Eventstreams, Activator, caching policies |
-| `fabric-data-factory` | Copy Activity, Dataflows Gen2 Fast Copy, Pipeline JSON |
-| `fabric-cross-platform` | Mirroring, Shortcuts, ABFSS, Export (Databricks ↔ Fabric) |
-| `lakehouse-medallion.md` | Referência arquitetural Medallion no Fabric |
-| `direct-lake-patterns.md` | Padrões de otimização para Direct Lake |
-| `kql-rti-optimizations.md` | Otimizações KQL para Real-Time Intelligence |
+| Skill                        | Conteúdo                                                      |
+| ---------------------------- | -------------------------------------------------------------- |
+| `fabric-medallion`         | Bronze/Silver/Gold com V-Order, MERGE, Auto Loader no Fabric   |
+| `fabric-direct-lake`       | Regras V-Order, causas de fallback, limites por SKU            |
+| `fabric-eventhouse-rti`    | KQL reference table, Eventstreams, Activator, caching policies |
+| `fabric-data-factory`      | Copy Activity, Dataflows Gen2 Fast Copy, Pipeline JSON         |
+| `fabric-cross-platform`    | Mirroring, Shortcuts, ABFSS, Export (Databricks ↔ Fabric)     |
+| `lakehouse-medallion.md`   | Referência arquitetural Medallion no Fabric                   |
+| `direct-lake-patterns.md`  | Padrões de otimização para Direct Lake                      |
+| `kql-rti-optimizations.md` | Otimizações KQL para Real-Time Intelligence                  |
 
 ### Skills Globais
 
-| Skill | Conteúdo |
-|---|---|
-| `pipeline_design.md` | Medallion Architecture, regras por camada, decisões de design |
-| `spark_patterns.md` | PySpark patterns, `pyspark.pipelines` API moderna |
-| `sql_generation.md` | SQL patterns com Liquid Clustering (CLUSTER BY), sem ZORDER BY |
-| `data_quality.md` | Expectations, reconciliação, qualidade de dados |
-| `star_schema_design.md` | 5 regras Gold Star Schema: dim autônoma, `dim_data` via SEQUENCE, INNER JOIN obrigatório em fact, topologia de DAG, Liquid Clustering |
+| Skill                     | Conteúdo                                                                                                                                |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `pipeline_design.md`    | Medallion Architecture, regras por camada, decisões de design                                                                           |
+| `spark_patterns.md`     | PySpark patterns,`pyspark.pipelines` API moderna                                                                                       |
+| `sql_generation.md`     | SQL patterns com Liquid Clustering (CLUSTER BY), sem ZORDER BY                                                                           |
+| `data_quality.md`       | Expectations, reconciliação, qualidade de dados                                                                                        |
+| `star_schema_design.md` | 5 regras Gold Star Schema: dim autônoma,`dim_data` via SEQUENCE, INNER JOIN obrigatório em fact, topologia de DAG, Liquid Clustering |
 
 ---
 
@@ -312,22 +315,22 @@ Os agentes **leem obrigatoriamente os SKILL.md** antes de gerar qualquer código
 
 Todos os hooks são registrados no Supervisor e interceptam chamadas em tempo real:
 
-| Hook | Tipo | Proteção |
-|---|---|---|
-| `security_hook.py` | PreToolUse (Bash) | 17 padrões destrutivos com regex (word boundaries) + 11 padrões de evasão (base64, eval, curl\|shell pipe, xargs) |
-| `audit_hook.py` | PostToolUse | Log JSONL de todas as tool calls com classificação (read/write/execute), fallback para stderr se I/O falhar |
-| `cost_guard_hook.py` | PostToolUse | Tiers HIGH/MEDIUM/LOW — alerta ao atingir 5 operações HIGH na sessão |
+| Hook                   | Tipo              | Proteção                                                                                                           |
+| ---------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `security_hook.py`   | PreToolUse (Bash) | 17 padrões destrutivos com regex (word boundaries) + 11 padrões de evasão (base64, eval, curl\|shell pipe, xargs) |
+| `audit_hook.py`      | PostToolUse       | Log JSONL de todas as tool calls com classificação (read/write/execute), fallback para stderr se I/O falhar        |
+| `cost_guard_hook.py` | PostToolUse       | Tiers HIGH/MEDIUM/LOW — alerta ao atingir 5 operações HIGH na sessão                                             |
 
 ---
 
 ## 🔌 Servidores MCP
 
-| Servidor | Plataforma | Tipo | Tools |
-|---|---|---|---|
-| `databricks` | Databricks | stdio (Python) | 50+ tools: execute_sql, run_job_now, start_pipeline, list_catalogs, etc. |
-| `fabric` | Microsoft Fabric | stdio (dotnet) | Tools oficiais Microsoft para Workspaces, Lakehouses, Datasets |
-| `fabric_community` | Microsoft Fabric | stdio (Python) | Tools da comunidade para OneLake, Semantic Models |
-| `fabric_rti` | Fabric Eventhouse | stdio (Python) | kusto_query, kusto_command, eventstream_create, activator_create_trigger |
+| Servidor             | Plataforma        | Tipo           | Tools                                                                    |
+| -------------------- | ----------------- | -------------- | ------------------------------------------------------------------------ |
+| `databricks`       | Databricks        | stdio (Python) | 50+ tools: execute_sql, run_job_now, start_pipeline, list_catalogs, etc. |
+| `fabric`           | Microsoft Fabric  | stdio (dotnet) | Tools oficiais Microsoft para Workspaces, Lakehouses, Datasets           |
+| `fabric_community` | Microsoft Fabric  | stdio (Python) | Tools da comunidade para OneLake, Semantic Models                        |
+| `fabric_rti`       | Fabric Eventhouse | stdio (Python) | kusto_query, kusto_command, eventstream_create, activator_create_trigger |
 
 ---
 
@@ -368,11 +371,11 @@ make clean              # Remove cache e artefatos temporários
 
 O arquivo `databricks.yml` configura três targets:
 
-| Target | Uso | Caminho |
-|---|---|---|
-| `dev` | Desenvolvimento local (default) | workspace padrão |
-| `staging` | Homologação com permissões de grupo | `/Shared/data-agents-staging` |
-| `production` | Produção com service principal | `/Shared/data-agents-prod` |
+| Target         | Uso                                    | Caminho                         |
+| -------------- | -------------------------------------- | ------------------------------- |
+| `dev`        | Desenvolvimento local (default)        | workspace padrão               |
+| `staging`    | Homologação com permissões de grupo | `/Shared/data-agents-staging` |
+| `production` | Produção com service principal       | `/Shared/data-agents-prod`    |
 
 ### MLflow / Mosaic AI Model Serving
 
@@ -380,11 +383,11 @@ A classe `agents/mlflow_wrapper.py` empacota toda a engine Multi-Agente como um 
 
 Ao final de cada execução, o wrapper captura o `ResultMessage` do SDK e loga automaticamente as métricas no MLflow Run ativo (quando disponível):
 
-| Métrica | Descrição |
-|---|---|
-| `agent.cost_usd` | Custo total da sessão em dólares |
-| `agent.num_turns` | Número de turns executados |
-| `agent.duration_ms` | Duração total em milissegundos |
+| Métrica              | Descrição                        |
+| --------------------- | ---------------------------------- |
+| `agent.cost_usd`    | Custo total da sessão em dólares |
+| `agent.num_turns`   | Número de turns executados        |
+| `agent.duration_ms` | Duração total em milissegundos   |
 
 ### Diagnóstico de Startup
 
