@@ -2,8 +2,46 @@
 
 ---
 
-**Repositório:**[github.com/ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents)
+Repositório:  [github.com/ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents)
 
+---
+
+## 👤 Autor
+
+> ## Thomaz Antonio Rossito Neto
+>
+> Specialist Data & AI Solutions Architect | Center of Excellence CoE @CI&T | Enterprise AI Agents, Microsoft Fabric & Databricks Expert
+
+## Educação Acadêmica
+
+> **MBA: Ciência de Dados com ênfase em Big Data**                           
+> **MBA: Engenharia de Dados com ênfase em Big Data**
+
+## Contatos
+
+> **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)                            
+> **GitHub:** [https://github.com/ThomazRossito/](https://github.com/ThomazRossito/)
+
+---
+
+#### 🏆 Profissional Certificado Databricks
+
+<img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/125134719" alt="Databricks Certified Spark Developer" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/169321258" alt="Databricks Certified Generative AI Engineer Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/167127257" alt="Databricks Certified Data Analyst Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/125134780" alt="Databricks Certified Data Engineer Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/157011932" alt="Databricks Certified Data Engineer Professional" width="155"/>
+
+[Todas as certificações](https://credentials.databricks.com/profile/thomazantoniorossitoneto39867/wallet)
+
+---
+
+#### 🏆 Profissional Certificado Microsoft
+
+<a href="https://www.credly.com/badges/052e5133-0c67-4ab7-bb3a-c99efa7b4406/public_url" target="_blank">
+  <img src="https://images.credly.com/images/70eb1e3f-d4de-4377-a062-b20fb29594ea/azure-data-fundamentals-600x600.png" alt="Microsoft Certified: Azure Data Fundamentals (DP-900)" width="155"/>
+</a>
+<a href="https://learn.microsoft.com/pt-br/users/thomazantoniorossitoneto/credentials/certification/fabric-data-engineer-associate" target="_blank">
+  <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663028569643/ftqfVZsrmaGyfUha.png" alt="Microsoft Certified: Fabric Data Engineer Associate (DP-700)" width="155"/>
+</a>
+
+[Todas as certificações](https://www.credly.com/users/thomaz-antonio-rossito-neto/badges#credly)
 
 ---
 
