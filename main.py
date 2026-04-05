@@ -29,6 +29,9 @@ from claude_agent_sdk import (
 )
 
 from agents.supervisor import build_supervisor_options
+from commands.parser import parse_command, get_help_text
+from config.settings import settings
+from config.logging_config import setup_logging
 
 console = Console()
 
@@ -52,12 +55,19 @@ def print_banner() -> None:
     console.print(Panel(banner, border_style="cyan"))
     console.print()
     console.print("[dim]Digite sua solicitação em linguagem natural.[/dim]")
-    console.print("[dim]Comandos: [bold]sair[/bold] para encerrar | [bold]limpar[/bold] para nova sessão[/dim]")
-    console.print("[dim]Slash: [bold]/plan[/bold] <tarefa> | [bold]/sql[/bold] <instrução> | [bold]/spark[/bold] <instrução> | [bold]/pipeline[/bold] <instrução>[/dim]\n")
+    console.print("[dim]Comandos: [bold]sair[/bold] para encerrar | [bold]limpar[/bold] para nova sessão | [bold]/help[/bold] para ver todos os comandos[/dim]")
+    console.print("[dim]Slash: [bold]/plan[/bold] | [bold]/sql[/bold] | [bold]/spark[/bold] | [bold]/pipeline[/bold] | [bold]/fabric[/bold] | [bold]/health[/bold] | [bold]/status[/bold][/dim]\n")
 
 
 async def run_interactive() -> None:
     """Loop interativo com histórico de sessão mantido entre mensagens."""
+    # Configurar logging no startup
+    setup_logging(
+        log_level=settings.log_level,
+        log_file=settings.audit_log_path.replace("audit.jsonl", "app.jsonl"),
+    )
+    settings.startup_diagnostics()
+
     print_banner()
     options = build_supervisor_options()
 
@@ -81,42 +91,27 @@ async def run_interactive() -> None:
                     await client.connect()
                     continue
 
+                # Tratamento de /help interno
+                if user_input.lower() in ("/help", "/ajuda"):
+                    console.print(get_help_text())
+                    continue
+
                 console.print()
 
-                # --- BMAD-METHOD: Slash Commands Parsing ---
-                override_agent = None
+                # --- Parser de Slash Commands ---
                 bmad_prompt = user_input
+                command_result = parse_command(user_input)
 
-                if user_input.startswith("/sql "):
-                    override_agent = "sql-expert"
-                    bmad_prompt = f"IGNORE PLANEJAMENTO E PASSE ISSO DIRETAMENTE PARA O sql-expert: {user_input[5:]}"
-                    console.print(f"[bold yellow]🚀 [BMAD Express] Direcionando para: {override_agent}...[/bold yellow]")
-
-                elif user_input.startswith("/spark "):
-                    override_agent = "spark-expert"
-                    bmad_prompt = f"IGNORE PLANEJAMENTO E PASSE ISSO DIRETAMENTE PARA O spark-expert: {user_input[7:]}"
-                    console.print(f"[bold yellow]🚀 [BMAD Express] Direcionando para: {override_agent}...[/bold yellow]")
-
-                elif user_input.startswith("/pipeline "):
-                    override_agent = "pipeline-architect"
-                    bmad_prompt = f"IGNORE PLANEJAMENTO E PASSE ISSO DIRETAMENTE PARA O pipeline-architect: {user_input[10:]}"
-                    console.print(f"[bold yellow]🚀 [BMAD Express] Direcionando para: {override_agent}...[/bold yellow]")
-
-                elif user_input.startswith("/plan "):
-                    # Força a criação de um PRD com skill routing inteligente
-                    bmad_prompt = (
-                        f"Como Product Manager/Arquiteto (BMAD Passo 1), você deve criar um PRD completo para a tarefa abaixo. "
-                        f"ANTES de escrever qualquer linha do PRD, use a ferramenta Read para ler os skills relevantes: "
-                        f"(1) Identifique o tipo de tarefa (SDP, Structured Streaming, Jobs, Fabric Lakehouse, RTI, etc). "
-                        f"(2) Consulte o Mapa de Skills no seu system prompt para decidir quais SKILL.md ler. "
-                        f"(3) Leia TODOS os skills identificados antes de começar o PRD. "
-                        f"(4) Crie um PRD detalhado em `output/prd_<nome_descritivo>.md` usando Bash, incluindo: "
-                        f"arquitetura Medallion moderna (Bronze→Silver→Gold), padrões obrigatórios por camada, "
-                        f"agentes a acionar e ordem de execução. "
-                        f"(5) Apresente o resumo do PRD e aguarde aprovação antes de delegar. "
-                        f"Tarefa: {user_input[6:]}"
+                if command_result is not None:
+                    console.print(command_result.display_message)
+                    bmad_prompt = command_result.bmad_prompt
+                elif user_input.startswith("/"):
+                    # Comando desconhecido — sugerir help
+                    console.print(
+                        f"[yellow]Comando desconhecido: '{user_input.split()[0]}'. "
+                        f"Digite /help para ver os comandos disponíveis.[/yellow]"
                     )
-                    console.print("[bold purple]🗺️ [BMAD Agile] Iniciando Context Engineering — lendo skills relevantes...[/bold purple]")
+                    continue
 
                 await client.query(bmad_prompt)
 
@@ -149,9 +144,14 @@ async def run_interactive() -> None:
 
 async def run_single_query(prompt: str) -> None:
     """Executa uma única solicitação e exibe o resultado."""
+    setup_logging(log_level=settings.log_level, enable_console=False)
     options = build_supervisor_options()
 
-    async for message in query(prompt=prompt, options=options):
+    # Aplicar parser também no modo single-query
+    command_result = parse_command(prompt)
+    actual_prompt = command_result.bmad_prompt if command_result else prompt
+
+    async for message in query(prompt=actual_prompt, options=options):
         if isinstance(message, AssistantMessage):
             for block in message.content:
                 if isinstance(block, TextBlock) and block.text.strip():

@@ -1,9 +1,18 @@
 """
 Configurações globais via Pydantic BaseSettings.
 Carregadas automaticamente do arquivo .env na raiz do projeto.
+
+Inclui validação de credenciais por plataforma e diagnóstico de startup.
 """
 
+import logging
+import warnings
+from typing import ClassVar
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+logger = logging.getLogger("data_agents.config")
 
 
 class Settings(BaseSettings):
@@ -35,6 +44,160 @@ class Settings(BaseSettings):
     audit_log_path: str = "./logs/audit.jsonl"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    # --- Campos internos (não carregados do .env) ---
+    _available_platforms: ClassVar[list[str]] = []
+
+    # ─── Validators ───────────────────────────────────────────────
+
+    @field_validator("anthropic_api_key")
+    @classmethod
+    def validate_anthropic_key(cls, v: str) -> str:
+        """Valida que a API key da Anthropic está presente e tem formato esperado."""
+        if not v or v.startswith("sk-ant-..."):
+            warnings.warn(
+                "⚠️  ANTHROPIC_API_KEY não configurada. O sistema não funcionará sem ela. "
+                "Configure no arquivo .env ou como variável de ambiente.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return v
+
+    @field_validator("max_budget_usd")
+    @classmethod
+    def validate_budget(cls, v: float) -> float:
+        """Garante que o budget máximo está dentro de limites razoáveis."""
+        if v <= 0:
+            raise ValueError("MAX_BUDGET_USD deve ser maior que zero.")
+        if v > 100:
+            warnings.warn(
+                f"⚠️  MAX_BUDGET_USD={v} é muito alto. Considere reduzir para evitar custos inesperados.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return v
+
+    @field_validator("max_turns")
+    @classmethod
+    def validate_max_turns(cls, v: int) -> int:
+        """Garante que max_turns está dentro de limites razoáveis."""
+        if v < 1:
+            raise ValueError("MAX_TURNS deve ser pelo menos 1.")
+        if v > 200:
+            warnings.warn(
+                f"⚠️  MAX_TURNS={v} é muito alto. Sessões longas podem gerar custos elevados.",
+                UserWarning,
+                stacklevel=2,
+            )
+        return v
+
+    # ─── Platform Validation ──────────────────────────────────────
+
+    def validate_platform_credentials(self) -> dict[str, dict]:
+        """
+        Verifica quais plataformas têm credenciais válidas configuradas.
+
+        Returns:
+            Dict com status de cada plataforma:
+            {
+                "anthropic": {"ready": True, "missing": []},
+                "databricks": {"ready": False, "missing": ["DATABRICKS_TOKEN"]},
+                ...
+            }
+        """
+        platforms = {
+            "anthropic": {
+                "fields": {"ANTHROPIC_API_KEY": self.anthropic_api_key},
+                "required": ["ANTHROPIC_API_KEY"],
+            },
+            "databricks": {
+                "fields": {
+                    "DATABRICKS_HOST": self.databricks_host,
+                    "DATABRICKS_TOKEN": self.databricks_token,
+                    "DATABRICKS_SQL_WAREHOUSE_ID": self.databricks_sql_warehouse_id,
+                },
+                "required": ["DATABRICKS_HOST", "DATABRICKS_TOKEN"],
+            },
+            "fabric": {
+                "fields": {
+                    "AZURE_TENANT_ID": self.azure_tenant_id,
+                    "FABRIC_WORKSPACE_ID": self.fabric_workspace_id,
+                },
+                "required": ["AZURE_TENANT_ID", "FABRIC_WORKSPACE_ID"],
+            },
+            "fabric_rti": {
+                "fields": {
+                    "KUSTO_SERVICE_URI": self.kusto_service_uri,
+                    "KUSTO_SERVICE_DEFAULT_DB": self.kusto_service_default_db,
+                },
+                "required": ["KUSTO_SERVICE_URI", "KUSTO_SERVICE_DEFAULT_DB"],
+            },
+        }
+
+        results: dict[str, dict] = {}
+
+        for platform, config in platforms.items():
+            missing = [
+                name
+                for name in config["required"]
+                if not config["fields"].get(name, "").strip()
+                or config["fields"].get(name, "").startswith("sk-ant-...")
+            ]
+            results[platform] = {
+                "ready": len(missing) == 0,
+                "missing": missing,
+            }
+
+        return results
+
+    def get_available_platforms(self) -> list[str]:
+        """Retorna lista de plataformas MCP com credenciais válidas."""
+        status = self.validate_platform_credentials()
+        return [
+            name
+            for name, info in status.items()
+            if info["ready"] and name != "anthropic"
+        ]
+
+    def startup_diagnostics(self) -> None:
+        """
+        Executa diagnóstico completo no startup e emite warnings/errors.
+        Chamado uma vez no início da aplicação.
+        """
+        status = self.validate_platform_credentials()
+
+        # Anthropic é obrigatória
+        if not status["anthropic"]["ready"]:
+            logger.error(
+                "❌ ANTHROPIC_API_KEY não configurada. O sistema não funcionará. "
+                "Configure no .env ou como variável de ambiente."
+            )
+
+        # Plataformas de dados — pelo menos uma deve estar configurada
+        data_platforms = ["databricks", "fabric", "fabric_rti"]
+        any_ready = any(status[p]["ready"] for p in data_platforms)
+
+        if not any_ready:
+            logger.warning(
+                "⚠️  Nenhuma plataforma de dados configurada. "
+                "Configure pelo menos Databricks ou Fabric no .env para usar os MCP servers."
+            )
+
+        # Diagnóstico individual
+        for platform in data_platforms:
+            info = status[platform]
+            if info["ready"]:
+                logger.info(f"✅ {platform.upper()}: credenciais configuradas.")
+            elif info["missing"]:
+                logger.warning(
+                    f"⚠️  {platform.upper()}: variáveis ausentes: {', '.join(info['missing'])}. "
+                    f"MCP server desta plataforma não será ativado."
+                )
+
+        logger.info(
+            f"📋 Configuração: model={self.default_model}, "
+            f"budget=${self.max_budget_usd}, max_turns={self.max_turns}"
+        )
 
 
 settings = Settings()

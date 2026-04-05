@@ -1,14 +1,16 @@
+# ═══════════════════════════════════════════════════════════════════
+# Databricks Asset Bundles — Data Agents
+# Multi-environment: dev, staging, production
+# ═══════════════════════════════════════════════════════════════════
+
 bundle:
   name: data_agents
 
 workspace:
   host: ${workspace.host}
 
-targets:
-  dev:
-    mode: development
-    default: true
-  
+# ─── Shared Resources ────────────────────────────────────────────
+
 resources:
   jobs:
     health_check_job:
@@ -21,3 +23,51 @@ resources:
             num_workers: 0
           spark_python_task:
             python_file: ./tools/databricks_health_check.py
+
+# ─── Sync Configuration ──────────────────────────────────────────
+
+sync:
+  include:
+    - "skills/**"
+    - "agents/**"
+    - "config/**"
+    - "hooks/**"
+    - "commands/**"
+    - "mcp_servers/**"
+    - "main.py"
+    - "pyproject.toml"
+  exclude:
+    - "tests/**"
+    - ".github/**"
+    - "**/*.pyc"
+    - "**/__pycache__"
+
+# ─── Targets (Environments) ──────────────────────────────────────
+
+targets:
+  # ─── Development ──────────────────────────────────────────────
+  dev:
+    mode: development
+    default: true
+
+  # ─── Staging ──────────────────────────────────────────────────
+  staging:
+    workspace:
+      root_path: /Shared/data-agents-staging
+    permissions:
+      - level: CAN_VIEW
+        group_name: data-agents-viewers
+      - level: CAN_MANAGE
+        group_name: data-agents-admins
+
+  # ─── Production ──────────────────────────────────────────────
+  production:
+    workspace:
+      root_path: /Shared/data-agents-prod
+    permissions:
+      - level: CAN_VIEW
+        group_name: data-agents-viewers
+      - level: CAN_MANAGE
+        group_name: data-agents-admins
+    run_as:
+      service_principal_name: data-agents-sp
