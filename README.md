@@ -270,3 +270,9 @@ A v2.0 introduziu a definição declarativa de agentes. Para criar um novo agent
 4. O `loader.py` carregará o agente automaticamente no próximo boot.
 
 *"Um agente com acesso à nuvem é bom. Uma equipe de especialistas autônomos governados por Knowledge Bases declarativas é revolucionário."*
+
+---
+
+## 📄 Licença
+
+Este projeto está licenciado sob a [MIT License](LICENSE).
