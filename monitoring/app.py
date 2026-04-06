@@ -11,9 +11,26 @@ Auto-refresh: use o seletor na sidebar para atualizar automaticamente.
 import json
 import time
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import streamlit as st
+
+SP_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def to_sp(ts: str) -> str:
+    """Converte timestamp ISO UTC para horário de São Paulo (America/Sao_Paulo)."""
+    if not ts:
+        return "—"
+    try:
+        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(SP_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return ts[:19].replace("T", " ")
 
 # ── Configuração da página ────────────────────────────────────────────────────
 st.set_page_config(
@@ -82,7 +99,7 @@ def analyse_audit(records: list[dict]) -> dict:
 
     for r in records:
         ts = r.get("timestamp", "")
-        date = ts[:10] if ts else "unknown"
+        date = to_sp(ts)[:10] if ts else "unknown"
         tool = r.get("tool_name", "unknown")
         by_date[date] += 1
         by_tool[tool] += 1
@@ -224,7 +241,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navegação",
-        ["📊 Overview", "🤖 Agentes", "⚡ Execuções", "🔌 MCP Servers", "📋 Logs", "⚙️ Configurações"],
+        ["📊 Overview", "🤖 Agentes", "⚡ Execuções", "🔌 MCP Servers", "📋 Logs", "⚙️ Configurações", "ℹ️ Sobre"],
         label_visibility="collapsed",
     )
 
@@ -324,7 +341,7 @@ if page == "📊 Overview":
         st.subheader("⚠️ Avisos e Erros Recentes")
         for r in app["recent_notable"][:10]:
             level = r.get("level", "")
-            ts = r.get("timestamp", "")[:19].replace("T", " ")
+            ts = to_sp(r.get("timestamp", ""))
             msg = r.get("message", "")
             if level == "ERROR":
                 st.error(f"`{ts}` {msg}")
@@ -456,7 +473,7 @@ elif page == "🔌 MCP Servers":
         import pandas as pd
         df_mcp = pd.DataFrame([
             {
-                "Timestamp": r.get("timestamp", "")[:19].replace("T", " "),
+                "Timestamp": to_sp(r.get("timestamp", "")),
                 "Tool": r.get("tool_name", ""),
                 "Inputs": ", ".join(r.get("input_keys", [])),
                 "ID": r.get("tool_use_id", "")[-12:],
@@ -495,7 +512,7 @@ elif page == "📋 Logs":
         if filtered_app:
             df_app = pd.DataFrame([
                 {
-                    "Timestamp": r.get("timestamp", "")[:19].replace("T", " "),
+                    "Timestamp": to_sp(r.get("timestamp", "")),
                     "Nível": r.get("level", ""),
                     "Logger": r.get("logger", "").replace("data_agents.", ""),
                     "Mensagem": r.get("message", "")[:200],
@@ -543,7 +560,7 @@ elif page == "📋 Logs":
             import pandas as pd
             df_audit = pd.DataFrame([
                 {
-                    "Timestamp": r.get("timestamp", "")[:19].replace("T", " "),
+                    "Timestamp": to_sp(r.get("timestamp", "")),
                     "Tool": r.get("tool_name", ""),
                     "Inputs": ", ".join(r.get("input_keys", [])),
                     "ID": r.get("tool_use_id", "")[-12:],
@@ -593,4 +610,154 @@ elif page == "⚙️ Configurações":
         "Este dashboard lê os arquivos de log em tempo real. "
         "Use o **auto-refresh** na sidebar para atualizações automáticas enquanto os agentes rodam. "
         "O cache é de 5 segundos para `audit.jsonl` e `app.jsonl`."
+    )
+
+
+# ── SOBRE ─────────────────────────────────────────────────────────────────────
+elif page == "ℹ️ Sobre":
+    st.title("ℹ️ Sobre este Dashboard")
+    st.divider()
+
+    # Cabeçalho de identidade
+    col_meta, col_badge = st.columns([3, 1])
+    with col_meta:
+        st.markdown("## Data Agents — Monitoramento")
+        st.caption("Dashboard de observabilidade para o sistema multi-agente Data Agents")
+    with col_badge:
+        st.markdown(
+            """
+            <div style='text-align:right;margin-top:8px'>
+                <span style='background:#dcfce7;color:#16a34a;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700'>● Ativo</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
+
+    # Metadados
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.markdown("**👤 Autor**")
+        st.markdown("Thomaz Antonio Rossito Neto")
+    with c2:
+        st.markdown("**📅 Data de Criação**")
+        st.markdown("Abril de 2026")
+    with c3:
+        st.markdown("**🔖 Versão**")
+        st.markdown("`v1.0.0`")
+    with c4:
+        st.markdown("**📄 Licença**")
+        st.markdown("MIT License")
+
+    st.divider()
+
+    # O que é este dashboard
+    st.subheader("📋 O que é este monitoramento?")
+    st.markdown(
+        """
+        Este dashboard oferece **observabilidade em tempo real** para o projeto **Data Agents** —
+        um sistema multi-agente baseado no Claude Agent SDK que orquestra especialistas de dados
+        contra plataformas Databricks e Microsoft Fabric.
+
+        O monitoramento lê diretamente os arquivos de log gerados pelos hooks do sistema
+        (`logs/audit.jsonl` e `logs/app.jsonl`) e apresenta as informações de forma estruturada,
+        sem necessidade de infraestrutura adicional.
+        """
+    )
+
+    st.divider()
+
+    # O que cada aba monitora
+    st.subheader("🗂️ O que cada aba monitora")
+
+    abas = [
+        ("📊 Overview", "Visão consolidada do sistema: total de tool calls, chamadas MCP reais, "
+         "agentes registrados, warnings e erros. Inclui gráfico de atividade por data, ranking "
+         "de ferramentas mais usadas e status rápido dos MCP servers."),
+        ("🤖 Agentes", "Todos os agentes especialistas definidos em `agents/registry/*.md`. "
+         "Exibe tier (T1/T2), modelo Claude utilizado, tools disponíveis, MCP servers "
+         "conectados e domínios de Knowledge Base de cada agente."),
+        ("⚡ Execuções", "Histórico completo de execuções a partir do `audit.jsonl`. Mostra "
+         "volume de uso por ferramenta, chamadas MCP agrupadas por plataforma e por tool "
+         "específica, e evolução da atividade ao longo dos dias."),
+        ("🔌 MCP Servers", "Status real das plataformas de dados: Databricks, Microsoft Fabric, "
+         "Fabric Real-Time Intelligence e Fabric Community. O status é derivado das chamadas "
+         "reais no audit.jsonl — se houve chamadas, a plataforma estava configurada. "
+         "Exibe histórico completo de todas as chamadas MCP com timestamp e inputs."),
+        ("📋 Logs", "Visualizador ao vivo dos dois arquivos de log do projeto. "
+         "`app.jsonl` filtrável por nível (INFO/WARNING/ERROR/DEBUG) e por texto. "
+         "`audit.jsonl` filtrável por tipo de ferramenta (MCP, Agent, Bash etc.). "
+         "Ambos atualizam automaticamente com o auto-refresh ativado."),
+        ("⚙️ Configurações", "Parâmetros do sistema detectados do último run: modelo padrão, "
+         "budget máximo por sessão e limite de turns. Mapa de todos os arquivos relevantes "
+         "do projeto com sua finalidade."),
+    ]
+
+    for titulo, descricao in abas:
+        with st.expander(titulo, expanded=False):
+            st.markdown(descricao)
+
+    st.divider()
+
+    # Fontes de dados
+    st.subheader("📂 Fontes de Dados")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("**`logs/audit.jsonl`** — gerado pelo `audit_hook.py`")
+        st.markdown(
+            "Registra **toda tool call** executada pelo sistema (PostToolUse hook). "
+            "Cada linha contém: timestamp, nome da ferramenta, tool_use_id e chaves de input."
+        )
+    with col_b:
+        st.markdown("**`logs/app.jsonl`** — gerado pelo `logging_config.py`**")
+        st.markdown(
+            "Log estruturado da aplicação usando `JSONLFormatter`. "
+            "Registra inicialização, status dos MCP servers, configurações carregadas, "
+            "warnings de credenciais e erros de runtime."
+        )
+
+    st.divider()
+
+    # Arquitetura do sistema monitorado
+    st.subheader("🏗️ Arquitetura do Sistema Monitorado")
+    st.markdown(
+        """
+        O **Data Agents** é um sistema multi-agente que segue a arquitetura **BMAD**
+        (Business Model Agents Design):
+
+        - **Supervisor** — orquestra os agentes especialistas, gerencia MCP servers e aplica hooks
+        - **SQL Expert** (T1) — queries SQL/KQL em Databricks e Fabric RTI
+        - **Spark Expert** (T1) — código PySpark, Delta Lake e pipelines DLT
+        - **Pipeline Architect** (T1) — design e execução de pipelines ETL/ELT cross-platform
+        - **Data Quality Steward** (T2) — validação, profiling e alertas de qualidade
+        - **Governance Auditor** (T2) — auditoria de acesso, linhagem e conformidade LGPD
+        - **Semantic Modeler** (T2) — modelos semânticos DAX e Metric Views
+
+        Os **hooks** interceptam cada execução de ferramenta:
+        `security_hook` bloqueia comandos destrutivos,
+        `audit_hook` registra todas as chamadas,
+        `cost_guard_hook` alerta sobre operações de alto custo.
+        """
+    )
+
+    st.divider()
+
+    # Licença
+    st.subheader("📄 Licença")
+    st.code(
+        "MIT License\n\n"
+        "Copyright (c) 2026 Thomaz Antonio Rossito Neto\n\n"
+        "Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+        "of this software and associated documentation files (the \"Software\"), to deal\n"
+        "in the Software without restriction, including without limitation the rights\n"
+        "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
+        "copies of the Software, and to permit persons to whom the Software is\n"
+        "furnished to do so, subject to the following conditions:\n\n"
+        "The above copyright notice and this permission notice shall be included in all\n"
+        "copies or substantial portions of the Software.\n\n"
+        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+        "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+        "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.",
+        language="text",
     )
