@@ -72,6 +72,12 @@ A grande inovação da versão 2.0 é a separação entre **Knowledge Bases (KB)
 
 ---
 
+<p align="center">
+  <img src="img/readme/architecture_v2.png" alt="Arquitetura Multi-Agent System" width="100%">
+</p>
+
+---
+
 ## 🤖 Agentes Especialistas (Registry Dinâmico)
 
 O sistema conta com 6 agentes especialistas carregados dinamicamente a partir de `agents/registry/*.md`:
