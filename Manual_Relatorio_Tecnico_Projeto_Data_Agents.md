@@ -68,66 +68,46 @@ Repositório:  [github.com/ThomazRossito/data-agents](https://github.com/ThomazR
 
 ## 1. O que é este projeto?
 
-O **Data Agents** é um sistema de **múltiplos agentes de Inteligência Artificial** especializado em Engenharia de Dados, Qualidade, Governança e Análise Corporativa. Em termos simples, é como ter uma equipe completa de especialistas virtuais que trabalham juntos para resolver problemas complexos de dados.
+O **Data Agents** é um sistema avançado de **múltiplos agentes de Inteligência Artificial** projetado para atuar como uma equipe completa e autônoma nas áreas de Engenharia de Dados, Qualidade de Dados, Governança e Análise Corporativa. Se você já usou o ChatGPT ou o Claude para pedir ajuda com código, imagine dar um passo além: em vez de apenas responder perguntas, esta IA possui acesso direto ao seu ambiente na nuvem (Databricks e Microsoft Fabric) para executar as tarefas por você, de ponta a ponta.
 
-O sistema é construído sobre o modelo de linguagem **Claude** da empresa Anthropic e utiliza a tecnologia **MCP (Model Context Protocol)** para que a IA possa interagir diretamente com plataformas de dados como Databricks e Microsoft Fabric.
-
-O grande diferencial da versão 2.0 é a sua **camada declarativa de governança e conhecimento**. Os agentes não são mais classes Python rígidas, mas sim arquivos Markdown dinâmicos (Registry). Além disso, a IA é obrigada a ler manuais de boas práticas (Knowledge Bases e Skills) antes de agir, garantindo aderência estrita aos padrões corporativos modernos.
+A versão 2.0 deste projeto traz uma revolução na forma como a IA trabalha. Diferente de sistemas comuns que tentam adivinhar a melhor forma de escrever um código, o Data Agents opera sob uma **camada declarativa de governança e conhecimento**. Isso significa que a IA é rigorosamente obrigada a ler as regras de negócio da sua empresa (Knowledge Bases) e os manuais técnicos oficiais (Skills) *antes* de planejar ou executar qualquer ação. O resultado é um código não apenas funcional, mas seguro, auditável e perfeitamente alinhado com a arquitetura corporativa moderna.
 
 ---
 
 ## 2. Conceitos Fundamentais (Glossário para Iniciantes)
 
-| Termo | O que significa na prática |
+Para garantir que este manual seja compreensível mesmo para quem não é especialista em Inteligência Artificial ou Engenharia de Dados, preparamos este glossário com os termos essenciais utilizados ao longo do documento.
+
+| Termo Técnico | O que significa na prática |
 | --- | --- |
-| **Agente de IA** | Um programa de IA que pode tomar decisões, usar ferramentas e executar tarefas de forma autônoma. |
-| **LLM (Large Language Model)** | O "cérebro" da IA. No caso deste projeto, é o Claude da Anthropic. |
-| **MCP (Model Context Protocol)** | Uma "tomada universal" que permite que a IA se conecte a ferramentas externas de forma padronizada. |
-| **Knowledge Base (KB)** | Arquivos que contêm as regras de negócio e padrões arquiteturais corporativos. Lidos *antes* do planejamento. |
-| **Skills** | Manuais operacionais detalhados de ferramentas. Lidos *durante* a execução pelos agentes especialistas. |
-| **Registry de Agentes** | Uma pasta (`agents/registry/`) contendo arquivos Markdown que definem os agentes do sistema. |
-| **Databricks / Microsoft Fabric** | Plataformas de nuvem especializadas em processamento e análise de grandes volumes de dados. |
-| **Pipeline de Dados** | Uma "linha de montagem" para dados (ex: arquitetura Medalhão Bronze/Silver/Gold). |
-| **Hook** | Um "gancho" de código que intercepta as ações da IA para garantir segurança e auditar comandos. |
-| **PRD** | *Product Requirements Document*. Um documento gerado pela IA descrevendo o que será construído. |
+| **Agente de IA** | Um programa inteligente que não apenas conversa, mas toma decisões, planeja passos, usa ferramentas (como ler arquivos ou rodar scripts) e executa tarefas de forma autônoma. |
+| **LLM (Large Language Model)** | O "cérebro" por trás da IA. Neste projeto, utilizamos a família de modelos **Claude** (da empresa Anthropic), conhecida por sua excelência em raciocínio lógico e programação. |
+| **MCP (Model Context Protocol)** | Pense no MCP como uma "tomada universal". É um protocolo de código aberto que permite que a IA se conecte de forma segura a sistemas externos (como bancos de dados ou nuvens) para realizar ações reais. |
+| **Databricks** | Uma das maiores plataformas de dados em nuvem do mundo, especializada em processar volumes massivos de informações usando a tecnologia Apache Spark. |
+| **Microsoft Fabric** | A plataforma de dados unificada da Microsoft. Ela junta armazenamento (OneLake), engenharia (Data Factory), análise em tempo real (RTI) e visualização de negócios (Power BI) em um só lugar. |
+| **Apache Spark / PySpark** | Uma tecnologia para processamento de "Big Data". Se você precisa analisar bilhões de linhas, o Excel trava; o Spark distribui esse trabalho entre dezenas de computadores ao mesmo tempo. PySpark é a versão dessa ferramenta usando a linguagem Python. |
+| **Arquitetura Medalhão** | Um padrão da indústria para organizar dados em três camadas de qualidade: **Bronze** (dados brutos, como vieram da fonte), **Silver** (dados limpos e filtrados) e **Gold** (dados agregados e prontos para relatórios de negócios). |
+| **Knowledge Base (KB)** | Arquivos de texto que contêm as **regras de negócio e padrões arquiteturais** da sua empresa. A IA lê isso para saber *o que* deve ser feito e *quais regras* seguir. |
+| **Skills** | Manuais operacionais detalhados de ferramentas. Enquanto a KB diz *o que* fazer, a Skill ensina a IA *como* usar uma tecnologia específica (ex: como configurar um alerta no Fabric). |
+| **Registry de Agentes** | Uma pasta (`agents/registry/`) onde os agentes são definidos usando arquivos de texto simples (Markdown). Na versão 2.0, você não precisa programar em Python para criar um novo agente; basta criar um arquivo de texto. |
+| **Hook** | Um "gancho" de segurança. É um pedaço de código que fica monitorando tudo o que a IA tenta fazer. Se a IA tentar rodar um comando perigoso (como apagar um banco de dados), o Hook intercepta e bloqueia a ação na hora. |
+| **PRD (Product Requirements Document)** | Um documento de arquitetura. Antes de sair escrevendo código, o Supervisor da IA escreve um PRD detalhando exatamente o que vai construir, como e por quê, pedindo a sua aprovação. |
 
 ---
 
 ## 3. Arquitetura Geral do Sistema
 
-O fluxo do sistema opera em uma topologia hierárquica (Supervisor → Especialistas) com injeção dinâmica de contexto:
+A arquitetura do Data Agents v2.0 foi desenhada para ser hierárquica, segura e altamente extensível. O fluxo de trabalho funciona de maneira muito semelhante a uma equipe humana em uma empresa.
 
-```
- Você digita um comando no terminal (/plan, /sql, /quality)
-        │
-        ▼
-┌─────────────────────────────────────────┐
-│             main.py (Interface)         │
-└───────────────────┬─────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────┐
-│        Supervisor (Data Orchestrator)   │
-│  Lê KBs → Cria PRD → Delega tarefa      │
-└──────┬──────────┬───────────────┬───────┘
-       │          │               │
-       ▼          ▼               ▼
- SQL Expert  Spark Expert   Pipeline Architect
- Quality Steward  Governance Auditor  Semantic Modeler
-       │          │              │
-       └──────────┴──────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────┐
-│         MCP Servers (Pontes)            │
-│  Databricks │ Fabric │ Fabric RTI       │
-└─────────────────────────────────────────┘
-                  │
-                  ▼
-         Plataformas de Nuvem Reais
-```
+### O Fluxo de Trabalho (Como as coisas acontecem)
 
-Em paralelo a todo esse fluxo, os **Hooks** monitoram cada ação: bloqueando comandos destrutivos e registrando logs de auditoria.
+1. **A Interface (O Terminal):** Você digita um pedido no terminal do seu computador (ex: `/plan Crie um pipeline de vendas no Databricks`). O arquivo `main.py` recebe esse pedido.
+2. **O Gerente (Supervisor):** O pedido vai para o **Data Orchestrator** (Supervisor). Ele é a IA mais inteligente do grupo. Ele lê as regras da empresa (KBs), desenha o plano arquitetural (PRD) e decide qual especialista é o melhor para o trabalho.
+3. **A Equipe (Especialistas):** O Supervisor acorda os agentes especialistas (ex: Arquiteto de Pipeline, Engenheiro de Qualidade). Eles recebem a tarefa, leem os manuais técnicos (Skills) e começam a trabalhar.
+4. **A Ponte (MCP Servers):** Para fazer o trabalho real na nuvem, os especialistas enviam comandos através dos servidores MCP, que traduzem a intenção da IA em ações concretas no Databricks ou Microsoft Fabric.
+5. **Os Guardiões (Hooks):** O tempo todo, os Hooks de segurança e auditoria observam silenciosamente. Eles registram cada ação em um log de auditoria e bloqueiam qualquer comando que viole as regras de segurança ou estoure o orçamento.
+
+### Diagrama da Arquitetura
 
 <p align="center">
   <img src="img/readme/architecture.png" alt="Arquitetura Multi-Agent System" width="100%">
@@ -135,191 +115,350 @@ Em paralelo a todo esse fluxo, os **Hooks** monitoram cada ação: bloqueando co
 
 ---
 
+<p align="center">
+  <img src="img/readme/architecture_v2.png" alt="Arquitetura Multi-Agent System" width="100%">
+</p>
+
+---
+
 ## 4. Os Agentes: A Equipe Virtual
 
-A equipe é composta por **6 agentes especialistas** carregados dinamicamente pelo `loader.py` a partir da pasta `agents/registry/`.
+O projeto conta com **6 agentes especialistas** pré-configurados, divididos em dois níveis de atuação (Tiers). Graças ao novo Loader Dinâmico, todos esses agentes são definidos em arquivos de texto simples na pasta `agents/registry/`, tornando extremamente fácil adicionar novos membros à equipe no futuro.
 
-### 4.1. O Supervisor (Data Orchestrator)
+### 👑 O Supervisor (Data Orchestrator)
+- **Onde vive:** `agents/supervisor.py`
+- **Modelo de IA:** `claude-opus-4-6` (O modelo mais avançado, focado em raciocínio complexo).
+- **O que faz:** É o gerente do projeto. Ele é a única IA que conversa diretamente com você. Ele não escreve código; o trabalho dele é ler as regras de negócio (KBs), entender o seu problema, criar o documento de arquitetura (PRD) e delegar as tarefas para os especialistas corretos.
+
+### 🛠️ Tier 1 — Engenharia de Dados (O Core)
+
+Estes agentes são os construtores da fundação de dados.
+
+#### 1. SQL Expert (`/sql`)
+- **Arquivo:** `agents/registry/sql-expert.md`
+- **Modelo:** `claude-sonnet-4-6` (Rápido e excelente em código).
+- **Analogia:** O Analista de Dados e Administrador de Banco de Dados.
+- **O que faz:** Especializado em escrever e otimizar consultas em SQL (incluindo as variantes T-SQL da Microsoft e Spark SQL do Databricks). Ele é usado para descobrir como as tabelas estão estruturadas e gerar código para criar novas tabelas.
+- **Segurança:** Este agente tem permissão estrita de **apenas leitura**. Ele pode olhar os dados, mas não pode alterar ou apagar nada na nuvem.
+
+#### 2. Spark Expert (`/spark`)
+- **Arquivo:** `agents/registry/spark-expert.md`
+- **Modelo:** `claude-sonnet-4-6`
+- **Analogia:** O Desenvolvedor Back-end de Big Data.
+- **O que faz:** É o mestre em Python e Apache Spark. Ele escreve o código complexo que transforma bilhões de linhas de dados (pipelines SDP, Delta Lake, MERGEs). 
+- **Segurança:** Este agente **não tem acesso à nuvem** (não possui MCP). Ele vive isolado; o trabalho dele é receber um problema matemático/lógico e devolver um código Python perfeito, que será executado por outro agente.
+
+#### 3. Pipeline Architect (`/pipeline` e `/fabric`)
+- **Arquivo:** `agents/registry/pipeline-architect.md`
 - **Modelo:** `claude-opus-4-6`
-- **Papel:** O Gerente de Projetos Sênior. Ele recebe a requisição, lê as Knowledge Bases (KBs), elabora o PRD e delega a tarefa para o especialista correto.
+- **Analogia:** O Engenheiro Cloud e DevOps.
+- **O que faz:** É o construtor da infraestrutura. Ele pega o código gerado pelo Spark Expert e orquestra a execução na nuvem. Ele cria os *Jobs* no Databricks, monta os *Pipelines* no Data Factory do Fabric e move arquivos de um lado para o outro.
+- **Segurança:** É o único agente de engenharia com permissões de **execução e escrita**. Suas ações são fortemente monitoradas pelos Hooks de segurança.
 
-### 4.2. SQL Expert (`/sql`)
+### 🛡️ Tier 2 — Qualidade, Governança e Análise (Especializados)
+
+Estes são os novos agentes introduzidos na v2.0, focados em garantir que os dados construídos pelo Tier 1 sejam confiáveis, seguros e úteis para o negócio.
+
+#### 4. Data Quality Steward (`/quality`)
+- **Arquivo:** `agents/registry/data-quality-steward.md`
 - **Modelo:** `claude-sonnet-4-6`
-- **Papel:** Especialista em banco de dados (KQL, T-SQL, Spark SQL). Analisa schemas Fato/Dimensão e gera DDLs otimizadas.
+- **Analogia:** O Engenheiro de Qualidade (QA).
+- **O que faz:** É o guardião da saúde dos dados. Ele analisa tabelas para encontrar valores nulos ou anomalias estatísticas (*data profiling*), escreve regras que os dados não podem quebrar (*expectations*) e configura alertas em tempo real no Fabric Activator para avisar a equipe se um dado chegar corrompido.
 
-### 4.3. Spark Expert (`/spark`)
+#### 5. Governance Auditor (`/governance`)
+- **Arquivo:** `agents/registry/governance-auditor.md`
 - **Modelo:** `claude-sonnet-4-6`
-- **Papel:** Engenheiro de Big Data focado em geração de código PySpark e pipelines SDP/LakeFlow. Não acessa o MCP diretamente, foca em código.
+- **Analogia:** O Auditor de Compliance e Segurança.
+- **O que faz:** Garante que a empresa não seja processada. Ele rastreia de onde um dado veio e para onde foi (*linhagem de dados*), audita quem acessou o quê, e varre os bancos de dados procurando por informações sensíveis (como CPFs e e-mails) para garantir conformidade com a LGPD e GDPR.
 
-### 4.4. Pipeline Architect (`/pipeline`)
-- **Modelo:** `claude-opus-4-6`
-- **Papel:** Arquiteto Cloud e DataOps. Orquestra Databricks Asset Bundles (DABs) e integrações cross-platform (Databricks ↔ Fabric).
-
-### 4.5. Data Quality Steward (`/quality`)
+#### 6. Semantic Modeler (`/semantic`)
+- **Arquivo:** `agents/registry/semantic-modeler.md`
 - **Modelo:** `claude-sonnet-4-6`
-- **Papel:** Guardião da saúde dos dados. Executa data profiling, define expectations, monitora SLAs e configura alertas no Fabric Activator.
-
-### 4.6. Governance Auditor (`/governance`)
-- **Modelo:** `claude-sonnet-4-6`
-- **Papel:** Auditor de compliance. Mapeia linhagem de dados, identifica PII (dados sensíveis) e garante políticas LGPD/GDPR.
-
-### 4.7. Semantic Modeler (`/semantic`)
-- **Modelo:** `claude-sonnet-4-6`
-- **Papel:** Analista de BI e Semântica. Cria modelos DAX, otimiza tabelas para Direct Lake e configura Databricks Metric Views e Genie.
+- **Analogia:** O Especialista de BI (Business Intelligence).
+- **O que faz:** Traduz dados técnicos para a linguagem dos diretores. Ele constrói modelos semânticos usando a linguagem DAX (usada no Power BI), otimiza as tabelas da camada Gold para que os painéis carreguem mais rápido (Direct Lake) e configura assistentes de IA (Genie) para que os executivos possam fazer perguntas aos dados em português.
 
 ---
 
 ## 5. O Método BMAD e KB-First
 
-O **BMAD (Breakthrough Method for Agile AI-Driven Development)** é o protocolo de orquestração. A versão 2.0 introduziu a abordagem **KB-First**, que separa regras de negócio (KBs) de manuais de ferramentas (Skills).
+A maior causa de falha em projetos de IA generativa é a alucinação: a IA tenta adivinhar a solução e gera um código que funciona na teoria, mas quebra as regras da empresa na prática. Para resolver isso, o Data Agents utiliza o **BMAD** (*Breakthrough Method for Agile AI-Driven Development*), agora aprimorado com a filosofia **KB-First**.
 
-1. **Passo 0 (Triage):** O Supervisor identifica o domínio da tarefa.
-2. **Passo 1 (KB-First):** O Supervisor lê as Knowledge Bases (ex: `kb/pipeline-design/index.md`) para entender os padrões corporativos.
-3. **Passo 2 (PRD):** O Supervisor escreve o plano de arquitetura e aguarda aprovação do usuário.
-4. **Passo 3 (Delegação):** O Supervisor aciona o especialista via BMAD Express.
-5. **Passo 4 (Skills):** O especialista lê as Skills operacionais (ex: `skills/databricks/databricks-spark-declarative-pipelines/SKILL.md`) e executa o código.
+### A Filosofia KB-First (Knowledge Base First)
+A regra de ouro da versão 2.0 é: **A IA nunca adivinha. Ela lê o manual.**
+Antes de começar a trabalhar, a IA é forçada a ler as bases de conhecimento (`kb/`) da empresa. Se a sua empresa decidiu que todas as tabelas de data devem se chamar `dim_calendario` e usar um gerador sintético, a IA lerá essa regra e a aplicará rigorosamente.
 
+### Os 5 Passos do Protocolo BMAD
+
+Quando você usa o comando de planejamento (`/plan`), o sistema segue estes passos exatos:
+
+1. **Passo 0 (Triagem e Contexto):** O Supervisor recebe o seu pedido. Ele olha para a biblioteca de KBs (`kb/`) e identifica quais regras de negócio se aplicam ao seu problema. Ele lê esses arquivos para se contextualizar.
+2. **Passo 1 (Arquitetura):** Baseado nas regras que leu, o Supervisor desenha a arquitetura da solução. Ele decide quais camadas do Medalhão serão usadas e quais agentes serão necessários.
+3. **Passo 2 (PRD e Aprovação):** O Supervisor escreve um documento detalhado (PRD - Product Requirements Document) e salva na pasta `output/`. O terminal pausa e **pede a sua aprovação**. Você pode ler o plano e dizer "Sim" ou pedir alterações.
+4. **Passo 3 (Delegação e Skills):** Com a sua aprovação, o Supervisor acorda os especialistas. Cada especialista recebe sua parte da tarefa e, antes de escrever o código, lê as **Skills** operacionais (`skills/`) — que são manuais técnicos detalhados de como usar a ferramenta específica (ex: como escrever DAX no Fabric).
+5. **Passo 4 (Síntese e Validação):** Os especialistas devolvem o trabalho pronto. O Supervisor revisa tudo para garantir que as regras iniciais não foram quebradas, consolida os resultados e apresenta a você o relatório final, incluindo o custo da operação.
+
+### Modos de Velocidade: Full vs. Express
+
+Nem toda tarefa precisa de um documento de arquitetura completo. Por isso, o sistema oferece dois modos de operação:
+
+- **BMAD Full (Comando `/plan`):** Executa os 5 passos completos. É o modo "lento e seguro", ideal para construir pipelines inteiros do zero. O Supervisor usa o modo "Thinking" avançado do Claude (gastando mais tokens) para raciocinar profundamente.
+- **BMAD Express (Comandos `/sql`, `/quality`, `/governance`, etc.):** Pula o planejamento e a aprovação. O pedido vai *direto* para o agente especialista. Ideal para tarefas rápidas, como "Liste os catálogos do Databricks" ou "Verifique se a tabela X tem dados nulos". É rápido, barato e direto ao ponto.
 ---
 
 ## 6. Estrutura de Arquivos e Pastas
 
+O projeto Data Agents foi desenhado com uma arquitetura modular. Se você abrir a pasta do projeto no seu computador, verá algo assim:
+
 ```text
 data-agents/
-├── main.py                    # Entry point interativo
 ├── agents/
-│   ├── loader.py              # Loader dinâmico de agentes YAML/Markdown
-│   ├── registry/              # Definições dos agentes especialistas (.md)
-│   ├── supervisor.py          # Orquestrador BMAD
-│   └── prompts/               # Prompts base
-├── kb/                        # 📚 Knowledge Bases (regras de negócio)
-│   ├── data-quality/
-│   ├── governance/
-│   ├── pipeline-design/
-│   └── ...
-├── skills/                    # 📚 Manuais Operacionais (Databricks, Fabric)
-├── commands/                  # Parser de slash commands (/sql, /quality)
-├── hooks/                     # 🛡️ Camada de segurança (audit, cost, security)
-├── config/                    # Configurações globais e MCP
-├── mcp_servers/               # Configurações dos servidores MCP
-├── tools/                     # Scripts de health check
-└── tests/                     # Suíte de testes automatizados (pytest)
+│   ├── registry/               # Aqui vivem os agentes (arquivos .md)
+│   │   ├── _template.md        # Molde para criar novos agentes
+│   │   ├── sql-expert.md       # Definição do Analista SQL
+│   │   ├── spark-expert.md     # Definição do Engenheiro Spark
+│   │   └── ...                 # Outros especialistas
+│   ├── loader.py               # O motor que lê os arquivos .md e "dá vida" aos agentes
+│   ├── prompts/                # Prompts avançados (como o do Supervisor)
+│   └── supervisor.py           # O cérebro central (Data Orchestrator)
+├── commands/
+│   └── parser.py               # Define os comandos que você digita (ex: /plan, /sql)
+├── config/
+│   ├── exceptions.py           # Erros personalizados (ex: "Orçamento estourado")
+│   ├── logging_config.py       # Configura como o sistema anota o que está fazendo
+│   ├── mcp_servers.py          # O mapa de todas as conexões de nuvem disponíveis
+│   └── settings.py             # Lê suas senhas e configura limites (orçamento, tentativas)
+├── hooks/
+│   ├── audit_hook.py           # O gravador silencioso de tudo o que a IA faz
+│   ├── cost_guard_hook.py      # O vigilante do seu cartão de crédito
+│   └── security_hook.py        # O segurança que bloqueia comandos perigosos
+├── kb/                         # A base de conhecimento (Regras da Empresa)
+│   ├── data-quality/           # Regras de qualidade (ex: % máximo de nulos aceitável)
+│   ├── databricks/             # Padrões de arquitetura para Databricks
+│   ├── fabric/                 # Padrões de arquitetura para Microsoft Fabric
+│   └── ...                     # Outros domínios
+├── mcp_servers/
+│   ├── databricks/             # O "cabo" que liga a IA ao seu Databricks
+│   ├── fabric/                 # O "cabo" que liga a IA ao seu Fabric
+│   └── fabric_rti/             # O "cabo" para dados em tempo real no Fabric
+├── skills/                     # Os Manuais de Instruções Operacionais
+│   ├── databricks/             # Como criar tabelas, rodar jobs, etc.
+│   ├── fabric/                 # Como usar o Data Factory, Eventhouse, etc.
+│   └── ...                     # Outros manuais
+├── tests/                      # Robôs que testam se a IA está funcionando bem
+├── main.py                     # O arquivo que você roda para iniciar o programa
+├── pyproject.toml              # Lista de dependências (o que o Python precisa baixar)
+└── .env.example                # Molde para você colocar suas senhas com segurança
 ```
 
 ---
 
 ## 7. Análise Detalhada de Cada Componente
 
-### 7.1. Loader Dinâmico (`agents/loader.py`)
-Substituiu as antigas classes Python hardcoded. Ele lê os arquivos Markdown na pasta `registry/`, faz o parse do Frontmatter YAML e instancia os agentes com as ferramentas e modelos corretos.
+Vamos entender as peças mais importantes que fazem essa engrenagem rodar.
 
-### 7.2. O Parser de Comandos (`commands/parser.py`)
-Gerencia os *Slash Commands*. Ele roteia o comando do usuário (ex: `/quality`) para o agente correto (`data-quality-steward`), aplicando o prompt template adequado e injetando o contexto necessário.
+### O Arquivo Principal (`main.py`)
+Pense nele como a porta de entrada da sua empresa. Quando você digita `python main.py` no terminal, este arquivo:
+1. Pinta aquele banner bonito na tela com o nome do projeto.
+2. Chama o `settings.py` para verificar se você configurou as senhas da nuvem.
+3. Inicia o loop interativo (aquela tela preta esperando você digitar algo).
+4. Pega o que você digitou e envia para o Supervisor.
+5. Mostra o "spinner" (a rodinha girando) enquanto a IA pensa, para você não achar que travou.
+
+### O Motor de Agentes (`loader.py` e `registry/`)
+Na versão anterior do projeto, se você quisesse criar um novo agente (ex: um Especialista em Machine Learning), precisava programar em Python em quatro arquivos diferentes.
+Na v2.0, o `loader.py` faz mágica. Ele vai na pasta `agents/registry/`, lê todos os arquivos de texto (`.md`) que encontrar lá e transforma cada arquivo em um agente vivo e pronto para trabalhar.
+Isso significa que, para criar um agente novo, você só precisa copiar o `_template.md`, dar um nome, colar as instruções em português e salvar. O sistema faz o resto.
+
+### O Configurar (`settings.py`)
+Este arquivo é o painel de controle do projeto. Ele usa uma biblioteca chamada Pydantic para garantir que as configurações estão corretas antes de o sistema iniciar.
+Ele define coisas como:
+- **`default_model`**: Qual "cérebro" a IA vai usar (padrão: `claude-opus-4-6`).
+- **`max_budget_usd`**: Quanto a IA pode gastar em dólares por sessão (padrão: `$5.00`). Se passar disso, o sistema para imediatamente.
+- **`max_turns`**: Quantas vezes a IA pode tentar resolver um problema antes de desistir (padrão: 50).
 
 ---
 
 ## 8. Segurança e Controle de Custos (Hooks)
 
-O projeto implementa três ganchos (hooks) que interceptam as ações da IA:
+Dar acesso ao seu banco de dados na nuvem para uma IA pode parecer assustador. Por isso, o Data Agents possui **Hooks**. Hooks são como filtros invisíveis pelos quais todo comando da IA precisa passar antes de chegar à nuvem.
 
-1. **Security Hook:** Bloqueia comandos destrutivos (ex: `DROP TABLE`, `rm -rf`, `curl | bash`).
-2. **Audit Hook:** Registra em um arquivo JSONL (`logs/audit.jsonl`) todas as ferramentas usadas pela IA, incluindo timestamps e status de sucesso/erro.
-3. **Cost Guard Hook:** Monitora o uso de tokens da Anthropic e interrompe a sessão se o orçamento (ex: `$5.00`) for atingido.
+### O Segurança (`security_hook.py`)
+Antes de a IA executar qualquer comando, o Segurança lê a intenção. Se a IA tentar rodar comandos como `DROP TABLE` (apagar tabela), `DELETE FROM` (apagar dados), `TRUNCATE` (limpar tabela) ou `rm -rf` (apagar arquivos), o Segurança bloqueia a ação, avisa a IA que ela quebrou as regras e a obriga a tentar outra abordagem.
+
+### O Vigilante de Custos (`cost_guard_hook.py`)
+Rodar códigos pesados na nuvem custa dinheiro. O Vigilante classifica cada ferramenta da IA em três níveis:
+- **LOW (Baixo):** Consultas simples, listar tabelas. Custo quase zero.
+- **MEDIUM (Médio):** Executar SQL pesado. Gasta um pouco de dinheiro.
+- **HIGH (Alto):** Ligar um cluster de computadores (Databricks Cluster) ou iniciar um Pipeline inteiro. Custa caro.
+Se a IA tentar fazer muitas operações HIGH na mesma sessão (mais de 5 vezes), o Vigilante dispara um alerta no seu terminal, avisando que a IA pode estar gastando dinheiro demais à toa.
+
+### O Gravador (`audit_hook.py`)
+Para que você nunca perca o controle do que aconteceu, o Gravador anota tudo. Cada comando que a IA tenta rodar, o horário, se funcionou ou se deu erro, tudo é salvo no arquivo `logs/audit.jsonl`. Se amanhã uma tabela sumir, você pode abrir esse arquivo e ver exatamente o que a IA fez.
 
 ---
 
 ## 9. O Hub de Conhecimento (KBs e Skills)
 
-### 9.1. Knowledge Bases (`kb/`)
-Lidas pelo Supervisor para planejamento:
-- `sql-patterns`, `spark-patterns`, `pipeline-design`
-- `data-quality`, `governance`, `semantic-modeling`
-- `fabric`, `databricks`
+A maior evolução da v2.0 é a separação clara entre **Regras** e **Ferramentas**.
 
-### 9.2. Skills (`skills/`)
-Lidas pelos especialistas para execução de código:
-- 26 módulos Databricks (SDP, DABs, Unity Catalog, etc.)
-- 5 módulos Microsoft Fabric (Medallion, Direct Lake, RTI, etc.)
+### As Knowledge Bases (`kb/`)
+As KBs são o cérebro corporativo. Elas respondem **"Por que estamos fazendo isso e quais são as regras?"**.
+- **Exemplo Prático:** Na pasta `kb/sql-patterns/`, há um arquivo que diz: *"Na nossa empresa, toda tabela da camada Silver deve ter uma coluna chamada `data_ingestao` com o horário atual"*.
+- **Como a IA usa:** O Supervisor lê isso antes de planejar. Se você pedir "Crie a tabela Silver", ele já sabe que tem que colocar essa coluna, sem você precisar pedir.
+
+### As Skills (`skills/`)
+As Skills são os manuais de instruções. Elas respondem **"Como eu aperto os botões dessa ferramenta?"**.
+- **Exemplo Prático:** Na pasta `skills/databricks/`, há um manual ensinando a sintaxe exata para criar um Job no Databricks usando a API deles.
+- **Como a IA usa:** O Pipeline Architect lê isso na hora de escrever o código. Ele não precisa decorar a API do Databricks (que muda toda hora); ele lê o manual atualizado e gera o código perfeito.
+
+Essa separação (KBs para o Gerente, Skills para os Operários) reduz a sobrecarga da IA e garante que o código final respeite a arquitetura da sua empresa e a sintaxe da ferramenta ao mesmo tempo.
 
 ---
 
 ## 10. Conexões com a Nuvem (MCP Servers)
 
-O projeto usa quatro servidores MCP principais:
-- `databricks`: Mais de 50 ferramentas (executar SQL, rodar jobs, listar catálogos).
-- `fabric`: Ferramentas oficiais Microsoft para Workspaces e Lakehouses.
-- `fabric_community`: Ferramentas comunitárias para OneLake e Modelos Semânticos.
-- `fabric_rti`: Ferramentas para KQL e Activator (Real-Time Intelligence).
+O MCP (Model Context Protocol) é a tecnologia que permite que a IA "saia" do seu computador e interaja com o mundo real. O Data Agents possui três conexões prontas (na pasta `mcp_servers/`):
+
+1. **Databricks MCP:** Permite que a IA liste catálogos (Unity Catalog), veja esquemas de tabelas, execute consultas SQL nos Warehouses e crie pipelines de dados (SDP).
+2. **Fabric MCP:** Permite que a IA acesse a nuvem da Microsoft, liste os Workspaces, crie Lakehouses e envie arquivos para o OneLake (o "OneDrive" do Fabric).
+3. **Fabric RTI MCP (Real-Time Intelligence):** Uma conexão especial para dados em tempo real. Permite que a IA consulte bancos de dados Kusto (KQL), configure Eventstreams e crie alertas no Activator.
+
+**O Truque Inteligente:** O arquivo `mcp_servers.py` é inteligente. Quando você liga o sistema, ele olha as suas senhas. Se você só colocou a senha do Databricks, ele desliga as conexões do Fabric para não dar erro, e vice-versa.
 
 ---
 
 ## 11. Comandos Disponíveis (Slash Commands)
 
-| Comando | Modo | Agente Responsável |
-| --- | --- | --- |
-| `/sql` | Express | `sql-expert` |
-| `/spark` | Express | `spark-expert` |
-| `/pipeline` | Express | `pipeline-architect` |
-| `/fabric` | Express | `pipeline-architect` |
-| `/quality` | Express | `data-quality-steward` |
-| `/governance` | Express | `governance-auditor` |
-| `/semantic` | Express | `semantic-modeler` |
-| `/plan` | Full | `supervisor` |
-| `/health` | Internal | `supervisor` |
-| `/status` | Internal | `supervisor` |
+O arquivo `commands/parser.py` define os atalhos que você pode usar no terminal. Em vez de escrever textos longos, você usa esses comandos para direcionar a IA.
 
+| Comando | O que faz | Modo BMAD | Quem executa |
+| --- | --- | --- | --- |
+| `/plan` | Inicia o fluxo completo. Lê as regras, cria o documento de arquitetura (PRD), pede sua aprovação e delega. | Full (Lento/Seguro) | Supervisor + Equipe |
+| `/sql` | Pula o planejamento. Envia uma tarefa de banco de dados direto para o especialista. | Express (Rápido) | SQL Expert |
+| `/spark` | Envia um problema matemático/lógico direto para o especialista em Python/Spark. | Express (Rápido) | Spark Expert |
+| `/pipeline` | Envia uma tarefa de infraestrutura (ex: criar um Job) direto para o arquiteto. | Express (Rápido) | Pipeline Architect |
+| `/fabric` | Igual ao `/pipeline`, mas avisa a IA para focar especificamente nas ferramentas da Microsoft. | Express (Rápido) | Pipeline Architect |
+| `/quality` | Envia uma tarefa de validação de dados (ex: "ache os nulos") para o auditor de qualidade. | Express (Rápido) | Data Quality Steward |
+| `/governance` | Envia uma tarefa de segurança (ex: "quem acessou essa tabela?") para o auditor. | Express (Rápido) | Governance Auditor |
+| `/semantic` | Envia uma tarefa de BI (ex: "crie métricas DAX") para o especialista em negócios. | Express (Rápido) | Semantic Modeler |
+| `/health` | Verifica se as senhas da nuvem estão funcionando e lista o que está conectado. | Internal | O próprio sistema |
+| `/status` | Lista todos os planos de arquitetura (PRDs) que a IA já gerou na sua pasta `output/`. | Internal | O próprio sistema |
+| `/review` | Pega um plano antigo e pergunta se você quer continuar de onde parou. | Internal | O próprio sistema |
+| `/help` | Mostra esta lista no terminal. | Internal | O próprio sistema |
 ---
 
 ## 12. Configuração e Credenciais
 
-Crie um arquivo `.env` na raiz do projeto:
+Para que a IA possa trabalhar por você, ela precisa das "chaves" do seu escritório. Isso é feito criando um arquivo chamado `.env` (com um ponto no começo mesmo) na raiz do projeto. 
 
-```env
-ANTHROPIC_API_KEY=sk-ant-...
-DATABRICKS_HOST=https://adb-...
-DATABRICKS_TOKEN=dapi...
-AZURE_TENANT_ID=...
-AZURE_CLIENT_ID=...
-AZURE_CLIENT_SECRET=...
-FABRIC_WORKSPACE_ID=...
-```
+> **Aviso de Segurança:** Nunca envie o arquivo `.env` para o GitHub. Ele contém suas senhas. O projeto já vem com um arquivo `.gitignore` que impede que isso aconteça acidentalmente.
+
+Aqui está a lista completa de variáveis que você pode configurar:
+
+### O "Cérebro" da IA (Obrigatório)
+- **`ANTHROPIC_API_KEY`**: A chave da API da Anthropic. Sem isso, a IA não funciona. O projeto exige a família Claude 3.5 (Opus e Sonnet).
+
+### Databricks (Opcional)
+Se você for usar o Databricks, preencha:
+- **`DATABRICKS_HOST`**: A URL do seu Databricks (ex: `https://adb-123456.azuredatabricks.net`).
+- **`DATABRICKS_TOKEN`**: O seu Personal Access Token (PAT) gerado no Databricks.
+- **`DATABRICKS_SQL_WAREHOUSE_ID`**: O ID do computador que vai rodar as consultas SQL (você acha isso na aba SQL Warehouses).
+
+### Microsoft Fabric (Opcional)
+Se você for usar o Microsoft Fabric, preencha:
+- **`AZURE_TENANT_ID`**: O ID da sua empresa na nuvem da Microsoft.
+- **`FABRIC_WORKSPACE_ID`**: O ID da "pasta" (Workspace) onde a IA vai trabalhar.
+- **`AZURE_CLIENT_ID`** e **`AZURE_CLIENT_SECRET`**: (Opcional) Se você quiser usar um "usuário robô" (Service Principal) em vez do seu próprio usuário.
+
+### Fabric Real-Time Intelligence (Opcional)
+Se você for trabalhar com dados em tempo real (Kusto/Eventhouse):
+- **`KUSTO_SERVICE_URI`**: A URL do seu banco de dados em tempo real.
+- **`KUSTO_SERVICE_DEFAULT_DB`**: O nome do banco de dados padrão.
+
+### Configurações de Segurança do Projeto
+Você pode mudar o comportamento da IA ajustando o arquivo `config/settings.py` ou adicionando estas variáveis no seu `.env`:
+- **`MAX_BUDGET_USD`**: O limite de dinheiro que a IA pode gastar por sessão (padrão: `5.0`).
+- **`MAX_TURNS`**: O limite de tentativas da IA (padrão: `50`).
+- **`LOG_LEVEL`**: Se você quiser ver exatamente o que a IA está pensando por baixo dos panos, mude para `DEBUG`. Para um terminal mais limpo, deixe em `INFO`.
 
 ---
 
 ## 13. Qualidade de Código e Testes
 
-O projeto usa `pytest`, `ruff`, `mypy` e `bandit`. A cobertura mínima exigida é de 80%.
+Como saber se a IA não quebrou ao ser atualizada? O projeto Data Agents possui uma bateria de testes automatizados (na pasta `tests/`).
 
+### Como rodar os testes
+
+Abra o terminal e digite:
 ```bash
-make test
+pytest
 ```
 
-Os testes verificam:
-- Carregamento dinâmico dos agentes no registry.
-- Validação dos comandos no parser.
-- Bloqueios do security hook.
+### O que os testes verificam?
+1. **O Loader Dinâmico:** Ele tenta ler todos os arquivos Markdown na pasta `registry/`. Se você esqueceu de colocar o nome de um agente no arquivo, o teste falha e te avisa.
+2. **A Segurança:** Ele tenta rodar comandos perigosos (como `DROP TABLE`) e verifica se o `security_hook.py` consegue bloquear todos eles.
+3. **O Parser de Comandos:** Ele digita comandos como `/quality` e verifica se o sistema sabe que deve chamar o `data-quality-steward`.
+
+Sempre rode `pytest` antes de enviar uma nova versão do projeto para o GitHub.
 
 ---
 
 ## 14. Deploy e CI/CD (Publicação Automática)
 
-- **Databricks Asset Bundles (DABs):** Configurado em `databricks.yml` para deploy em Dev, Staging e Prod.
-- **GitHub Actions:** Workflows de CI (linting e testes) e CD (deploy automático).
+O projeto foi construído para rodar no seu computador (localmente) ou em um servidor na nuvem (como um contêiner Docker).
+
+Se você olhar a pasta `.github/workflows/`, verá que o projeto já vem com **Integração Contínua (CI)**. Isso significa que toda vez que você envia uma alteração para o GitHub:
+1. O GitHub cria um computador virtual temporário.
+2. Ele instala o Python e todas as dependências.
+3. Ele roda todos os testes (`pytest`) automaticamente.
+4. Se algum teste falhar, ele bloqueia a alteração e avisa que o código está quebrado.
+
+Isso garante que o seu time de dados sempre tenha uma versão funcional e segura do Data Agents.
 
 ---
 
 ## 15. Como Começar a Usar
 
-1. Clone o repositório.
-2. Crie um ambiente virtual (`python -m venv .venv`).
-3. Instale as dependências (`pip install -e .`).
-4. Configure o `.env`.
-5. Execute `python main.py`.
-6. Digite `/health` para validar as conexões.
+Pronto para ver a IA trabalhar? Siga este passo a passo simples.
+
+### Passo 1: Instale o Python
+Você precisa ter o Python instalado no seu computador (versão 3.10 ou superior).
+
+### Passo 2: Baixe o Projeto
+Abra o terminal e clone o repositório:
+```bash
+git clone https://github.com/ThomazRossito/data-agents.git
+cd data-agents
+```
+
+### Passo 3: Instale as Dependências
+Isso vai baixar todas as bibliotecas que o projeto precisa para funcionar (como o SDK do Claude e as ferramentas da Microsoft):
+```bash
+pip install -e ".[dev]"
+```
+
+### Passo 4: Configure suas Senhas
+Copie o arquivo de exemplo e coloque suas credenciais:
+```bash
+cp .env.example .env
+```
+Abra o arquivo `.env` no bloco de notas ou VS Code e preencha a sua `ANTHROPIC_API_KEY` e as chaves do Databricks/Fabric.
+
+### Passo 5: Ligue o Sistema
+```bash
+python main.py
+```
+
+Você verá o banner do Data Agents e o prompt `Você:`. Digite `/help` para ver os comandos ou simplesmente escreva: *"Liste todos os catálogos do Databricks"*. A IA cuidará do resto.
 
 ---
 
 ## 16. Conclusão
 
-O **Data Agents v2.0** representa uma arquitetura corporativa madura. A separação entre KBs (regras) e Skills (manuais), aliada ao registry dinâmico de agentes, transforma o projeto de um simples script em uma **plataforma extensível**. 
+O projeto **Data Agents v2.0** não é apenas um chatbot. É uma plataforma de automação corporativa. 
 
-A introdução dos agentes de Qualidade, Governança e Semântica cobre o ciclo de vida completo dos dados, provando que sistemas multi-agente podem atuar de forma segura, governada e escalável em ambientes corporativos críticos.
+Ao separar as **Regras de Negócio (KBs)** dos **Manuais Técnicos (Skills)**, e ao permitir a criação de novos agentes simplesmente escrevendo arquivos de texto (Markdown), o projeto resolve o maior gargalo da Inteligência Artificial em empresas: a dificuldade de manter a IA atualizada e alinhada com a arquitetura da companhia.
+
+Hoje, o sistema cobre Engenharia, Qualidade, Governança e Análise. Amanhã, se a sua empresa precisar de um "Especialista em Finanças" ou um "Auditor de LGPD", você só precisará criar um novo arquivo `.md` na pasta `registry/`. A fundação já está construída.
+
+O futuro da engenharia de dados não é escrever código; é arquitetar sistemas e gerenciar agentes inteligentes que escrevem o código por você. Bem-vindo a esse futuro.

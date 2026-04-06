@@ -17,7 +17,7 @@
   </p>
 </p>
 
-Construído sobre o **Claude Agent SDK** da Anthropic com integração nativa via **Model Context Protocol (MCP)** ao **Databricks** e **Microsoft Fabric**. Este ecossistema transforma o seu assistente de IA em uma verdadeira equipe de dados autônoma, operando recursos diretamente nas suas nuvens corporativas. O sistema atua em Engenharia de Dados, Qualidade de Dados, Governança e Modelagem Semântica, garantindo aderência estrita às melhores práticas corporativas por meio de uma arquitetura declarativa de Knowledge Bases.
+Construído sobre o **Claude Agent SDK** da Anthropic com integração nativa via **Model Context Protocol (MCP)** ao **Databricks** e **Microsoft Fabric**. Este ecossistema transforma o seu assistente de IA em uma verdadeira equipe de dados autônoma, operando recursos diretamente nas suas nuvens corporativas. O sistema atua em Engenharia de Dados, Qualidade de Dados, Governança e Modelagem Semântica, garantindo aderência estrita às melhores práticas corporativas por meio de uma arquitetura declarativa de Knowledge Bases. 
 
 ---
 
@@ -29,12 +29,12 @@ Construído sobre o **Claude Agent SDK** da Anthropic com integração nativa vi
 
 ## Educação Acadêmica
 
-> **MBA: Ciência de Dados com ênfase em Big Data**                           
+> **MBA: Ciência de Dados com ênfase em Big Data**
 > **MBA: Engenharia de Dados com ênfase em Big Data**
 
 ## Contatos
 
-> **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)                            
+> **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)
 > **GitHub:** [https://github.com/ThomazRossito/](https://github.com/ThomazRossito/)
 
 ---
@@ -67,7 +67,7 @@ O **Data Agents** é projetado para atuar como uma *squad* autônoma de dados. A
 A grande inovação da versão 2.0 é a separação entre **Knowledge Bases (KB)** e **Skills**. O Supervisor lê as regras de negócio corporativas (KB) *antes* de planejar a arquitetura, enquanto os Agentes Especialistas consultam os manuais operacionais (Skills) na hora de executar. Os agentes são definidos dinamicamente via arquivos Markdown (YAML Frontmatter), permitindo escalar a equipe virtual sem escrever código Python.
 
 <p align="center">
-  <img src="img/readme/architecture_v2.png" alt="Arquitetura Multi-Agent System" width="100%">
+  <img src="img/readme/architecture.png" alt="Arquitetura Multi-Agent System" width="100%">
 </p>
 
 ---
@@ -76,15 +76,15 @@ A grande inovação da versão 2.0 é a separação entre **Knowledge Bases (KB)
 
 O sistema conta com 6 agentes especialistas carregados dinamicamente a partir de `agents/registry/*.md`:
 
-| Agente | Comando | Modelo | Papel e Responsabilidades |
-| --- | --- | --- | --- |
-| **Supervisor** | `/plan` | `claude-opus-4-6` | Líder técnico. Recebe a requisição, lê as KBs (KB-First), cria PRDs e delega para a equipe. |
-| **SQL Expert** | `/sql` | `claude-sonnet-4-6` | Especialista em dados relacionais (KQL, T-SQL, Spark SQL). Consulta metadados *read-only* e gera SQL. |
-| **Spark Expert** | `/spark` | `claude-sonnet-4-6` | Focado exclusivamente em geração de código PySpark e SDP/LakeFlow moderno. |
-| **Pipeline Architect** | `/pipeline` | `claude-opus-4-6` | Engenheiro DataOps/SRE. Automatiza pipelines completos e integrações cross-platform. |
-| **Data Quality Steward** | `/quality` | `claude-sonnet-4-6` | Garante a saúde dos dados. Executa profiling, define expectations, monitora SLAs e cria alertas no Fabric Activator. |
-| **Governance Auditor** | `/governance` | `claude-sonnet-4-6` | Focado em compliance. Audita acessos, mapeia linhagem, identifica PII e garante políticas LGPD/GDPR. |
-| **Semantic Modeler** | `/semantic` | `claude-sonnet-4-6` | Ponte com o negócio. Desenvolve modelos semânticos DAX, otimiza Direct Lake e configura Databricks Genie/Metric Views. |
+| Agente                         | Comando         | Modelo                | Papel e Responsabilidades                                                                                                |
+| ------------------------------ | --------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Supervisor**           | `/plan`       | `claude-opus-4-6`   | Líder técnico. Recebe a requisição, lê as KBs (KB-First), cria PRDs e delega para a equipe.                         |
+| **SQL Expert**           | `/sql`        | `claude-sonnet-4-6` | Especialista em dados relacionais (KQL, T-SQL, Spark SQL). Consulta metadados*read-only* e gera SQL.                   |
+| **Spark Expert**         | `/spark`      | `claude-sonnet-4-6` | Focado exclusivamente em geração de código PySpark e SDP/LakeFlow moderno.                                            |
+| **Pipeline Architect**   | `/pipeline`   | `claude-opus-4-6`   | Engenheiro DataOps/SRE. Automatiza pipelines completos e integrações cross-platform.                                   |
+| **Data Quality Steward** | `/quality`    | `claude-sonnet-4-6` | Garante a saúde dos dados. Executa profiling, define expectations, monitora SLAs e cria alertas no Fabric Activator.    |
+| **Governance Auditor**   | `/governance` | `claude-sonnet-4-6` | Focado em compliance. Audita acessos, mapeia linhagem, identifica PII e garante políticas LGPD/GDPR.                    |
+| **Semantic Modeler**     | `/semantic`   | `claude-sonnet-4-6` | Ponte com o negócio. Desenvolve modelos semânticos DAX, otimiza Direct Lake e configura Databricks Genie/Metric Views. |
 
 ---
 
@@ -102,11 +102,11 @@ Passo 4: Síntese      — Valida e consolida os artefatos produzidos
 
 **Modos disponíveis:**
 
-| Modo | Comando | Descrição |
-| --- | --- | --- |
-| **BMAD Full** | `/plan` | Fluxo completo com PRD e aprovação antes de delegar |
-| **BMAD Express** | `/sql`, `/spark`, `/pipeline`, `/fabric`, `/quality`, `/governance`, `/semantic` | Bypass do PRD — vai direto ao agente especialista |
-| **Internal** | `/health`, `/status`, `/review` | Diagnóstico, listagem de PRDs e revisão de artefatos |
+| Modo                   | Comando                                                                                        | Descrição                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **BMAD Full**    | `/plan`                                                                                      | Fluxo completo com PRD e aprovação antes de delegar  |
+| **BMAD Express** | `/sql`, `/spark`, `/pipeline`, `/fabric`, `/quality`, `/governance`, `/semantic` | Bypass do PRD — vai direto ao agente especialista     |
+| **Internal**     | `/health`, `/status`, `/review`                                                          | Diagnóstico, listagem de PRDs e revisão de artefatos |
 
 ---
 
@@ -150,40 +150,44 @@ python main.py
 
 Digite `/help` no CLI para ver a lista completa.
 
-| Comando | Agente | Descrição |
-| --- | --- | --- |
-| `/sql <tarefa>` | sql-expert | Geração de SQL, análise e modelagem dimensional |
-| `/spark <tarefa>` | spark-expert | Pipelines SDP/LakeFlow, Structured Streaming, PySpark |
-| `/pipeline <tarefa>` | pipeline-architect | Pipelines completos, DABs, DataOps Databricks |
-| `/fabric <tarefa>` | pipeline-architect | Microsoft Fabric: Lakehouse, Data Factory |
-| `/quality <tarefa>` | data-quality-steward | Profiling, Data Expectations, Alertas e SLAs |
-| `/governance <tarefa>` | governance-auditor | Auditoria de acessos, Linhagem, PII e Conformidade |
-| `/semantic <tarefa>` | semantic-modeler | Modelos DAX, Direct Lake, Databricks Metric Views |
-| `/plan <tarefa>` | supervisor | Cria PRD completo em `output/` e aguarda aprovação |
-| `/health` | supervisor | Verifica conectividade com Databricks e Fabric via MCP |
-| `/status` | supervisor | Lista PRDs gerados em `output/` com resumos |
-| `/review [arquivo]` | supervisor | Revisita um PRD existente para continuar ou ajustar |
+| Comando                  | Agente               | Descrição                                            |
+| ------------------------ | -------------------- | ------------------------------------------------------ |
+| `/sql <tarefa>`        | sql-expert           | Geração de SQL, análise e modelagem dimensional     |
+| `/spark <tarefa>`      | spark-expert         | Pipelines SDP/LakeFlow, Structured Streaming, PySpark  |
+| `/pipeline <tarefa>`   | pipeline-architect   | Pipelines completos, DABs, DataOps Databricks          |
+| `/fabric <tarefa>`     | pipeline-architect   | Microsoft Fabric: Lakehouse, Data Factory              |
+| `/quality <tarefa>`    | data-quality-steward | Profiling, Data Expectations, Alertas e SLAs           |
+| `/governance <tarefa>` | governance-auditor   | Auditoria de acessos, Linhagem, PII e Conformidade     |
+| `/semantic <tarefa>`   | semantic-modeler     | Modelos DAX, Direct Lake, Databricks Metric Views      |
+| `/plan <tarefa>`       | supervisor           | Cria PRD completo em `output/` e aguarda aprovação |
+| `/health`              | supervisor           | Verifica conectividade com Databricks e Fabric via MCP |
+| `/status`              | supervisor           | Lista PRDs gerados em `output/` com resumos          |
+| `/review [arquivo]`    | supervisor           | Revisita um PRD existente para continuar ou ajustar    |
 
 ---
 
 ## 💡 Exemplos Práticos
 
 **Databricks — Qualidade de Dados:**
+
 ```
 /quality Faça um profiling da tabela silver_vendas e identifique colunas com valores nulos acima de 5%.
 ```
 
 **Databricks — Governança:**
+
 ```
 /governance Audite os acessos ao catálogo de produção e verifique se há tabelas com PII não mascarado.
 ```
 
 **Microsoft Fabric — Modelagem Semântica:**
+
 ```
 /semantic Crie um modelo semântico DAX para as tabelas Gold de vendas, otimizado para Direct Lake.
 ```
 
 **Databricks — Lakeflow / SDP (BMAD Full):**
+
 ```
 /plan Crie um pipeline SDP com STREAMING TABLEs e AUTO CDC INTO para e-commerce. Salvar em output/databricks/.
 ```
@@ -195,13 +199,17 @@ Digite `/help` no CLI para ver a lista completa.
 A arquitetura de conhecimento é dividida em duas camadas:
 
 ### 1. Knowledge Bases (`kb/`)
+
 Regras de negócio e padrões arquiteturais lidos pelo Supervisor *antes* de planejar.
+
 - `sql-patterns`, `spark-patterns`, `pipeline-design`
 - `data-quality`, `governance`, `semantic-modeling`
 - `fabric`, `databricks`
 
 ### 2. Skills Operacionais (`skills/`)
+
 Manuais detalhados lidos pelos especialistas *durante* a execução.
+
 - **Databricks (26 módulos):** SDP, Unity Catalog, DABs, MLflow, Vector Search, etc.
 - **Fabric (5 módulos):** Medallion, Direct Lake, RTI, Data Factory, Cross-Platform.
 
@@ -211,32 +219,34 @@ Manuais detalhados lidos pelos especialistas *durante* a execução.
 
 Todos os hooks são registrados no Supervisor e interceptam chamadas em tempo real:
 
-| Hook | Tipo | Proteção |
-| --- | --- | --- |
-| `security_hook.py` | PreToolUse (Bash) | 17 padrões destrutivos com regex + 11 padrões de evasão |
-| `audit_hook.py` | PostToolUse | Log JSONL de todas as tool calls com classificação |
-| `cost_guard_hook.py` | PostToolUse | Tiers HIGH/MEDIUM/LOW — alerta ao atingir limites na sessão |
+| Hook                   | Tipo              | Proteção                                                    |
+| ---------------------- | ----------------- | ------------------------------------------------------------- |
+| `security_hook.py`   | PreToolUse (Bash) | 17 padrões destrutivos com regex + 11 padrões de evasão    |
+| `audit_hook.py`      | PostToolUse       | Log JSONL de todas as tool calls com classificação          |
+| `cost_guard_hook.py` | PostToolUse       | Tiers HIGH/MEDIUM/LOW — alerta ao atingir limites na sessão |
 
 ---
 
 ## 🔌 Servidores MCP
 
-| Servidor | Plataforma | Tipo | Tools |
-| --- | --- | --- | --- |
-| `databricks` | Databricks | stdio (Python) | 50+ tools: execute_sql, run_job_now, start_pipeline, list_catalogs, etc. |
-| `fabric` | Microsoft Fabric | stdio (dotnet) | Tools oficiais Microsoft para Workspaces, Lakehouses, Datasets |
-| `fabric_community` | Microsoft Fabric | stdio (Python) | Tools da comunidade para OneLake, Semantic Models |
-| `fabric_rti` | Fabric Eventhouse | stdio (Python) | kusto_query, kusto_command, eventstream_create, activator_create_trigger |
+| Servidor             | Plataforma        | Tipo           | Tools                                                                    |
+| -------------------- | ----------------- | -------------- | ------------------------------------------------------------------------ |
+| `databricks`       | Databricks        | stdio (Python) | 50+ tools: execute_sql, run_job_now, start_pipeline, list_catalogs, etc. |
+| `fabric`           | Microsoft Fabric  | stdio (dotnet) | Tools oficiais Microsoft para Workspaces, Lakehouses, Datasets           |
+| `fabric_community` | Microsoft Fabric  | stdio (Python) | Tools da comunidade para OneLake, Semantic Models                        |
+| `fabric_rti`       | Fabric Eventhouse | stdio (Python) | kusto_query, kusto_command, eventstream_create, activator_create_trigger |
 
 ---
 
 ## 🛠️ Enterprise Readiness & DataOps
 
 ### CI/CD com GitHub Actions
+
 - **CI** dispara em push para `main`/`develop`: Lint (ruff) + type check (mypy) + testes + security scan (bandit).
 - **CD** dispara em tags: Deploy automático para staging/production via Databricks Asset Bundles.
 
 ### Testes Automatizados
+
 O projeto inclui suíte de testes assíncronos via `pytest` cobrindo o loader dinâmico de agentes, parser de comandos, hooks e configurações, com cobertura mínima de **80%**.
 
 ```bash
@@ -244,6 +254,7 @@ make test
 ```
 
 ### MLflow / Mosaic AI Model Serving
+
 A classe `agents/mlflow_wrapper.py` empacota toda a engine Multi-Agente como um endpoint REST via Databricks Model Serving. Compatível com Python 3.12+ e formato OpenAI Messages.
 
 ---
