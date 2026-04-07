@@ -5,6 +5,7 @@ Lê os logs reais do projeto data-agents e gera monitoring/dashboard.html.
 Uso:
     python monitoring/generate.py
 """
+
 import json
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -18,6 +19,7 @@ OUTPUT = Path(__file__).parent / "dashboard.html"
 
 
 # ── Leitura dos logs ──────────────────────────────────────────────────────────
+
 
 def load_jsonl(path: Path) -> list[dict]:
     records = []
@@ -94,6 +96,7 @@ def parse_registry() -> list[dict]:
             continue
         end = content.index("---", 3)
         import yaml  # type: ignore[import-untyped]
+
         try:
             meta = yaml.safe_load(content[3:end])
         except Exception:
@@ -130,6 +133,7 @@ def infer_mcp_status(app_records: list[dict]) -> dict:
 
 # ── Leitura das settings ──────────────────────────────────────────────────────
 
+
 def read_settings_from_app_log(app_records: list[dict]) -> dict:
     for r in reversed(app_records):
         msg = r.get("message", "")
@@ -145,6 +149,7 @@ def read_settings_from_app_log(app_records: list[dict]) -> dict:
 
 
 # ── Geração do HTML ───────────────────────────────────────────────────────────
+
 
 def generate_html(audit: dict, app: dict, agents: list[dict], mcp: dict, settings: dict) -> str:
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -681,6 +686,7 @@ buildConfig();
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def main():
     print("📖 Lendo logs...")

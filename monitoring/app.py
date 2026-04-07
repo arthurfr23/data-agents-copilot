@@ -32,6 +32,7 @@ def to_sp(ts: str) -> str:
     except Exception:
         return ts[:19].replace("T", " ")
 
+
 # ── Configuração da página ────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Data Agents — Monitoramento",
@@ -47,6 +48,7 @@ REGISTRY = ROOT / "agents" / "registry"
 
 
 # ── Leitura dos logs ──────────────────────────────────────────────────────────
+
 
 @st.cache_data(ttl=5)  # recarrega a cada 5 segundos
 def load_jsonl(path: Path) -> list[dict]:
@@ -90,6 +92,7 @@ def load_agents() -> list[dict]:
 
 
 # ── Análise ───────────────────────────────────────────────────────────────────
+
 
 def analyse_audit(records: list[dict]) -> dict:
     by_date: dict[str, int] = defaultdict(int)
@@ -198,11 +201,7 @@ def infer_mcp_status(audit: dict, app_records: list[dict]) -> dict:
             plat["configured"] = True
 
     # Para plataformas sem chamadas, checa warnings mais recentes do app.jsonl
-    recent_warns = [
-        r.get("message", "")
-        for r in app_records[-500:]
-        if r.get("level") == "WARNING"
-    ]
+    recent_warns = [r.get("message", "") for r in app_records[-500:] if r.get("level") == "WARNING"]
     warn_text = "\n".join(recent_warns)
 
     if not platforms["databricks"]["configured"]:
@@ -241,7 +240,15 @@ with st.sidebar:
 
     page = st.radio(
         "Navegação",
-        ["📊 Overview", "🤖 Agentes", "⚡ Execuções", "🔌 MCP Servers", "📋 Logs", "⚙️ Configurações", "ℹ️ Sobre"],
+        [
+            "📊 Overview",
+            "🤖 Agentes",
+            "⚡ Execuções",
+            "🔌 MCP Servers",
+            "📋 Logs",
+            "⚙️ Configurações",
+            "ℹ️ Sobre",
+        ],
         label_visibility="collapsed",
     )
 
@@ -285,8 +292,7 @@ if refresh_interval > 0:
 if page == "📊 Overview":
     st.title("📊 Overview")
     st.caption(
-        f"Baseado em **{audit['total']}** entradas no audit.jsonl "
-        f"e **{app['total']}** no app.jsonl"
+        f"Baseado em **{audit['total']}** entradas no audit.jsonl e **{app['total']}** no app.jsonl"
     )
 
     # KPIs
@@ -305,13 +311,18 @@ if page == "📊 Overview":
         st.subheader("📅 Atividade por Data")
         if audit["by_date"]:
             import pandas as pd
+
             df_date = pd.DataFrame(
-                {"Data": list(audit["by_date"].keys()), "Tool Calls": list(audit["by_date"].values())}
+                {
+                    "Data": list(audit["by_date"].keys()),
+                    "Tool Calls": list(audit["by_date"].values()),
+                }
             ).set_index("Data")
             st.bar_chart(df_date, color="#6366f1")
 
         st.subheader("🔧 Top Ferramentas")
         import pandas as pd
+
         top10 = dict(list(audit["by_tool"].items())[:10])
         st.bar_chart(pd.Series(top10), color="#22c55e")
 
@@ -322,16 +333,21 @@ if page == "📊 Overview":
             if configured is True:
                 st.success(f"{plat['icon']} **{plat['label']}** — {plat['calls']} chamadas")
             elif configured is False:
-                missing_str = ", ".join(plat["missing"]) if plat["missing"] else "vars não encontradas"
+                missing_str = (
+                    ", ".join(plat["missing"]) if plat["missing"] else "vars não encontradas"
+                )
                 st.warning(f"{plat['icon']} **{plat['label']}** — ausentes: `{missing_str}`")
             else:
-                st.info(f"{plat['icon']} **{plat['label']}** — status desconhecido (sem logs recentes)")
+                st.info(
+                    f"{plat['icon']} **{plat['label']}** — status desconhecido (sem logs recentes)"
+                )
 
         st.divider()
         st.subheader("📋 Níveis do App Log")
         level_data = {k: v for k, v in app["by_level"].items() if k}
         if level_data:
             import pandas as pd
+
             df_levels = pd.Series(level_data)
             st.bar_chart(df_levels, color="#f59e0b")
 
@@ -355,7 +371,9 @@ elif page == "🤖 Agentes":
     st.caption(f"Definidos em `agents/registry/` — **{len(agents)}** agentes carregados")
 
     if not agents:
-        st.error("Nenhum agente encontrado. Verifique se pyyaml está instalado: `pip install pyyaml`")
+        st.error(
+            "Nenhum agente encontrado. Verifique se pyyaml está instalado: `pip install pyyaml`"
+        )
     else:
         tier_colors = {"T1": "🔵", "T2": "🟢"}
         cols = st.columns(2)
@@ -408,7 +426,9 @@ elif page == "⚡ Execuções":
             df_tools,
             use_container_width=True,
             hide_index=True,
-            column_config={"Chamadas": st.column_config.ProgressColumn(max_value=df_tools["Chamadas"].max())},
+            column_config={
+                "Chamadas": st.column_config.ProgressColumn(max_value=df_tools["Chamadas"].max())
+            },
         )
 
     with col2:
@@ -424,7 +444,10 @@ elif page == "⚡ Execuções":
             for r in audit["mcp_calls"]:
                 mcp_by_tool[r.get("tool_name", "?")] += 1
             df_mcp_tools = pd.DataFrame(
-                [{"Tool": k, "Chamadas": v} for k, v in sorted(mcp_by_tool.items(), key=lambda x: -x[1])]
+                [
+                    {"Tool": k, "Chamadas": v}
+                    for k, v in sorted(mcp_by_tool.items(), key=lambda x: -x[1])
+                ]
             )
             st.dataframe(df_mcp_tools, use_container_width=True, hide_index=True)
         else:
@@ -471,15 +494,18 @@ elif page == "🔌 MCP Servers":
     st.subheader("📞 Histórico de Chamadas MCP")
     if audit["mcp_calls"]:
         import pandas as pd
-        df_mcp = pd.DataFrame([
-            {
-                "Timestamp": to_sp(r.get("timestamp", "")),
-                "Tool": r.get("tool_name", ""),
-                "Inputs": ", ".join(r.get("input_keys", [])),
-                "ID": r.get("tool_use_id", "")[-12:],
-            }
-            for r in reversed(audit["mcp_calls"])
-        ])
+
+        df_mcp = pd.DataFrame(
+            [
+                {
+                    "Timestamp": to_sp(r.get("timestamp", "")),
+                    "Tool": r.get("tool_name", ""),
+                    "Inputs": ", ".join(r.get("input_keys", [])),
+                    "ID": r.get("tool_use_id", "")[-12:],
+                }
+                for r in reversed(audit["mcp_calls"])
+            ]
+        )
         st.dataframe(df_mcp, use_container_width=True, hide_index=True)
     else:
         st.info("Nenhuma chamada MCP registrada no audit.jsonl.")
@@ -501,24 +527,30 @@ elif page == "📋 Logs":
         search_term = col_f2.text_input("Buscar mensagem", placeholder="ex: MCP, Databricks...")
 
         filtered_app = [
-            r for r in app_records
+            r
+            for r in app_records
             if r.get("level") in level_filter
             and (not search_term or search_term.lower() in r.get("message", "").lower())
         ]
 
-        st.caption(f"Mostrando **{min(200, len(filtered_app))}** de **{len(filtered_app)}** entradas")
+        st.caption(
+            f"Mostrando **{min(200, len(filtered_app))}** de **{len(filtered_app)}** entradas"
+        )
 
         import pandas as pd
+
         if filtered_app:
-            df_app = pd.DataFrame([
-                {
-                    "Timestamp": to_sp(r.get("timestamp", "")),
-                    "Nível": r.get("level", ""),
-                    "Logger": r.get("logger", "").replace("data_agents.", ""),
-                    "Mensagem": r.get("message", "")[:200],
-                }
-                for r in reversed(filtered_app[-200:])
-            ])
+            df_app = pd.DataFrame(
+                [
+                    {
+                        "Timestamp": to_sp(r.get("timestamp", "")),
+                        "Nível": r.get("level", ""),
+                        "Logger": r.get("logger", "").replace("data_agents.", ""),
+                        "Mensagem": r.get("message", "")[:200],
+                    }
+                    for r in reversed(filtered_app[-200:])
+                ]
+            )
             st.dataframe(
                 df_app,
                 use_container_width=True,
@@ -536,12 +568,15 @@ elif page == "📋 Logs":
             options=["Todos", "MCP", "Agent", "Bash", "Read", "Write"],
             default=["Todos"],
         )
-        search_audit = col_a2.text_input("Buscar tool", placeholder="ex: databricks, execute_sql...")
+        search_audit = col_a2.text_input(
+            "Buscar tool", placeholder="ex: databricks, execute_sql..."
+        )
 
         filtered_audit = audit_records
         if "Todos" not in tool_filter and tool_filter:
             filtered_audit = [
-                r for r in audit_records
+                r
+                for r in audit_records
                 if any(
                     (f == "MCP" and r.get("tool_name", "").startswith("mcp__"))
                     or r.get("tool_name") == f
@@ -550,23 +585,27 @@ elif page == "📋 Logs":
             ]
         if search_audit:
             filtered_audit = [
-                r for r in filtered_audit
-                if search_audit.lower() in r.get("tool_name", "").lower()
+                r for r in filtered_audit if search_audit.lower() in r.get("tool_name", "").lower()
             ]
 
-        st.caption(f"Mostrando **{min(200, len(filtered_audit))}** de **{len(filtered_audit)}** entradas")
+        st.caption(
+            f"Mostrando **{min(200, len(filtered_audit))}** de **{len(filtered_audit)}** entradas"
+        )
 
         if filtered_audit:
             import pandas as pd
-            df_audit = pd.DataFrame([
-                {
-                    "Timestamp": to_sp(r.get("timestamp", "")),
-                    "Tool": r.get("tool_name", ""),
-                    "Inputs": ", ".join(r.get("input_keys", [])),
-                    "ID": r.get("tool_use_id", "")[-12:],
-                }
-                for r in reversed(filtered_audit[-200:])
-            ])
+
+            df_audit = pd.DataFrame(
+                [
+                    {
+                        "Timestamp": to_sp(r.get("timestamp", "")),
+                        "Tool": r.get("tool_name", ""),
+                        "Inputs": ", ".join(r.get("input_keys", [])),
+                        "ID": r.get("tool_use_id", "")[-12:],
+                    }
+                    for r in reversed(filtered_audit[-200:])
+                ]
+            )
             st.dataframe(df_audit, use_container_width=True, hide_index=True)
 
 
@@ -582,12 +621,15 @@ elif page == "⚙️ Configurações":
         c2.metric("Budget Máximo", settings.get("budget", "—"))
         c3.metric("Max Turns", settings.get("max_turns", "—"))
     else:
-        st.warning("Nenhuma configuração encontrada no app.jsonl. Execute o agente ao menos uma vez.")
+        st.warning(
+            "Nenhuma configuração encontrada no app.jsonl. Execute o agente ao menos uma vez."
+        )
 
     st.divider()
     st.subheader("📁 Arquivos do Projeto")
 
     import pandas as pd
+
     files_info = [
         ("config/settings.py", "Settings: modelo, budget, max_turns, credenciais"),
         ("config/mcp_servers.py", "Build dos MCP servers por plataforma"),
@@ -672,26 +714,44 @@ elif page == "ℹ️ Sobre":
     st.subheader("🗂️ O que cada aba monitora")
 
     abas = [
-        ("📊 Overview", "Visão consolidada do sistema: total de tool calls, chamadas MCP reais, "
-         "agentes registrados, warnings e erros. Inclui gráfico de atividade por data, ranking "
-         "de ferramentas mais usadas e status rápido dos MCP servers."),
-        ("🤖 Agentes", "Todos os agentes especialistas definidos em `agents/registry/*.md`. "
-         "Exibe tier (T1/T2), modelo Claude utilizado, tools disponíveis, MCP servers "
-         "conectados e domínios de Knowledge Base de cada agente."),
-        ("⚡ Execuções", "Histórico completo de execuções a partir do `audit.jsonl`. Mostra "
-         "volume de uso por ferramenta, chamadas MCP agrupadas por plataforma e por tool "
-         "específica, e evolução da atividade ao longo dos dias."),
-        ("🔌 MCP Servers", "Status real das plataformas de dados: Databricks, Microsoft Fabric, "
-         "Fabric Real-Time Intelligence e Fabric Community. O status é derivado das chamadas "
-         "reais no audit.jsonl — se houve chamadas, a plataforma estava configurada. "
-         "Exibe histórico completo de todas as chamadas MCP com timestamp e inputs."),
-        ("📋 Logs", "Visualizador ao vivo dos dois arquivos de log do projeto. "
-         "`app.jsonl` filtrável por nível (INFO/WARNING/ERROR/DEBUG) e por texto. "
-         "`audit.jsonl` filtrável por tipo de ferramenta (MCP, Agent, Bash etc.). "
-         "Ambos atualizam automaticamente com o auto-refresh ativado."),
-        ("⚙️ Configurações", "Parâmetros do sistema detectados do último run: modelo padrão, "
-         "budget máximo por sessão e limite de turns. Mapa de todos os arquivos relevantes "
-         "do projeto com sua finalidade."),
+        (
+            "📊 Overview",
+            "Visão consolidada do sistema: total de tool calls, chamadas MCP reais, "
+            "agentes registrados, warnings e erros. Inclui gráfico de atividade por data, ranking "
+            "de ferramentas mais usadas e status rápido dos MCP servers.",
+        ),
+        (
+            "🤖 Agentes",
+            "Todos os agentes especialistas definidos em `agents/registry/*.md`. "
+            "Exibe tier (T1/T2), modelo Claude utilizado, tools disponíveis, MCP servers "
+            "conectados e domínios de Knowledge Base de cada agente.",
+        ),
+        (
+            "⚡ Execuções",
+            "Histórico completo de execuções a partir do `audit.jsonl`. Mostra "
+            "volume de uso por ferramenta, chamadas MCP agrupadas por plataforma e por tool "
+            "específica, e evolução da atividade ao longo dos dias.",
+        ),
+        (
+            "🔌 MCP Servers",
+            "Status real das plataformas de dados: Databricks, Microsoft Fabric, "
+            "Fabric Real-Time Intelligence e Fabric Community. O status é derivado das chamadas "
+            "reais no audit.jsonl — se houve chamadas, a plataforma estava configurada. "
+            "Exibe histórico completo de todas as chamadas MCP com timestamp e inputs.",
+        ),
+        (
+            "📋 Logs",
+            "Visualizador ao vivo dos dois arquivos de log do projeto. "
+            "`app.jsonl` filtrável por nível (INFO/WARNING/ERROR/DEBUG) e por texto. "
+            "`audit.jsonl` filtrável por tipo de ferramenta (MCP, Agent, Bash etc.). "
+            "Ambos atualizam automaticamente com o auto-refresh ativado.",
+        ),
+        (
+            "⚙️ Configurações",
+            "Parâmetros do sistema detectados do último run: modelo padrão, "
+            "budget máximo por sessão e limite de turns. Mapa de todos os arquivos relevantes "
+            "do projeto com sua finalidade.",
+        ),
     ]
 
     for titulo, descricao in abas:
@@ -749,14 +809,14 @@ elif page == "ℹ️ Sobre":
         "MIT License\n\n"
         "Copyright (c) 2026 Thomaz Antonio Rossito Neto\n\n"
         "Permission is hereby granted, free of charge, to any person obtaining a copy\n"
-        "of this software and associated documentation files (the \"Software\"), to deal\n"
+        'of this software and associated documentation files (the "Software"), to deal\n'
         "in the Software without restriction, including without limitation the rights\n"
         "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
         "copies of the Software, and to permit persons to whom the Software is\n"
         "furnished to do so, subject to the following conditions:\n\n"
         "The above copyright notice and this permission notice shall be included in all\n"
         "copies or substantial portions of the Software.\n\n"
-        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+        'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n'
         "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
         "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.",
         language="text",
