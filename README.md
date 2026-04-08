@@ -30,11 +30,13 @@ Construído sobre o **Claude Agent SDK** da Anthropic com integração nativa vi
 ## Educação Acadêmica
 
 > **MBA: Ciência de Dados com ênfase em Big Data**
+
 > **MBA: Engenharia de Dados com ênfase em Big Data**
 
 ## Contatos
 
 > **LinkedIn:** [https://www.linkedin.com/in/thomaz-antonio-rossito-neto/](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)
+
 > **GitHub:** [https://github.com/ThomazRossito/](https://github.com/ThomazRossito/)
 
 ---
