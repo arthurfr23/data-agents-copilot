@@ -44,6 +44,7 @@ st.set_page_config(
 ROOT = Path(__file__).parent.parent
 AUDIT_LOG = ROOT / "logs" / "audit.jsonl"
 APP_LOG = ROOT / "logs" / "app.jsonl"
+SESSIONS_LOG = ROOT / "logs" / "sessions.jsonl"
 REGISTRY = ROOT / "agents" / "registry"
 
 
@@ -253,6 +254,7 @@ with st.sidebar:
             "🔌 MCP Servers",
             "📋 Logs",
             "⚙️ Configurações",
+            "💰 Custo & Tokens",
             "ℹ️ Sobre",
         ],
         label_visibility="collapsed",
@@ -278,6 +280,7 @@ with st.sidebar:
 
 audit_records = load_jsonl(AUDIT_LOG)
 app_records = load_jsonl(APP_LOG)
+session_records = load_jsonl(SESSIONS_LOG)
 agents = load_agents()
 audit = analyse_audit(audit_records)
 app = analyse_app(app_records)
@@ -308,6 +311,11 @@ if page == "📊 Overview":
     c3.metric("Agentes Registrados", len(agents), help="agents/registry/*.md")
     c4.metric("Warnings", app["by_level"].get("WARNING", 0), help="app.jsonl")
     c5.metric("Errors", app["by_level"].get("ERROR", 0), help="app.jsonl")
+
+    # Custo total das sessões registradas
+    if session_records:
+        total_session_cost = sum(r.get("total_cost_usd", 0) or 0 for r in session_records)
+        st.info(f"💰 Custo total acumulado: **${total_session_cost:.4f}** em **{len(session_records)}** sessões registradas")
 
     st.divider()
 
@@ -657,6 +665,121 @@ elif page == "⚙️ Configurações":
     )
 
 
+# ── CUSTO & TOKENS ────────────────────────────────────────────────────────────
+elif page == "💰 Custo & Tokens":
+    st.title("💰 Custo & Tokens")
+
+    if not session_records:
+        st.warning(
+            "Nenhum dado de sessão encontrado em `logs/sessions.jsonl`. "
+            "Execute ao menos uma query para ver métricas de custo."
+        )
+    else:
+        import pandas as pd
+
+        # Preparar DataFrame
+        df_sessions = pd.DataFrame(session_records)
+        df_sessions["total_cost_usd"] = df_sessions["total_cost_usd"].fillna(0).astype(float)
+        df_sessions["num_turns"] = df_sessions["num_turns"].fillna(0).astype(int)
+        df_sessions["duration_s"] = df_sessions["duration_s"].fillna(0).astype(float)
+        df_sessions["cost_per_turn"] = df_sessions["cost_per_turn"].fillna(0).astype(float)
+        df_sessions["date"] = df_sessions["timestamp"].str[:10]
+
+        st.caption(f"Baseado em **{len(session_records)}** sessões registradas em `logs/sessions.jsonl`")
+
+        # ── KPIs ──
+        total_cost = df_sessions["total_cost_usd"].sum()
+        avg_cost = df_sessions["total_cost_usd"].mean()
+        total_turns = df_sessions["num_turns"].sum()
+        avg_turns = df_sessions["num_turns"].mean()
+        total_duration = df_sessions["duration_s"].sum()
+        total_sessions = len(df_sessions)
+
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Custo Total", f"${total_cost:.4f}", help="Soma de total_cost_usd")
+        c2.metric("Custo Médio/Sessão", f"${avg_cost:.4f}", help="Média por sessão")
+        c3.metric("Total de Turns", f"{total_turns:,}", help="Soma de num_turns")
+        c4.metric("Média Turns/Sessão", f"{avg_turns:.1f}", help="Média por sessão")
+        c5.metric("Tempo Total", f"{total_duration:.0f}s", help="Soma de duration_s")
+
+        st.divider()
+
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            # ── Custo por Data ──
+            st.subheader("💵 Custo por Data")
+            cost_by_date = df_sessions.groupby("date")["total_cost_usd"].sum().reset_index()
+            cost_by_date.columns = ["Data", "Custo (USD)"]
+            cost_by_date = cost_by_date.set_index("Data")
+            st.line_chart(cost_by_date, color="#22c55e")
+
+            # ── Sessões por Data ──
+            st.subheader("📅 Sessões por Data")
+            sessions_by_date = df_sessions.groupby("date").size().reset_index(name="Sessões")
+            sessions_by_date = sessions_by_date.set_index("date")
+            st.bar_chart(sessions_by_date, color="#6366f1")
+
+        with col_right:
+            # ── Custo por Tipo de Sessão ──
+            st.subheader("🏷️ Custo por Tipo de Sessão")
+            if "session_type" in df_sessions.columns:
+                cost_by_type = df_sessions.groupby("session_type").agg(
+                    Sessões=("session_type", "count"),
+                    Custo_Total=("total_cost_usd", "sum"),
+                    Custo_Médio=("total_cost_usd", "mean"),
+                    Turns_Total=("num_turns", "sum"),
+                ).reset_index()
+                cost_by_type.columns = ["Tipo", "Sessões", "Custo Total", "Custo Médio", "Turns Total"]
+                st.dataframe(cost_by_type, use_container_width=True, hide_index=True)
+
+            # ── Distribuição de Custo por Sessão ──
+            st.subheader("📊 Custo por Sessão")
+            st.bar_chart(
+                df_sessions[["total_cost_usd"]].reset_index(drop=True),
+                color="#f59e0b",
+            )
+
+        st.divider()
+
+        # ── Tabela de Sessões (histórico completo) ──
+        st.subheader("📋 Histórico de Sessões")
+
+        # Formatar para exibição
+        df_display = df_sessions[
+            ["timestamp", "session_type", "total_cost_usd", "num_turns", "duration_s", "cost_per_turn", "prompt_preview"]
+        ].copy()
+        df_display.columns = ["Timestamp", "Tipo", "Custo (USD)", "Turns", "Duração (s)", "Custo/Turn", "Prompt"]
+        df_display = df_display.sort_values("Timestamp", ascending=False)
+        df_display["Prompt"] = df_display["Prompt"].str[:80]  # truncar preview
+
+        st.dataframe(
+            df_display,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Custo (USD)": st.column_config.NumberColumn(format="$%.4f"),
+                "Custo/Turn": st.column_config.NumberColumn(format="$%.5f"),
+                "Duração (s)": st.column_config.NumberColumn(format="%.1f"),
+                "Tipo": st.column_config.TextColumn(width="small"),
+                "Turns": st.column_config.NumberColumn(format="%d"),
+            },
+        )
+
+        st.divider()
+
+        # ── Estimativa de pricing ──
+        st.subheader("💡 Referência de Pricing (Anthropic API)")
+        st.caption("Valores de referência — o custo real é calculado pelo SDK")
+
+        pricing_data = pd.DataFrame([
+            {"Modelo": "claude-opus-4-6", "Input ($/1M tokens)": "$15.00", "Output ($/1M tokens)": "$75.00", "Cache Read": "$1.50", "Cache Write": "$18.75"},
+            {"Modelo": "claude-sonnet-4-20250514", "Input ($/1M tokens)": "$3.00", "Output ($/1M tokens)": "$15.00", "Cache Read": "$0.30", "Cache Write": "$3.75"},
+            {"Modelo": "claude-haiku-3-5", "Input ($/1M tokens)": "$0.80", "Output ($/1M tokens)": "$4.00", "Cache Read": "$0.08", "Cache Write": "$1.00"},
+        ])
+        st.dataframe(pricing_data, use_container_width=True, hide_index=True)
+
+
 # ── SOBRE ─────────────────────────────────────────────────────────────────────
 elif page == "ℹ️ Sobre":
     st.title("ℹ️ Sobre este Dashboard")
@@ -753,6 +876,13 @@ elif page == "ℹ️ Sobre":
             "Parâmetros do sistema detectados do último run: modelo padrão, "
             "budget máximo por sessão e limite de turns. Mapa de todos os arquivos relevantes "
             "do projeto com sua finalidade.",
+        ),
+        (
+            "💰 Custo & Tokens",
+            "Rastreamento completo de custos da API Anthropic por sessão. "
+            "Exibe custo total acumulado, custo médio por sessão, total de turns e duração. "
+            "Inclui gráficos de custo por data, sessões por data, breakdown por tipo e "
+            "tabela de histórico de todas as sessões com prompt preview.",
         ),
     ]
 

@@ -74,4 +74,17 @@ def build_mcp_registry(platforms: list[str] | None = None) -> dict:
         else:
             logger.warning(f"Plataforma desconhecida ignorada: '{platform}'")
 
+    # ── Aliases: garante que os agentes possam referenciar mcp_servers
+    # pelo nome da plataforma OU pelo nome do server concreto.
+    # Ex: plataforma "fabric" registra server "fabric_community" —
+    # mas agentes podem declarar mcp_servers: [fabric] e precisam encontrá-lo.
+    PLATFORM_TO_SERVER_ALIASES: dict[str, str] = {
+        "fabric": "fabric_community",
+        "fabric_rti": "fabric_rti",
+    }
+    for alias, server_name in PLATFORM_TO_SERVER_ALIASES.items():
+        if server_name in registry and alias not in registry:
+            registry[alias] = registry[server_name]
+            logger.debug(f"Alias MCP registrado: '{alias}' → '{server_name}'")
+
     return registry
