@@ -50,23 +50,47 @@ def get_fabric_mcp_config() -> dict:
 
 
 # Tools do servidor community (ativo — credenciais via .env)
+# Ref: microsoft-fabric-mcp v0.1.4 — 28 ferramentas disponíveis
+# Fonte: /opt/anaconda3/envs/multi_agents/lib/python3.12/site-packages/fabric_mcp.py
 FABRIC_COMMUNITY_MCP_TOOLS = [
     # Workspaces
     "mcp__fabric_community__list_workspaces",
-    # Lakehouse — Schema e tabelas
+    "mcp__fabric_community__list_workspaces_with_identity",
+    "mcp__fabric_community__get_workspace",
+    "mcp__fabric_community__get_workspace_identity",
+    # Items — Descoberta e introspecção de artefatos (Semantic Models, Reports, etc.)
+    "mcp__fabric_community__list_items",
+    "mcp__fabric_community__get_item",
+    # Lakehouses
+    "mcp__fabric_community__list_lakehouses",
+    # Lakehouse — Schema e tabelas Delta
     "mcp__fabric_community__list_tables",
     "mcp__fabric_community__get_table_schema",
+    "mcp__fabric_community__get_all_schemas",
+    # Shortcuts (OneLake)
     "mcp__fabric_community__list_shortcuts",
     "mcp__fabric_community__get_shortcut",
+    "mcp__fabric_community__list_workspace_shortcuts",
     # Jobs & Schedules
     "mcp__fabric_community__list_job_instances",
-    "mcp__fabric_community__get_job_details",
-    "mcp__fabric_community__list_schedules",
-    "mcp__fabric_community__get_schedule",
+    "mcp__fabric_community__get_job_instance",
+    "mcp__fabric_community__list_item_schedules",
+    "mcp__fabric_community__list_workspace_schedules",
     # Lineage & Dependências
-    "mcp__fabric_community__get_lineage",
-    "mcp__fabric_community__get_dependencies",
-    "mcp__fabric_community__get_compute_usage",
+    "mcp__fabric_community__get_item_lineage",
+    "mcp__fabric_community__list_item_dependencies",
+    # Compute & Capacidades
+    "mcp__fabric_community__list_compute_usage",
+    "mcp__fabric_community__list_capacities",
+    # Connections & Data Sources
+    "mcp__fabric_community__list_connections",
+    "mcp__fabric_community__get_data_source_usage",
+    # Environments
+    "mcp__fabric_community__list_environments",
+    "mcp__fabric_community__get_environment_details",
+    # Cache Management
+    "mcp__fabric_community__clear_fabric_data_cache",
+    "mcp__fabric_community__clear_name_resolution_cache",
 ]
 
 # Tools do servidor oficial Microsoft (opcional — local-first, sem conexão ao tenant)

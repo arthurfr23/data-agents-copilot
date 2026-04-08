@@ -64,9 +64,13 @@ def build_supervisor_options(
         {"type": "enabled", "budget_tokens": 8000} if enable_thinking else {"type": "disabled"}
     )
 
+    # Servidores MCP (plataformas com credenciais disponíveis)
+    mcp_registry = build_mcp_registry(platforms)
+
     # Carregamento dinâmico de agentes via Markdown/YAML
-    # Lê todos os arquivos .md em agents/registry/ e instancia AgentDefinition
-    agents = load_all_agents()
+    # Filtra mcp_servers dos agentes para conter apenas servidores disponíveis no registry.
+    # Isso evita referências a servidores sem credenciais (ex: fabric_rti sem KUSTO_SERVICE_URI).
+    agents = load_all_agents(available_mcp_servers=set(mcp_registry.keys()))
 
     return ClaudeAgentOptions(
         # --- Modelo e System Prompt ---
@@ -85,7 +89,7 @@ def build_supervisor_options(
         # --- Subagents Especialistas (carregados dinamicamente do registry) ---
         agents=agents,
         # --- Servidores MCP (plataformas com credenciais disponíveis) ---
-        mcp_servers=build_mcp_registry(platforms),
+        mcp_servers=mcp_registry,
         # --- Controle de Execução ---
         # permission_mode="acceptEdits",
         permission_mode="bypassPermissions",

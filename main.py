@@ -41,6 +41,7 @@ from config.exceptions import (
 )
 from config.logging_config import setup_logging
 from config.settings import settings
+from hooks.session_logger import log_session_result
 
 logger = logging.getLogger("data_agents.main")
 console = Console()
@@ -134,7 +135,7 @@ def print_banner() -> None:
     )
 
 
-async def _stream_response(client: ClaudeSDKClient) -> None:
+async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> None:
     """
     Processa o stream de resposta do agente com feedback visual em tempo real.
 
@@ -143,6 +144,11 @@ async def _stream_response(client: ClaudeSDKClient) -> None:
       - Notificação imediata quando uma tool call é iniciada
       - Texto da resposta final em Markdown
       - Resumo de custo/turns/tempo ao finalizar
+
+    Args:
+        client: Instância ativa do ClaudeSDKClient para receber o stream.
+        prompt: Prompt original enviado ao agente. Apenas os primeiros 100
+            caracteres são usados para o log de sessão.
     """
     # Estado do streaming
     current_tool: str | None = None
@@ -243,6 +249,9 @@ async def _stream_response(client: ClaudeSDKClient) -> None:
             if parts:
                 console.print(f"[dim]💰 {' | '.join(parts)}[/dim]\n")
 
+            # Persistir métricas da sessão para o dashboard de monitoramento
+            log_session_result(message, prompt_preview=prompt[:100], session_type="interactive")
+
     # Garante que o spinner seja parado em qualquer caso
     _stop_spinner(live_status)
 
@@ -319,7 +328,7 @@ async def run_interactive() -> None:
 
                     # --- Enviar para o Supervisor e processar com feedback visual ---
                     await client.query(bmad_prompt)
-                    await _stream_response(client)
+                    await _stream_response(client, prompt=bmad_prompt)
 
                 except KeyboardInterrupt:
                     console.print("\n[yellow]Interrompido. Digite 'sair' para encerrar.[/yellow]")
@@ -389,6 +398,7 @@ async def run_single_query(prompt: str) -> None:
                     f"\n[dim]Custo: ${message.total_cost_usd:.4f} | "
                     f"Turns: {message.num_turns or 0}[/dim]"
                 )
+            log_session_result(message, prompt_preview=prompt[:100], session_type="single_query")
 
 
 def main() -> None:

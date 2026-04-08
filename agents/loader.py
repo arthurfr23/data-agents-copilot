@@ -178,6 +178,7 @@ def load_agent(path: Path) -> tuple[str, AgentDefinition]:
 
 def load_all_agents(
     registry_dir: Path | None = None,
+    available_mcp_servers: set[str] | None = None,
 ) -> dict[str, AgentDefinition]:
     """
     Carrega todos os agentes do diretório de registry.
@@ -185,8 +186,15 @@ def load_all_agents(
     Lê todos os arquivos .md em agents/registry/ (exceto _template.md)
     e instancia AgentDefinition para cada um.
 
+    Se `available_mcp_servers` for fornecido, filtra os mcp_servers de cada
+    agente para conter apenas servidores que realmente existem no registry.
+    Isso evita que agentes referenciem servidores sem credenciais configuradas,
+    o que causa falha silenciosa de conexão MCP no SDK.
+
     Args:
         registry_dir: Diretório de registry. Padrão: agents/registry/
+        available_mcp_servers: Conjunto de nomes de MCP servers disponíveis
+            no registry. Se None, não filtra (mantém todos os declarados).
 
     Returns:
         Dicionário {agent_name: AgentDefinition}
@@ -210,6 +218,25 @@ def load_all_agents(
     for path in agent_files:
         try:
             name, agent = load_agent(path)
+
+            # Filtra mcp_servers indisponíveis para evitar erros silenciosos no SDK
+            if available_mcp_servers is not None and agent.mcpServers:
+                original = list(agent.mcpServers)
+                filtered: list[str | dict[str, Any]] = []
+                removed: list[str] = []
+                for s in original:
+                    if isinstance(s, str):
+                        if s in available_mcp_servers:
+                            filtered.append(s)
+                        else:
+                            removed.append(s)
+                    else:
+                        filtered.append(s)  # Ignora verificação para configs inline (dicts)
+
+                agent.mcpServers = filtered if filtered else None
+                if removed:
+                    logger.info(f"Agente '{name}': mcp_servers indisponíveis removidos: {removed}")
+
             agents[name] = agent
         except Exception as e:
             logger.error(f"Erro ao carregar agente '{path.name}': {e}")
