@@ -187,9 +187,7 @@ class TestDetectExpensiveSql:
 
     def test_select_star_with_where_no_limit_allowed(self):
         # WHERE é filtro de partição suficiente — não bloqueia, apenas SELECT * SEM QUALQUER filtro
-        blocked, _ = _detect_expensive_sql(
-            "SELECT * FROM silver_vendas WHERE data = '2024-01-01'"
-        )
+        blocked, _ = _detect_expensive_sql("SELECT * FROM silver_vendas WHERE data = '2024-01-01'")
         assert blocked is False
 
     def test_select_star_with_limit_allowed(self):

@@ -65,7 +65,7 @@ EVASION_PATTERNS: list[re.Pattern] = [
 
 #: Padrão que captura SQL inline em comandos Bash (spark-sql -e, databricks query, etc.)
 _SQL_IN_BASH = re.compile(
-    r'(?:spark-sql\s+-e|beeline\s+-e|databricks\s+query\s+execute|bq\s+query)\s+'
+    r"(?:spark-sql\s+-e|beeline\s+-e|databricks\s+query\s+execute|bq\s+query)\s+"
     r"""(?P<q>["'](.+?)["'])""",
     re.IGNORECASE | re.DOTALL,
 )
