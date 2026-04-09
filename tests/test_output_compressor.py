@@ -176,7 +176,7 @@ class TestCompressSqlResultTextFallback:
         output = _make_text_lines(total)
         result = _compress_sql_result(output, "mcp__databricks__execute_sql")
         assert result is not None
-        assert len(result.splitlines()) <= MAX_SQL_ROWS + 2  # +2 para header e rodapé
+        assert len(result.splitlines()) <= MAX_SQL_ROWS + 1  # +1 para aviso de truncamento
 
     def test_footer_mentions_omitted_lines(self):
         output = _make_text_lines(MAX_SQL_ROWS + 20)

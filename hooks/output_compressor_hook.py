@@ -204,7 +204,7 @@ def _compress_sql_result(output: str, tool_name: str) -> str | None:
     truncated = lines[:MAX_SQL_ROWS]
     omitted = len(lines) - MAX_SQL_ROWS
     truncated.append(
-        f"\n[OUTPUT COMPRIMIDO — {omitted} linhas omitidas] "
+        f"[OUTPUT COMPRIMIDO — {omitted} linhas omitidas] "
         f"Refine a query com WHERE/LIMIT para ver todos os dados."
     )
     return "\n".join(truncated)
@@ -265,7 +265,7 @@ def _compress_list_result(output: str, tool_name: str) -> str | None:
 
     truncated = lines[:MAX_LIST_ITEMS]
     omitted = len(lines) - MAX_LIST_ITEMS
-    truncated.append(f"\n[OUTPUT COMPRIMIDO — {tool_label}] ... {omitted} itens omitidos.")
+    truncated.append(f"[OUTPUT COMPRIMIDO — {tool_label}] ... {omitted} itens omitidos.")
     return "\n".join(truncated)
 
 
@@ -281,7 +281,7 @@ def _compress_by_lines(output: str, max_lines: int, label: str) -> str | None:
 
     truncated = lines[:max_lines]
     omitted = len(lines) - max_lines
-    truncated.append(f"\n[OUTPUT COMPRIMIDO — {label}] ... {omitted} linhas omitidas.")
+    truncated.append(f"[OUTPUT COMPRIMIDO — {label}] ... {omitted} linhas omitidas.")
     return "\n".join(truncated)
 
 
