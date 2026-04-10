@@ -134,7 +134,9 @@ class TestBuildSupervisorOptions:
                 hooks = captured_kwargs.get("hooks", {})
                 assert "PostToolUse" in hooks
                 assert "PreToolUse" in hooks
-                assert len(hooks["PostToolUse"]) == 3  # audit + cost guard + output compressor
+                assert (
+                    len(hooks["PostToolUse"]) == 4
+                )  # audit + cost guard + workflow tracker + output compressor
                 assert len(hooks["PreToolUse"]) == 2  # security + sql cost check
 
     def test_build_includes_partial_messages(self):
