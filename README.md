@@ -46,7 +46,7 @@ Sistema multi-agente construido sobre o **Claude Agent SDK** da Anthropic com in
 ## Arquitetura
 
 <p align="center">
-  <img src="img/readme/architecture_v2.png" alt="Arquitetura Multi-Agent System" width="100%">
+  <img src="img/readme/architecture_v3.svg" alt="Arquitetura Multi-Agent System" width="100%">
 </p>
 
 O sistema opera com um **Supervisor** (Opus) que orquestra **6 agentes especialistas** definidos declarativamente em Markdown. Cada agente declara seus dominios de conhecimento (`kb_domains`), ferramentas e tier no frontmatter YAML. O Supervisor segue o **Protocolo KB-First + BMAD** com validacao constitucional.
