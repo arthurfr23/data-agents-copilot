@@ -11,7 +11,7 @@ Auto-refresh: use o seletor na sidebar para atualizar automaticamente.
 import json
 import time
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -46,6 +46,7 @@ AUDIT_LOG = ROOT / "logs" / "audit.jsonl"
 APP_LOG = ROOT / "logs" / "app.jsonl"
 SESSIONS_LOG = ROOT / "logs" / "sessions.jsonl"
 COMPRESSION_LOG = ROOT / "logs" / "compression.jsonl"
+WORKFLOWS_LOG = ROOT / "logs" / "workflows.jsonl"
 REGISTRY = ROOT / "agents" / "registry"
 
 
@@ -251,6 +252,7 @@ with st.sidebar:
         [
             "📊 Overview",
             "🤖 Agentes",
+            "🔄 Workflows",
             "⚡ Execuções",
             "🔌 MCP Servers",
             "📋 Logs",
@@ -279,11 +281,83 @@ with st.sidebar:
 
 # ── Carrega dados ─────────────────────────────────────────────────────────────
 
-audit_records = load_jsonl(AUDIT_LOG)
-app_records = load_jsonl(APP_LOG)
-session_records = load_jsonl(SESSIONS_LOG)
-compression_records = load_jsonl(COMPRESSION_LOG)
+_all_audit_records = load_jsonl(AUDIT_LOG)
+_all_app_records = load_jsonl(APP_LOG)
+_all_session_records = load_jsonl(SESSIONS_LOG)
+_all_compression_records = load_jsonl(COMPRESSION_LOG)
+_all_workflow_records = load_jsonl(WORKFLOWS_LOG)
 agents = load_agents()
+
+
+# ── Filtro de Datas (sidebar) ────────────────────────────────────────────────
+
+
+def _extract_date(record: dict) -> date | None:
+    """Extrai a data de um record a partir do campo 'timestamp'."""
+    ts = record.get("timestamp", "")
+    if not ts or len(ts) < 10:
+        return None
+    try:
+        return date.fromisoformat(ts[:10])
+    except ValueError:
+        return None
+
+
+def _date_bounds(records_list: list[list[dict]]) -> tuple[date, date]:
+    """Encontra as datas mínima e máxima entre várias listas de records."""
+    all_dates: list[date] = []
+    for records in records_list:
+        for r in records:
+            d = _extract_date(r)
+            if d:
+                all_dates.append(d)
+    if not all_dates:
+        today = date.today()
+        return today - timedelta(days=30), today
+    return min(all_dates), max(all_dates)
+
+
+def _filter_by_date(records: list[dict], start: date, end: date) -> list[dict]:
+    """Filtra records pelo range de datas (inclusivo)."""
+    filtered = []
+    for r in records:
+        d = _extract_date(r)
+        if d is None or (start <= d <= end):
+            filtered.append(r)
+    return filtered
+
+
+min_date, max_date = _date_bounds(
+    [_all_audit_records, _all_app_records, _all_session_records, _all_workflow_records]
+)
+
+with st.sidebar:
+    st.divider()
+    st.markdown("**📅 Filtro de Período**")
+    date_range = st.date_input(
+        "Intervalo de datas",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date,
+        format="DD/MM/YYYY",
+        label_visibility="collapsed",
+    )
+    # Trata seleção parcial (apenas uma data)
+    if isinstance(date_range, tuple) and len(date_range) == 2:
+        filter_start, filter_end = date_range
+    else:
+        filter_start = date_range[0] if isinstance(date_range, tuple) else date_range
+        filter_end = max_date
+
+    if filter_start != min_date or filter_end != max_date:
+        st.caption(f"🔍 {filter_start.strftime('%d/%m/%Y')} → {filter_end.strftime('%d/%m/%Y')}")
+
+audit_records = _filter_by_date(_all_audit_records, filter_start, filter_end)
+app_records = _filter_by_date(_all_app_records, filter_start, filter_end)
+session_records = _filter_by_date(_all_session_records, filter_start, filter_end)
+compression_records = _filter_by_date(_all_compression_records, filter_start, filter_end)
+workflow_records = _filter_by_date(_all_workflow_records, filter_start, filter_end)
+
 audit = analyse_audit(audit_records)
 app = analyse_app(app_records)
 mcp_status = infer_mcp_status(audit, app_records)
@@ -389,6 +463,89 @@ elif page == "🤖 Agentes":
             "Nenhum agente encontrado. Verifique se pyyaml está instalado: `pip install pyyaml`"
         )
     else:
+        # ── Performance por Agente (dados do workflows.jsonl) ──
+        agent_delegations: dict[str, int] = defaultdict(int)
+        agent_in_workflows: dict[str, int] = defaultdict(int)
+        for wr in workflow_records:
+            evt = wr.get("event", "")
+            ag = wr.get("agent", "")
+            if evt in ("agent_delegation", "workflow_step") and ag:
+                agent_delegations[ag] += 1
+            if evt == "workflow_step" and ag:
+                agent_in_workflows[ag] += 1
+
+        # Dados do audit: chamadas MCP por agente (inferido pela tool)
+        agent_tool_counts: dict[str, int] = defaultdict(int)
+        agent_errors: dict[str, int] = defaultdict(int)
+        for ar in audit_records:
+            tool = ar.get("tool_name", "")
+            if tool.startswith("mcp__"):
+                # Inferir agente pela plataforma (aproximação)
+                platform = ar.get("platform", "")
+                if platform:
+                    agent_tool_counts[platform] += 1
+            if ar.get("has_error"):
+                cat = ar.get("error_category", "unknown")
+                agent_errors[cat] = agent_errors.get(cat, 0) + 1
+
+        # ── KPIs de Performance ──
+        total_delegations = sum(agent_delegations.values())
+        total_wf_steps = sum(agent_in_workflows.values())
+        total_errors = sum(agent_errors.values())
+
+        if total_delegations > 0 or total_errors > 0:
+            st.subheader("📈 Performance dos Agentes")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Total de Delegações", total_delegations, help="workflows.jsonl")
+            c2.metric("Em Workflows", total_wf_steps, help="Delegações dentro de WF-01 a WF-04")
+            c3.metric("Erros Detectados", total_errors, help="audit.jsonl (has_error=true)")
+            if total_delegations > 0:
+                error_rate = round(total_errors / (total_delegations + audit["total"]) * 100, 1)
+                c4.metric("Taxa de Erro", f"{error_rate}%")
+            else:
+                c4.metric("Taxa de Erro", "—")
+
+            if agent_delegations:
+                import pandas as pd
+
+                col_perf1, col_perf2 = st.columns(2)
+                with col_perf1:
+                    st.markdown("**Delegações por Agente:**")
+                    df_deleg = pd.DataFrame(
+                        [
+                            {"Agente": k, "Delegações": v}
+                            for k, v in sorted(agent_delegations.items(), key=lambda x: -x[1])
+                        ]
+                    )
+                    st.dataframe(
+                        df_deleg,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Delegações": st.column_config.ProgressColumn(
+                                max_value=max(agent_delegations.values())
+                                if agent_delegations
+                                else 1
+                            )
+                        },
+                    )
+
+                with col_perf2:
+                    if agent_errors:
+                        st.markdown("**Erros por Categoria:**")
+                        df_errors = pd.DataFrame(
+                            [
+                                {"Categoria": k, "Ocorrências": v}
+                                for k, v in sorted(agent_errors.items(), key=lambda x: -x[1])
+                            ]
+                        )
+                        st.dataframe(df_errors, use_container_width=True, hide_index=True)
+                    else:
+                        st.success("Nenhum erro categorizado detectado.")
+
+            st.divider()
+
+        # ── Cards dos Agentes ──
         tier_colors = {"T1": "🔵", "T2": "🟢"}
         cols = st.columns(2)
         for i, agent in enumerate(agents):
@@ -398,13 +555,17 @@ elif page == "🤖 Agentes":
                 mcps = agent.get("mcp_servers", [])
                 tools = agent.get("tools", [])
                 kb = agent.get("kb_domains", [])
+                agent_name = agent.get("name", "?")
+                deleg_count = agent_delegations.get(agent_name, 0)
+                wf_count = agent_in_workflows.get(agent_name, 0)
                 with st.container(border=True):
-                    st.markdown(f"### {tier_colors.get(tier, '⚪')} {agent.get('name', '?')}")
+                    st.markdown(f"### {tier_colors.get(tier, '⚪')} {agent_name}")
                     st.caption(agent.get("description", "")[:200])
-                    c1, c2, c3 = st.columns(3)
+                    c1, c2, c3, c4 = st.columns(4)
                     c1.metric("Tier", tier)
                     c2.metric("Modelo", model.replace("claude-", "").replace("-", " "))
-                    c3.metric("MCP Servers", len(mcps))
+                    c3.metric("Delegações", deleg_count)
+                    c4.metric("Em Workflows", wf_count)
                     if tools:
                         st.markdown("**Tools:**")
                         st.code(" · ".join(tools[:12]) + ("..." if len(tools) > 12 else ""))
@@ -412,6 +573,177 @@ elif page == "🤖 Agentes":
                         st.markdown("**MCP Servers:** " + " · ".join([f"`{m}`" for m in mcps]))
                     if kb:
                         st.markdown("**KB Domains:** " + " · ".join([f"`{k}`" for k in kb]))
+
+
+# ── WORKFLOWS ────────────────────────────────────────────────────────────────
+elif page == "🔄 Workflows":
+    st.title("🔄 Workflows & Clarity Checkpoint")
+    st.caption(
+        f"Rastreamento de workflows colaborativos, delegações e validação de clareza — "
+        f"**{len(workflow_records)}** eventos registrados"
+    )
+
+    import pandas as pd
+
+    if not workflow_records:
+        st.info(
+            "Nenhum evento de workflow registrado ainda em `logs/workflows.jsonl`.\n\n"
+            "Os eventos são gravados automaticamente quando o supervisor:\n"
+            "- Delega tarefas para agentes especialistas\n"
+            "- Executa o Clarity Checkpoint (Passo 0.5)\n"
+            "- Gera specs (Passo 0.9)\n"
+            "- Aciona workflows WF-01 a WF-04"
+        )
+    else:
+        # Classificar eventos
+        delegations = [r for r in workflow_records if r.get("event") == "agent_delegation"]
+        wf_steps = [r for r in workflow_records if r.get("event") == "workflow_step"]
+        clarity = [r for r in workflow_records if r.get("event") == "clarity_checkpoint"]
+        clarifications = [
+            r for r in workflow_records if r.get("event") == "clarity_clarification_requested"
+        ]
+        specs = [r for r in workflow_records if r.get("event") == "spec_generated"]
+
+        # ── KPIs ──
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Delegações", len(delegations) + len(wf_steps))
+        c2.metric("Workflows", len(wf_steps), help="Etapas dentro de WF-01 a WF-04")
+        c3.metric("Clarity Checks", len(clarity))
+        c4.metric(
+            "Esclarecimentos",
+            len(clarifications),
+            help="Vezes que o Clarity Checkpoint pediu mais informações",
+        )
+        c5.metric("Specs Gerados", len(specs))
+
+        st.divider()
+
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            # ── Delegações por Agente ──
+            st.subheader("🤖 Delegações por Agente")
+            all_delegs = delegations + wf_steps
+            if all_delegs:
+                agent_counts: dict[str, int] = defaultdict(int)
+                for d in all_delegs:
+                    agent_counts[d.get("agent", "unknown")] += 1
+                df_agents = pd.DataFrame(
+                    [
+                        {"Agente": k, "Delegações": v}
+                        for k, v in sorted(agent_counts.items(), key=lambda x: -x[1])
+                    ]
+                )
+                st.bar_chart(df_agents.set_index("Agente"), color="#6366f1")
+            else:
+                st.info("Nenhuma delegação registrada.")
+
+            # ── Workflows Acionados ──
+            st.subheader("🔄 Workflows Acionados")
+            if wf_steps:
+                wf_names = {
+                    "WF-01": "Pipeline End-to-End",
+                    "WF-02": "Star Schema",
+                    "WF-03": "Migração Cross-Platform",
+                    "WF-04": "Auditoria Governança",
+                }
+                wf_counts: dict[str, int] = defaultdict(int)
+                for ws in wf_steps:
+                    wf_id = ws.get("workflow", "unknown")
+                    wf_counts[wf_id] += 1
+                df_wf = pd.DataFrame(
+                    [
+                        {"Workflow": f"{k} — {wf_names.get(k, '')}", "Etapas": v}
+                        for k, v in sorted(wf_counts.items())
+                    ]
+                )
+                st.dataframe(df_wf, use_container_width=True, hide_index=True)
+            else:
+                st.info("Nenhum workflow colaborativo acionado ainda.")
+
+        with col_right:
+            # ── Clarity Checkpoint ──
+            st.subheader("🎯 Clarity Checkpoint")
+            if clarity:
+                passed = sum(1 for c in clarity if c.get("passed", False))
+                failed = len(clarity) - passed
+                pass_rate = round(passed / len(clarity) * 100, 1) if clarity else 0
+
+                cc1, cc2, cc3 = st.columns(3)
+                cc1.metric("Aprovados", passed)
+                cc2.metric("Reprovados", failed)
+                cc3.metric("Taxa Aprovação", f"{pass_rate}%")
+
+                # Scores
+                scores = [c.get("score", 0) for c in clarity]
+                avg_score = round(sum(scores) / len(scores), 1)
+                st.metric("Score Médio", f"{avg_score}/5")
+
+                # Histórico de checks
+                df_clarity = pd.DataFrame(
+                    [
+                        {
+                            "Timestamp": to_sp(c.get("timestamp", "")),
+                            "Score": f"{c.get('score', 0)}/5",
+                            "Status": "✅ Aprovado" if c.get("passed") else "❌ Reprovado",
+                        }
+                        for c in reversed(clarity[-20:])
+                    ]
+                )
+                st.dataframe(df_clarity, use_container_width=True, hide_index=True)
+            else:
+                st.info("Nenhum Clarity Checkpoint executado ainda.")
+
+            # ── Specs Gerados ──
+            if specs:
+                st.subheader("📋 Specs Gerados")
+                df_specs = pd.DataFrame(
+                    [
+                        {
+                            "Timestamp": to_sp(s.get("timestamp", "")),
+                            "Tipo": s.get("spec_type", "—"),
+                            "Arquivo": s.get("file_path", "—").split("/")[-1],
+                        }
+                        for s in reversed(specs[-10:])
+                    ]
+                )
+                st.dataframe(df_specs, use_container_width=True, hide_index=True)
+
+        st.divider()
+
+        # ── Atividade por Data ──
+        st.subheader("📅 Eventos por Data")
+        date_counts: dict[str, int] = defaultdict(int)
+        for wr in workflow_records:
+            ts = wr.get("timestamp", "")
+            date = to_sp(ts)[:10] if ts else "unknown"
+            date_counts[date] += 1
+        if date_counts:
+            df_dates = pd.DataFrame(
+                [{"Data": k, "Eventos": v} for k, v in sorted(date_counts.items())]
+            ).set_index("Data")
+            st.bar_chart(df_dates, color="#10b981")
+
+        # ── Histórico Completo ──
+        st.subheader("📋 Histórico de Eventos")
+        df_history = pd.DataFrame(
+            [
+                {
+                    "Timestamp": to_sp(r.get("timestamp", "")),
+                    "Evento": r.get("event", ""),
+                    "Agente": r.get("agent", "—"),
+                    "Workflow": r.get("workflow", "—"),
+                    "Preview": (
+                        r.get("prompt_preview")
+                        or r.get("question_preview")
+                        or r.get("file_path")
+                        or ""
+                    )[:80],
+                }
+                for r in reversed(workflow_records[-100:])
+            ]
+        )
+        st.dataframe(df_history, use_container_width=True, hide_index=True)
 
 
 # ── EXECUÇÕES ─────────────────────────────────────────────────────────────────
@@ -652,15 +984,23 @@ elif page == "⚙️ Configurações":
         ("agents/loader.py", "Loader dinâmico do registry"),
         ("agents/supervisor.py", "Factory do ClaudeAgentOptions"),
         ("hooks/security_hook.py", "Bloqueia comandos destrutivos (PreToolUse)"),
-        ("hooks/audit_hook.py", "Registra todas as tool calls (PostToolUse)"),
+        (
+            "hooks/audit_hook.py",
+            "Registra todas as tool calls com categorização de erros (PostToolUse)",
+        ),
         ("hooks/cost_guard_hook.py", "Alerta operações de alto custo (PostToolUse)"),
         (
             "hooks/output_compressor_hook.py",
             "Comprime outputs MCP (PostToolUse) — economia de tokens",
         ),
+        (
+            "hooks/workflow_tracker.py",
+            "Rastreia workflows, Clarity Checkpoint e delegações (PostToolUse)",
+        ),
         ("hooks/session_logger.py", "Grava métricas de sessão em sessions.jsonl"),
         (f"logs/audit.jsonl ({audit['total']} entradas)", "Histórico completo de tool calls"),
         (f"logs/app.jsonl ({app['total']} entradas)", "Log estruturado da aplicação"),
+        ("logs/workflows.jsonl", "Eventos de workflows, delegações e Clarity Checkpoint"),
     ]
     df_files = pd.DataFrame(files_info, columns=["Arquivo", "Finalidade"])
     st.dataframe(df_files, use_container_width=True, hide_index=True)
@@ -670,7 +1010,7 @@ elif page == "⚙️ Configurações":
     st.info(
         "Este dashboard lê os arquivos de log em tempo real. "
         "Use o **auto-refresh** na sidebar para atualizações automáticas enquanto os agentes rodam. "
-        "O cache é de 5 segundos para `audit.jsonl` e `app.jsonl`."
+        "O cache é de 5 segundos para `audit.jsonl`, `app.jsonl` e `workflows.jsonl`."
     )
 
 
@@ -1049,7 +1389,7 @@ elif page == "ℹ️ Sobre":
         st.markdown("Abril de 2026")
     with c3:
         st.markdown("**🔖 Versão**")
-        st.markdown("`v1.0.0`")
+        st.markdown("`v1.1.0`")
     with c4:
         st.markdown("**📄 Licença**")
         st.markdown("MIT License")
@@ -1065,8 +1405,8 @@ elif page == "ℹ️ Sobre":
         contra plataformas Databricks e Microsoft Fabric.
 
         O monitoramento lê diretamente os arquivos de log gerados pelos hooks do sistema
-        (`logs/audit.jsonl` e `logs/app.jsonl`) e apresenta as informações de forma estruturada,
-        sem necessidade de infraestrutura adicional.
+        (`logs/audit.jsonl`, `logs/app.jsonl` e `logs/workflows.jsonl`) e apresenta as informações
+        de forma estruturada, sem necessidade de infraestrutura adicional.
         """
     )
 
@@ -1086,7 +1426,9 @@ elif page == "ℹ️ Sobre":
             "🤖 Agentes",
             "Todos os agentes especialistas definidos em `agents/registry/*.md`. "
             "Exibe tier (T1/T2), modelo Claude utilizado, tools disponíveis, MCP servers "
-            "conectados e domínios de Knowledge Base de cada agente.",
+            "conectados e domínios de Knowledge Base de cada agente. "
+            "Inclui KPIs de performance (delegações, erros, taxa de erro) e "
+            "erros categorizados (auth, timeout, rate_limit, not_found, validation, mcp_connection).",
         ),
         (
             "⚡ Execuções",
@@ -1107,6 +1449,12 @@ elif page == "ℹ️ Sobre":
             "`app.jsonl` filtrável por nível (INFO/WARNING/ERROR/DEBUG) e por texto. "
             "`audit.jsonl` filtrável por tipo de ferramenta (MCP, Agent, Bash etc.). "
             "Ambos atualizam automaticamente com o auto-refresh ativado.",
+        ),
+        (
+            "🔄 Workflows",
+            "Rastreamento de workflows colaborativos (WF-01 a WF-04), delegações de agentes, "
+            "Clarity Checkpoint (score, pass rate, histórico) e specs gerados. "
+            "Inclui gráfico de atividade por data e histórico completo de eventos.",
         ),
         (
             "⚙️ Configurações",
@@ -1133,19 +1481,26 @@ elif page == "ℹ️ Sobre":
 
     # Fontes de dados
     st.subheader("📂 Fontes de Dados")
-    col_a, col_b = st.columns(2)
+    col_a, col_b, col_c = st.columns(3)
     with col_a:
         st.markdown("**`logs/audit.jsonl`** — gerado pelo `audit_hook.py`")
         st.markdown(
             "Registra **toda tool call** executada pelo sistema (PostToolUse hook). "
-            "Cada linha contém: timestamp, nome da ferramenta, tool_use_id e chaves de input."
+            "Cada linha contém: timestamp, nome da ferramenta, tool_use_id, chaves de input, "
+            "plataforma MCP e categorização de erros."
         )
     with col_b:
-        st.markdown("**`logs/app.jsonl`** — gerado pelo `logging_config.py`**")
+        st.markdown("**`logs/app.jsonl`** — gerado pelo `logging_config.py`")
         st.markdown(
             "Log estruturado da aplicação usando `JSONLFormatter`. "
             "Registra inicialização, status dos MCP servers, configurações carregadas, "
             "warnings de credenciais e erros de runtime."
+        )
+    with col_c:
+        st.markdown("**`logs/workflows.jsonl`** — gerado pelo `workflow_tracker.py`")
+        st.markdown(
+            "Eventos de workflows colaborativos, delegações de agentes, "
+            "Clarity Checkpoint (scores e resultados) e specs gerados."
         )
 
     st.divider()
@@ -1167,8 +1522,9 @@ elif page == "ℹ️ Sobre":
 
         Os **hooks** interceptam cada execução de ferramenta:
         `security_hook` bloqueia comandos destrutivos e queries SQL custosas,
-        `audit_hook` registra todas as chamadas,
+        `audit_hook` registra todas as chamadas com categorização de erros,
         `cost_guard_hook` alerta sobre operações de alto custo,
+        `workflow_tracker` rastreia delegações, workflows e Clarity Checkpoint,
         `output_compressor_hook` filtra e trunca outputs para economia de tokens.
         """
     )

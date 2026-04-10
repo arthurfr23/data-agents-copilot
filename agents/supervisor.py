@@ -34,6 +34,7 @@ from hooks.audit_hook import audit_tool_usage
 from hooks.cost_guard_hook import log_cost_generating_operations
 from hooks.output_compressor_hook import compress_tool_output
 from hooks.security_hook import block_destructive_commands, check_sql_cost
+from hooks.workflow_tracker import track_workflow_events
 
 
 def build_supervisor_options(
@@ -112,6 +113,8 @@ def build_supervisor_options(
             "PostToolUse": [
                 HookMatcher(hooks=[audit_tool_usage]),  # type: ignore[list-item]
                 HookMatcher(hooks=[log_cost_generating_operations]),  # type: ignore[list-item]
+                # Rastreia delegações de agentes, workflows e Clarity Checkpoint.
+                HookMatcher(hooks=[track_workflow_events]),  # type: ignore[list-item]
                 # RTK-style: comprime output verboso das tools antes de enviar ao modelo.
                 # Executado por último para que audit/cost_guard observem o output original.
                 HookMatcher(hooks=[compress_tool_output]),  # type: ignore[list-item]

@@ -1,22 +1,22 @@
-# Manual e Relatório Técnico: Projeto Data Agents v3.0
+# Manual e Relatorio Tecnico: Projeto Data Agents v3.1
 
 ---
 
-Repositório:  [github.com/ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents)
+Repositorio:  [github.com/ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents)
 
 ---
 
-## 👤 Autor
+## Autor
 
 > ## Thomaz Antonio Rossito Neto
 >
 > Specialist Data & AI Solutions Architect | Center of Excellence CoE @CI&T | Enterprise AI Agents, Microsoft Fabric & Databricks Expert
 
-## Educação Acadêmica
+## Educacao Academica
 
-> **MBA: Ciência de Dados com ênfase em Big Data**
+> **MBA: Ciencia de Dados com enfase em Big Data**
 
-> **MBA: Engenharia de Dados com ênfase em Big Data**
+> **MBA: Engenharia de Dados com enfase em Big Data**
 
 ## Contatos
 
@@ -26,15 +26,15 @@ Repositório:  [github.com/ThomazRossito/data-agents](https://github.com/ThomazR
 
 ---
 
-#### 🏆 Profissional Certificado Databricks
+#### Profissional Certificado Databricks
 
 <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/125134719" alt="Databricks Certified Spark Developer" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/169321258" alt="Databricks Certified Generative AI Engineer Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/167127257" alt="Databricks Certified Data Analyst Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/125134780" alt="Databricks Certified Data Engineer Associate" width="155"/> <img src="https://api.accredible.com/v1/frontend/credential_website_embed_image/badge/157011932" alt="Databricks Certified Data Engineer Professional" width="155"/>
 
-[Todas as certificações](https://credentials.databricks.com/profile/thomazantoniorossitoneto39867/wallet)
+[Todas as certificacoes](https://credentials.databricks.com/profile/thomazantoniorossitoneto39867/wallet)
 
 ---
 
-#### 🏆 Profissional Certificado Microsoft
+#### Profissional Certificado Microsoft
 
 <a href="https://www.credly.com/badges/052e5133-0c67-4ab7-bb3a-c99efa7b4406/public_url" target="_blank">
   <img src="https://images.credly.com/images/70eb1e3f-d4de-4377-a062-b20fb29594ea/azure-data-fundamentals-600x600.png" alt="Microsoft Certified: Azure Data Fundamentals (DP-900)" width="155"/>
@@ -43,73 +43,83 @@ Repositório:  [github.com/ThomazRossito/data-agents](https://github.com/ThomazR
   <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663028569643/ftqfVZsrmaGyfUha.png" alt="Microsoft Certified: Fabric Data Engineer Associate (DP-700)" width="155"/>
 </a>
 
-[Todas as certificações](https://www.credly.com/users/thomaz-antonio-rossito-neto/badges#credly)
+[Todas as certificacoes](https://www.credly.com/users/thomaz-antonio-rossito-neto/badges#credly)
 
 ---
 
-## Sumário
+## Sumario
 
-1. [O que é este projeto?](#1-o-que-é-este-projeto)
-2. [Conceitos Fundamentais (Glossário para Iniciantes)](#2-conceitos-fundamentais-glossário-para-iniciantes)
+1. [O que e este projeto?](#1-o-que-e-este-projeto)
+2. [Conceitos Fundamentais (Glossario)](#2-conceitos-fundamentais-glossario)
 3. [Arquitetura Geral do Sistema](#3-arquitetura-geral-do-sistema)
 4. [Os Agentes: A Equipe Virtual](#4-os-agentes-a-equipe-virtual)
-5. [O Método BMAD e KB-First](#5-o-método-bmad-e-kb-first)
+5. [O Metodo BMAD, KB-First e Constituicao](#5-o-metodo-bmad-kb-first-e-constituicao)
 6. [Estrutura de Arquivos e Pastas](#6-estrutura-de-arquivos-e-pastas)
-7. [Análise Detalhada de Cada Componente](#7-análise-detalhada-de-cada-componente)
-8. [Segurança e Controle de Custos (Hooks)](#8-segurança-e-controle-de-custos-hooks)
-9. [O Hub de Conhecimento (KBs e Skills)](#9-o-hub-de-conhecimento-kbs-e-skills)
-10. [Conexões com a Nuvem (MCP Servers)](#10-conexões-com-a-nuvem-mcp-servers)
-11. [Comandos Disponíveis (Slash Commands)](#11-comandos-disponíveis-slash-commands)
-12. [Configuração e Credenciais](#12-configuração-e-credenciais)
-13. [Qualidade de Código e Testes](#13-qualidade-de-código-e-testes)
-14. [Deploy e CI/CD (Publicação Automática)](#14-deploy-e-cicd-publicação-automática)
-15. [Dashboard de Monitoramento](#15-dashboard-de-monitoramento)
-16. [Como Começar a Usar](#16-como-começar-a-usar)
-17. [Melhorias da Versão 3.0](#17-melhorias-da-versão-30)
-18. [Conclusão](#18-conclusão)
+7. [Analise Detalhada de Cada Componente](#7-analise-detalhada-de-cada-componente)
+8. [Seguranca e Controle de Custos (Hooks)](#8-seguranca-e-controle-de-custos-hooks)
+9. [O Hub de Conhecimento (KBs, Skills e Constituicao)](#9-o-hub-de-conhecimento-kbs-skills-e-constituicao)
+10. [Workflows Colaborativos e Spec-First](#10-workflows-colaborativos-e-spec-first)
+11. [Conexoes com a Nuvem (MCP Servers)](#11-conexoes-com-a-nuvem-mcp-servers)
+12. [Comandos Disponiveis (Slash Commands)](#12-comandos-disponiveis-slash-commands)
+13. [Configuracao e Credenciais](#13-configuracao-e-credenciais)
+14. [Checkpoint de Sessao (Recuperacao Automatica)](#14-checkpoint-de-sessao-recuperacao-automatica)
+15. [Qualidade de Codigo e Testes](#15-qualidade-de-codigo-e-testes)
+16. [Deploy e CI/CD (Publicacao Automatica)](#16-deploy-e-cicd-publicacao-automatica)
+17. [Dashboard de Monitoramento](#17-dashboard-de-monitoramento)
+18. [Como Comecar a Usar](#18-como-comecar-a-usar)
+19. [Historico de Melhorias (v3.0 e v3.1)](#19-historico-de-melhorias-v30-e-v31)
+20. [Conclusao](#20-conclusao)
 
 ---
 
-## 1. O que é este projeto?
+## 1. O que e este projeto?
 
-O **Data Agents** é um sistema avançado de **múltiplos agentes de Inteligência Artificial** projetado para atuar como uma equipe completa e autônoma nas áreas de Engenharia de Dados, Qualidade de Dados, Governança e Análise Corporativa. Se você já usou o ChatGPT ou o Claude para pedir ajuda com código, imagine dar um passo além: em vez de apenas responder perguntas, esta IA possui acesso direto ao seu ambiente na nuvem (Databricks e Microsoft Fabric) para executar as tarefas por você, de ponta a ponta.
+O **Data Agents** e um sistema avancado de **multiplos agentes de Inteligencia Artificial** projetado para atuar como uma equipe completa e autonoma nas areas de Engenharia de Dados, Qualidade de Dados, Governanca e Analise Corporativa.
 
-A versão 2.0 deste projeto traz uma revolução na forma como a IA trabalha. Diferente de sistemas comuns que tentam adivinhar a melhor forma de escrever um código, o Data Agents opera sob uma **camada declarativa de governança e conhecimento**. Isso significa que a IA é rigorosamente obrigada a ler as regras de negócio da sua empresa (Knowledge Bases) e os manuais técnicos oficiais (Skills) *antes* de planejar ou executar qualquer ação. O resultado é um código não apenas funcional, mas seguro, auditável e perfeitamente alinhado com a arquitetura corporativa moderna.
+Se voce ja usou o ChatGPT ou o Claude para pedir ajuda com codigo, imagine dar um passo alem: em vez de apenas responder perguntas, esta IA possui acesso direto ao seu ambiente na nuvem (Databricks e Microsoft Fabric) para executar as tarefas por voce, de ponta a ponta.
+
+O diferencial do Data Agents e que a IA opera sob uma **Constituicao** — um documento central com regras inviolaveis — e uma **camada declarativa de governanca e conhecimento**. Isso significa que a IA e rigorosamente obrigada a ler as regras de negocio da sua empresa (Knowledge Bases) e os manuais tecnicos oficiais (Skills) *antes* de planejar ou executar qualquer acao. O resultado e um codigo nao apenas funcional, mas seguro, auditavel e perfeitamente alinhado com a arquitetura corporativa moderna.
+
+Na versao 3.1, o sistema tambem conta com **Workflows Colaborativos** (cadeias automaticas de agentes), **Checkpoint de Sessao** (recuperacao automatica quando o orcamento estoura) e um **Dashboard de Monitoramento** com 9 paginas e filtro de datas.
 
 ---
 
-## 2. Conceitos Fundamentais (Glossário para Iniciantes)
+## 2. Conceitos Fundamentais (Glossario)
 
-Para garantir que este manual seja compreensível mesmo para quem não é especialista em Inteligência Artificial ou Engenharia de Dados, preparamos este glossário com os termos essenciais utilizados ao longo do documento.
+Para garantir que este manual seja compreensivel mesmo para quem nao e especialista em Inteligencia Artificial, preparamos este glossario com os termos essenciais.
 
-| Termo Técnico                                | O que significa na prática                                                                                                                                                                                                                                  |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Agente de IA**                        | Um programa inteligente que não apenas conversa, mas toma decisões, planeja passos, usa ferramentas (como ler arquivos ou rodar scripts) e executa tarefas de forma autônoma.                                                                             |
-| **LLM (Large Language Model)**          | O "cérebro" por trás da IA. Neste projeto, utilizamos a família de modelos**Claude** (da empresa Anthropic), conhecida por sua excelência em raciocínio lógico e programação.                                                                  |
-| **MCP (Model Context Protocol)**        | Pense no MCP como uma "tomada universal". É um protocolo de código aberto que permite que a IA se conecte de forma segura a sistemas externos (como bancos de dados ou nuvens) para realizar ações reais.                                                |
-| **Databricks**                          | Uma das maiores plataformas de dados em nuvem do mundo, especializada em processar volumes massivos de informações usando a tecnologia Apache Spark.                                                                                                       |
-| **Microsoft Fabric**                    | A plataforma de dados unificada da Microsoft. Ela junta armazenamento (OneLake), engenharia (Data Factory), análise em tempo real (RTI) e visualização de negócios (Power BI) em um só lugar.                                                           |
-| **Apache Spark / PySpark**              | Uma tecnologia para processamento de "Big Data". Se você precisa analisar bilhões de linhas, o Excel trava; o Spark distribui esse trabalho entre dezenas de computadores ao mesmo tempo. PySpark é a versão dessa ferramenta usando a linguagem Python. |
-| **Arquitetura Medalhão**               | Um padrão da indústria para organizar dados em três camadas de qualidade:**Bronze** (dados brutos, como vieram da fonte), **Silver** (dados limpos e filtrados) e **Gold** (dados agregados e prontos para relatórios de negócios).   |
-| **Knowledge Base (KB)**                 | Arquivos de texto que contêm as**regras de negócio e padrões arquiteturais** da sua empresa. A IA lê isso para saber *o que* deve ser feito e *quais regras* seguir.                                                                           |
-| **Skills**                              | Manuais operacionais detalhados de ferramentas. Enquanto a KB diz*o que* fazer, a Skill ensina a IA *como* usar uma tecnologia específica (ex: como configurar um alerta no Fabric).                                                                    |
-| **Registry de Agentes**                 | Uma pasta (`agents/registry/`) onde os agentes são definidos usando arquivos de texto simples (Markdown). Na versão 2.0, você não precisa programar em Python para criar um novo agente; basta criar um arquivo de texto.                              |
-| **Hook**                                | Um "gancho" de segurança. É um pedaço de código que fica monitorando tudo o que a IA tenta fazer. Se a IA tentar rodar um comando perigoso (como apagar um banco de dados), o Hook intercepta e bloqueia a ação na hora.                               |
-| **PRD (Product Requirements Document)** | Um documento de arquitetura. Antes de sair escrevendo código, o Supervisor da IA escreve um PRD detalhando exatamente o que vai construir, como e por quê, pedindo a sua aprovação.                                                                      |
+| Termo Tecnico | O que significa na pratica |
+|---|---|
+| **Agente de IA** | Um programa inteligente que nao apenas conversa, mas toma decisoes, planeja passos, usa ferramentas e executa tarefas de forma autonoma. |
+| **LLM (Large Language Model)** | O "cerebro" por tras da IA. Neste projeto, utilizamos a familia de modelos **Claude** (da Anthropic), conhecida por excelencia em raciocinio logico e programacao. |
+| **MCP (Model Context Protocol)** | Protocolo de codigo aberto que permite que a IA se conecte de forma segura a sistemas externos (bancos de dados, nuvens) para realizar acoes reais. Funciona como uma "tomada universal". |
+| **Databricks** | Plataforma de dados em nuvem especializada em processar volumes massivos de informacoes usando Apache Spark. |
+| **Microsoft Fabric** | Plataforma de dados unificada da Microsoft que junta armazenamento (OneLake), engenharia (Data Factory), analise em tempo real (RTI) e visualizacao (Power BI). |
+| **Apache Spark / PySpark** | Tecnologia para processamento de Big Data que distribui trabalho entre dezenas de computadores. PySpark e a versao usando Python. |
+| **Arquitetura Medallion** | Padrao da industria para organizar dados em tres camadas: **Bronze** (dados brutos), **Silver** (dados limpos) e **Gold** (dados prontos para relatorios). |
+| **Knowledge Base (KB)** | Arquivos que contem as **regras de negocio e padroes arquiteturais** da empresa. A IA le isso para saber *o que* deve ser feito. |
+| **Skills** | Manuais operacionais detalhados. Enquanto a KB diz *o que* fazer, a Skill ensina *como* usar uma tecnologia especifica. |
+| **Constituicao** | Documento de autoridade maxima do sistema (`kb/constitution.md`). Contem ~50 regras inviolaveis que prevalecem sobre qualquer instrucao do usuario. |
+| **Clarity Checkpoint** | Etapa de validacao onde o Supervisor pontua a clareza da requisicao em 5 dimensoes antes de prosseguir. Minimo 3/5 para continuar. |
+| **Workflow Colaborativo** | Cadeia automatica de agentes que trabalham em sequencia, passando contexto entre si (ex: SQL Expert gera schema, Spark Expert transforma, Quality valida). |
+| **Checkpoint de Sessao** | Ponto de salvamento automatico do estado da sessao. Permite retomar o trabalho apos um estouro de orcamento ou reset, sem perder o progresso. |
+| **Hook** | "Gancho" de seguranca que monitora tudo que a IA tenta fazer. Se tentar algo perigoso, o Hook intercepta e bloqueia. |
+| **PRD (Product Requirements Document)** | Documento de arquitetura criado pelo Supervisor antes de delegar, detalhando exatamente o que sera construido. |
+| **Registry de Agentes** | Pasta (`agents/registry/`) onde agentes sao definidos em arquivos Markdown. Nao e necessario programar em Python para criar um novo agente. |
 
 ---
 
 ## 3. Arquitetura Geral do Sistema
 
-A arquitetura do Data Agents v3.0 foi desenhada para ser hierárquica, segura e altamente extensível. A versão 3.0 introduziu 6 melhorias significativas: filtragem inteligente de outputs MCP, roteamento de modelos por tier, lazy-loading de Knowledge Bases por domínio, proteção contra queries SQL custosas, reset automático por inatividade e limpeza de contadores de sessão. O fluxo de trabalho funciona de maneira muito semelhante a uma equipe humana em uma empresa.
+A arquitetura do Data Agents v3.1 e hierarquica, segura e extensivel. O fluxo de trabalho funciona de maneira semelhante a uma equipe humana em uma empresa.
 
-### O Fluxo de Trabalho (Como as coisas acontecem)
+### O Fluxo de Trabalho
 
-1. **A Interface (O Terminal):** Você digita um pedido no terminal do seu computador (ex: `/plan Crie um pipeline de vendas no Databricks`). O arquivo `main.py` recebe esse pedido.
-2. **O Gerente (Supervisor):** O pedido vai para o **Data Orchestrator** (Supervisor). Ele é a IA mais inteligente do grupo. Ele lê as regras da empresa (KBs), desenha o plano arquitetural (PRD) e decide qual especialista é o melhor para o trabalho.
-3. **A Equipe (Especialistas):** O Supervisor acorda os agentes especialistas (ex: Arquiteto de Pipeline, Engenheiro de Qualidade). Eles recebem a tarefa, leem os manuais técnicos (Skills) e começam a trabalhar.
-4. **A Ponte (MCP Servers):** Para fazer o trabalho real na nuvem, os especialistas enviam comandos através dos servidores MCP, que traduzem a intenção da IA em ações concretas no Databricks ou Microsoft Fabric.
-5. **Os Guardiões (Hooks):** O tempo todo, os Hooks de segurança e auditoria observam silenciosamente. Eles registram cada ação em um log de auditoria e bloqueiam qualquer comando que viole as regras de segurança ou estoure o orçamento.
+1. **A Interface (O Terminal):** Voce digita um pedido no terminal (ex: `/plan Crie um pipeline de vendas no Databricks`). O arquivo `main.py` recebe esse pedido.
+2. **O Gerente (Supervisor):** O pedido vai para o **Data Orchestrator** (Supervisor). Ele le a Constituicao e as regras da empresa (KBs), executa o Clarity Checkpoint para validar se a requisicao esta clara, desenha o plano arquitetural (PRD) e decide qual especialista acionar.
+3. **A Equipe (Especialistas):** O Supervisor aciona os agentes especialistas. Eles recebem a tarefa, leem os manuais tecnicos (Skills) e comecam a trabalhar. Em tarefas complexas, podem trabalhar em cadeia via Workflows Colaborativos.
+4. **A Ponte (MCP Servers):** Para fazer o trabalho real na nuvem, os especialistas enviam comandos atraves dos servidores MCP, que traduzem a intencao da IA em acoes concretas no Databricks ou Fabric.
+5. **Os Guardioes (Hooks):** O tempo todo, 7 Hooks de seguranca e auditoria observam silenciosamente, registram cada acao e bloqueiam comandos que violem as regras.
 
 ### Diagrama da Arquitetura
 
@@ -121,621 +131,596 @@ A arquitetura do Data Agents v3.0 foi desenhada para ser hierárquica, segura e 
 
 ## 4. Os Agentes: A Equipe Virtual
 
-O projeto conta com **6 agentes especialistas** pré-configurados, divididos em dois níveis de atuação (Tiers). Graças ao novo Loader Dinâmico, todos esses agentes são definidos em arquivos de texto simples na pasta `agents/registry/`, tornando extremamente fácil adicionar novos membros à equipe no futuro.
+O projeto conta com **6 agentes especialistas** divididos em dois niveis de atuacao (Tiers), mais o Supervisor. Todos sao definidos em arquivos Markdown na pasta `agents/registry/`, tornando facil adicionar novos membros a equipe.
 
-### 👑 O Supervisor (Data Orchestrator)
+### O Supervisor (Data Orchestrator)
 
-- **Onde vive:** `agents/supervisor.py`
-- **Modelo de IA:** `claude-opus-4-6` (O modelo mais avançado, focado em raciocínio complexo).
-- **O que faz:** É o gerente do projeto. Ele é a única IA que conversa diretamente com você. Ele não escreve código; o trabalho dele é ler as regras de negócio (KBs), entender o seu problema, criar o documento de arquitetura (PRD) e delegar as tarefas para os especialistas corretos.
-- **Modo de Permissão:** Usa `permission_mode="bypassPermissions"`. Isso significa que as ferramentas MCP (conexões com a nuvem) executam automaticamente, sem precisar pedir aprovação manual a cada chamada. Sem essa configuração, o sistema ficaria travado aguardando confirmação em cada operação.
-- **Roteamento Inteligente:** Se um agente especialista falhar ao usar uma ferramenta MCP, o Supervisor redelega automaticamente para o Pipeline Architect, garantindo que o trabalho seja concluído mesmo em caso de indisponibilidade temporária de ferramentas.
-- **Hooks registrados no Supervisor:** 3 PostToolUse (`audit_hook`, `cost_guard_hook`, `output_compressor_hook`) + 2 PreToolUse (`block_destructive_commands` no Bash, `check_sql_cost` em todas as tools). O `output_compressor_hook` é propositalmente o último PostToolUse para que audit e cost_guard vejam o output original.
+- **Onde vive:** `agents/supervisor.py` + `agents/prompts/supervisor_prompt.py`
+- **Modelo de IA:** `claude-opus-4-6` (o mais avancado, focado em raciocinio complexo)
+- **O que faz:** E o gerente do projeto. Ele nao escreve codigo — seu trabalho e ler a Constituicao e as KBs, executar o Clarity Checkpoint, criar PRDs, delegar tarefas e validar os resultados contra as regras constitucionais.
+- **Novidade v3.1:** Executa o Clarity Checkpoint (Passo 0.5) para validar a clareza da requisicao, suporta Workflows Colaborativos (WF-01 a WF-04) e faz Validacao Constitucional no Passo 4.
 
-### 🛠️ Tier 1 — Engenharia de Dados (O Core)
-
-Estes agentes são os construtores da fundação de dados.
+### Tier 1 — Engenharia de Dados (O Core)
 
 #### 1. SQL Expert (`/sql`)
-
-- **Arquivo:** `agents/registry/sql-expert.md`
-- **Modelo:** `claude-sonnet-4-6` (Rápido e excelente em código).
-- **Analogia:** O Analista de Dados e Administrador de Banco de Dados.
-- **O que faz:** Especializado em escrever e otimizar consultas em SQL (incluindo as variantes T-SQL da Microsoft e Spark SQL do Databricks). Ele é usado para descobrir como as tabelas estão estruturadas, explorar o Unity Catalog e gerar código para criar novas tabelas.
-- **Ferramentas MCP:** Possui acesso explícito a `mcp__databricks__execute_sql` (para executar consultas `SELECT` e `SHOW`) além das ferramentas de leitura padrão (`list_catalogs`, `describe_table`, etc.). Também possui ferramentas de leitura do Fabric RTI para consultas KQL.
-- **Segurança:** Este agente tem permissão estrita de **apenas leitura**. Ele pode olhar os dados, mas não pode alterar ou apagar nada na nuvem.
+- **Modelo:** `claude-sonnet-4-6`
+- **Analogia:** O Analista de Dados e DBA.
+- **O que faz:** Escreve e otimiza consultas SQL (Spark SQL, T-SQL, KQL). Descobre estrutura de tabelas, explora Unity Catalog e gera codigo para criar tabelas.
+- **Seguranca:** Permissao de **leitura e escrita de arquivos** (pode gravar `.sql`), mas acesso **read-only** a nuvem.
 
 #### 2. Spark Expert (`/spark`)
-
-- **Arquivo:** `agents/registry/spark-expert.md`
 - **Modelo:** `claude-sonnet-4-6`
 - **Analogia:** O Desenvolvedor Back-end de Big Data.
-- **O que faz:** É o mestre em Python e Apache Spark. Ele escreve o código complexo que transforma bilhões de linhas de dados (pipelines SDP, Delta Lake, MERGEs).
-- **Segurança:** Este agente **não tem acesso à nuvem** (não possui MCP). Ele vive isolado; o trabalho dele é receber um problema matemático/lógico e devolver um código Python perfeito, que será executado por outro agente.
+- **O que faz:** Mestre em Python e Apache Spark. Escreve codigo PySpark para transformar dados, pipelines SDP e Delta Lake.
+- **Seguranca:** **Nao tem acesso a nuvem** (sem MCP). Recebe um problema e devolve codigo Python.
 
 #### 3. Pipeline Architect (`/pipeline` e `/fabric`)
-
-- **Arquivo:** `agents/registry/pipeline-architect.md`
 - **Modelo:** `claude-opus-4-6`
 - **Analogia:** O Engenheiro Cloud e DevOps.
-- **O que faz:** É o construtor da infraestrutura. Ele pega o código gerado pelo Spark Expert e orquestra a execução na nuvem. Ele cria os *Jobs* no Databricks, monta os *Pipelines* no Data Factory do Fabric e move arquivos de um lado para o outro.
-- **Segurança:** É o único agente de engenharia com permissões de **execução e escrita**. Suas ações são fortemente monitoradas pelos Hooks de segurança.
+- **O que faz:** Orquestra execucao na nuvem: cria Jobs no Databricks, monta Pipelines no Data Factory, move arquivos entre plataformas.
+- **Seguranca:** Unico agente de engenharia com permissoes de **execucao e escrita**. Fortemente monitorado pelos Hooks.
 
-### 🛡️ Tier 2 — Qualidade, Governança e Análise (Especializados)
-
-Estes são os novos agentes introduzidos na v2.0, focados em garantir que os dados construídos pelo Tier 1 sejam confiáveis, seguros e úteis para o negócio.
+### Tier 2 — Qualidade, Governanca e Analise
 
 #### 4. Data Quality Steward (`/quality`)
-
-- **Arquivo:** `agents/registry/data-quality-steward.md`
 - **Modelo:** `claude-sonnet-4-6`
 - **Analogia:** O Engenheiro de Qualidade (QA).
-- **O que faz:** É o guardião da saúde dos dados. Ele analisa tabelas para encontrar valores nulos ou anomalias estatísticas (*data profiling*), escreve regras que os dados não podem quebrar (*expectations*) e configura alertas em tempo real no Fabric Activator para avisar a equipe se um dado chegar corrompido.
+- **O que faz:** Analisa tabelas para encontrar anomalias (*data profiling*), escreve regras de validacao (*expectations*) e configura alertas em tempo real no Fabric Activator.
 
 #### 5. Governance Auditor (`/governance`)
-
-- **Arquivo:** `agents/registry/governance-auditor.md`
 - **Modelo:** `claude-sonnet-4-6`
-- **Analogia:** O Auditor de Compliance e Segurança.
-- **O que faz:** Garante que a empresa não seja processada. Ele rastreia de onde um dado veio e para onde foi (*linhagem de dados*), audita quem acessou o quê, e varre os bancos de dados procurando por informações sensíveis (como CPFs e e-mails) para garantir conformidade com a LGPD e GDPR.
+- **Analogia:** O Auditor de Compliance e Seguranca.
+- **O que faz:** Rastreia linhagem de dados, audita acessos, varre bancos procurando informacoes sensiveis (CPFs, e-mails) e garante conformidade LGPD/GDPR.
 
 #### 6. Semantic Modeler (`/semantic`)
-
-- **Arquivo:** `agents/registry/semantic-modeler.md`
 - **Modelo:** `claude-sonnet-4-6`
-- **Analogia:** O Especialista de BI (Business Intelligence).
-- **O que faz:** Traduz dados técnicos para a linguagem dos diretores. Ele constrói modelos semânticos usando a linguagem DAX (usada no Power BI), otimiza as tabelas da camada Gold para que os painéis carreguem mais rápido (Direct Lake) e configura assistentes de IA (Genie) para que os executivos possam fazer perguntas aos dados em português.
+- **Analogia:** O Especialista de BI.
+- **O que faz:** Constroi modelos semanticos DAX (Power BI), otimiza tabelas Gold para Direct Lake e configura Metric Views no Databricks.
 
 ---
 
-## 5. O Método BMAD e KB-First
+## 5. O Metodo BMAD, KB-First e Constituicao
 
-A maior causa de falha em projetos de IA generativa é a alucinação: a IA tenta adivinhar a solução e gera um código que funciona na teoria, mas quebra as regras da empresa na prática. Para resolver isso, o Data Agents utiliza o **BMAD** (*Breakthrough Method for Agile AI-Driven Development*), agora aprimorado com a filosofia **KB-First**.
+### A Constituicao
 
-### A Filosofia KB-First (Knowledge Base First)
+A versao 3.1 introduziu o conceito de **Constituicao** (`kb/constitution.md`) — um documento central com ~50 regras inviolaveis, dividido em 8 secoes:
 
-A regra de ouro da versão 2.0 é: **A IA nunca adivinha. Ela lê o manual.**
-Antes de começar a trabalhar, a IA é forçada a ler as bases de conhecimento (`kb/`) da empresa. Se a sua empresa decidiu que todas as tabelas de data devem se chamar `dim_calendario` e usar um gerador sintético, a IA lerá essa regra e a aplicará rigorosamente.
+1. **Principios Fundamentais (P1-P5):** KB-First obrigatorio, Spec-First para tarefas complexas, delegacao especializada, auditoria total, menor privilegio.
+2. **Regras do Supervisor (S1-S7):** Nunca gerar codigo, sempre consultar KB, sempre validar contra a Constituicao.
+3. **Clarity Checkpoint:** 5 dimensoes de avaliacao.
+4. **Regras de Arquitetura:** Medallion (Bronze/Silver/Gold) e Star Schema (SS1-SS5).
+5. **Regras de Plataforma:** Databricks (DB1-DB5) e Fabric (FB1-FB5).
+6. **Seguranca (SEC1-SEC6):** Sem credenciais hardcoded, PII protegido, menor privilegio.
+7. **Qualidade (QA1-QA6):** Expectations obrigatorios, profiling antes de promover.
+8. **Modelagem Semantica (SM1-SM6):** Direct Lake, DAX, Metric Views.
 
-### Os 5 Passos do Protocolo BMAD
+Se houver conflito entre uma instrucao do usuario e a Constituicao, **a Constituicao prevalece**.
 
-Quando você usa o comando de planejamento (`/plan`), o sistema segue estes passos exatos:
+### A Filosofia KB-First
 
-1. **Passo 0 (Triagem e Contexto):** O Supervisor recebe o seu pedido. Ele olha para a biblioteca de KBs (`kb/`) e identifica quais regras de negócio se aplicam ao seu problema. Ele lê esses arquivos para se contextualizar.
-2. **Passo 1 (Arquitetura):** Baseado nas regras que leu, o Supervisor desenha a arquitetura da solução. Ele decide quais camadas do Medalhão serão usadas e quais agentes serão necessários.
-3. **Passo 2 (PRD e Aprovação):** O Supervisor escreve um documento detalhado (PRD - Product Requirements Document) e salva na pasta `output/`. O terminal pausa e **pede a sua aprovação**. Você pode ler o plano e dizer "Sim" ou pedir alterações.
-4. **Passo 3 (Delegação e Skills):** Com a sua aprovação, o Supervisor acorda os especialistas. Cada especialista recebe sua parte da tarefa e, antes de escrever o código, lê as **Skills** operacionais (`skills/`) — que são manuais técnicos detalhados de como usar a ferramenta específica (ex: como escrever DAX no Fabric).
-5. **Passo 4 (Síntese e Validação):** Os especialistas devolvem o trabalho pronto. O Supervisor revisa tudo para garantir que as regras iniciais não foram quebradas, consolida os resultados e apresenta a você o relatório final, incluindo o custo da operação.
+A regra de ouro: **a IA nunca adivinha, ela le o manual.** Antes de comecar a trabalhar, a IA e forcada a ler as Knowledge Bases (`kb/`) da empresa.
 
-### Modos de Velocidade: Full vs. Express
+### O Clarity Checkpoint (Passo 0.5)
 
-Nem toda tarefa precisa de um documento de arquitetura completo. Por isso, o sistema oferece dois modos de operação:
+Antes de planejar tarefas complexas, o Supervisor pontua a clareza da requisicao em 5 dimensoes:
 
-- **BMAD Full (Comando `/plan`):** Executa os 5 passos completos. É o modo "lento e seguro", ideal para construir pipelines inteiros do zero. O Supervisor usa o modo "Thinking" avançado do Claude (gastando mais tokens) para raciocinar profundamente.
-- **BMAD Express (Comandos `/sql`, `/quality`, `/governance`, etc.):** Pula o planejamento e a aprovação. O pedido vai *direto* para o agente especialista. Ideal para tarefas rápidas, como "Liste os catálogos do Databricks" ou "Verifique se a tabela X tem dados nulos". É rápido, barato e direto ao ponto.
+| Dimensao | O que avalia |
+|----------|-------------|
+| **Objetivo** | O resultado esperado e compreensivel? |
+| **Escopo** | As tabelas, schemas e plataformas estao definidos? |
+| **Plataforma** | E Databricks, Fabric ou ambos? |
+| **Criticidade** | E exploracao, desenvolvimento ou producao? |
+| **Dependencias** | As dependencias estao documentadas? |
+
+**Pontuacao minima: 3/5.** Se < 3, o Supervisor pede esclarecimentos antes de prosseguir.
+
+### Os Passos do Protocolo BMAD
+
+```
+Passo 0   - KB-First: le Knowledge Bases relevantes ao tipo de tarefa
+Passo 0.5 - Clarity Checkpoint: valida clareza (5 dimensoes, minimo 3/5)
+Passo 0.9 - Spec-First: seleciona template de spec para tarefas complexas (3+ agentes)
+Passo 1   - Planejamento: cria PRD em output/ com a arquitetura da solucao
+Passo 2   - Aprovacao: mostra resumo e aguarda confirmacao do usuario
+Passo 3   - Delegacao: aciona agentes (com suporte a Workflows Colaborativos)
+Passo 4   - Sintese e Validacao Constitucional: verifica aderencia a kb/constitution.md
+```
+
+### Modos de Velocidade
+
+- **BMAD Full (`/plan`):** Fluxo completo, ideal para pipelines inteiros. Usa thinking avancado.
+- **BMAD Express (`/sql`, `/quality`, etc.):** Pula planejamento, vai direto ao especialista. Rapido e barato.
+- **Internal (`/health`, `/status`, `/review`):** Diagnosticos do sistema.
 
 ---
 
 ## 6. Estrutura de Arquivos e Pastas
 
-O projeto Data Agents foi desenhado com uma arquitetura modular. Se você abrir a pasta do projeto no seu computador, verá algo assim:
-
 ```text
 data-agents/
-├── agents/
-│   ├── registry/               # Aqui vivem os agentes (arquivos .md)
-│   │   ├── _template.md        # Molde para criar novos agentes
-│   │   ├── sql-expert.md       # Definição do Analista SQL
-│   │   ├── spark-expert.md     # Definição do Engenheiro Spark
-│   │   └── ...                 # Outros especialistas
-│   ├── loader.py               # O motor que lê os arquivos .md e "dá vida" aos agentes
-│   ├── prompts/                # Prompts avançados (como o do Supervisor)
-│   └── supervisor.py           # O cérebro central (Data Orchestrator)
-├── commands/
-│   └── parser.py               # Define os comandos que você digita (ex: /plan, /sql)
-├── config/
-│   ├── exceptions.py           # Erros personalizados (ex: "Orçamento estourado")
-│   ├── logging_config.py       # Configura como o sistema anota o que está fazendo
-│   ├── mcp_servers.py          # O mapa de todas as conexões de nuvem disponíveis
-│   └── settings.py             # Lê suas senhas e configura limites (orçamento, tentativas)
-├── hooks/
-│   ├── audit_hook.py               # O gravador silencioso de tudo o que a IA faz
-│   ├── cost_guard_hook.py          # O vigilante do seu cartão de crédito + reset_session_counters()
-│   ├── output_compressor_hook.py   # Filtra/trunca outputs MCP antes de atingir o modelo
-│   ├── security_hook.py            # O segurança que bloqueia comandos perigosos + check_sql_cost
-│   └── session_logger.py           # Grava custo, turnos e duração de cada interação
-├── kb/                         # A base de conhecimento (Regras da Empresa)
-│   ├── data-quality/           # Regras de qualidade (ex: % máximo de nulos aceitável)
-│   ├── databricks/             # Padrões de arquitetura para Databricks
-│   ├── fabric/                 # Padrões de arquitetura para Microsoft Fabric
-│   └── ...                     # Outros domínios
-├── mcp_servers/
-│   ├── databricks/             # O "cabo" que liga a IA ao seu Databricks
-│   ├── fabric/                 # O "cabo" que liga a IA ao seu Fabric
-│   └── fabric_rti/             # O "cabo" para dados em tempo real no Fabric
-├── skills/                     # Os Manuais de Instruções Operacionais
-│   ├── databricks/             # Como criar tabelas, rodar jobs, etc.
-│   ├── fabric/                 # Como usar o Data Factory, Eventhouse, etc.
-│   └── ...                     # Outros manuais
-├── monitoring/
-│   ├── app.py                  # Dashboard Streamlit em tempo real (logs, MCPs, agentes)
-│   └── README.md               # Instruções para iniciar o dashboard
-├── tests/                      # Robôs que testam se a IA está funcionando bem
-├── main.py                     # O arquivo que você roda para iniciar o programa
-├── pyproject.toml              # Lista de dependências (o que o Python precisa baixar)
-├── .env.example                # Molde para você colocar suas senhas com segurança
-└── .mcp.json                   # Configuração do Fabric Community MCP para o Claude Code
++-- agents/
+|   +-- registry/               # Agentes definidos em Markdown
+|   |   +-- _template.md        # Molde para novos agentes
+|   |   +-- sql-expert.md
+|   |   +-- spark-expert.md
+|   |   +-- pipeline-architect.md
+|   |   +-- data-quality-steward.md
+|   |   +-- governance-auditor.md
+|   |   +-- semantic-modeler.md
+|   +-- loader.py               # Motor que transforma .md em agentes vivos
+|   +-- prompts/
+|   |   +-- supervisor_prompt.py # Prompt do Supervisor (com Clarity Checkpoint e Workflows)
+|   +-- supervisor.py           # Factory do ClaudeAgentOptions
++-- commands/
+|   +-- parser.py               # Slash commands (/plan, /sql, /spark, etc.)
++-- config/
+|   +-- exceptions.py           # Erros personalizados (BudgetExceededError, etc.)
+|   +-- logging_config.py       # Logging estruturado JSONL + console separado
+|   +-- mcp_servers.py          # Registry de conexoes MCP
+|   +-- settings.py             # Configuracoes via Pydantic BaseSettings
++-- hooks/
+|   +-- audit_hook.py           # Log JSONL com categorizacao de erros (6 categorias)
+|   +-- checkpoint.py           # Checkpoint de sessao (save/load/resume)
+|   +-- cost_guard_hook.py      # Classificacao HIGH/MEDIUM/LOW de custos
+|   +-- output_compressor_hook.py # Trunca outputs MCP (economia de tokens)
+|   +-- security_hook.py        # Bloqueia comandos destrutivos e SQL custoso
+|   +-- session_logger.py       # Metricas de custo/turnos/duracao por sessao
+|   +-- workflow_tracker.py     # Rastreia delegacoes, workflows e Clarity Checkpoint
++-- kb/                         # Knowledge Bases (Regras da Empresa)
+|   +-- constitution.md         # Documento de autoridade maxima (~50 regras)
+|   +-- collaboration-workflows.md # Workflows Colaborativos (WF-01 a WF-04)
+|   +-- README.md               # Indice geral das KBs
+|   +-- data-quality/           # Regras de qualidade
+|   +-- databricks/             # Padroes Databricks
+|   +-- fabric/                 # Padroes Fabric
+|   +-- governance/             # Regras de governanca
+|   +-- pipeline-design/        # Padroes de pipeline
+|   +-- semantic-modeling/      # Modelagem semantica
+|   +-- spark-patterns/         # Padroes Spark
+|   +-- sql-patterns/           # Padroes SQL
++-- templates/                  # Templates Spec-First
+|   +-- pipeline-spec.md        # Template para pipelines ETL/ELT
+|   +-- star-schema-spec.md     # Template para Star Schema (Gold)
+|   +-- cross-platform-spec.md  # Template para Fabric <-> Databricks
+|   +-- README.md
++-- mcp_servers/                # Configuracoes dos MCP Servers
+|   +-- databricks/
+|   +-- fabric/
+|   +-- fabric_rti/
++-- skills/                     # Manuais Operacionais
+|   +-- databricks/ (27 modulos)
+|   +-- fabric/ (5 modulos)
++-- monitoring/
+|   +-- app.py                  # Dashboard Streamlit (9 paginas)
++-- logs/                       # Logs gerados automaticamente
+|   +-- audit.jsonl             # Todas as tool calls
+|   +-- app.jsonl               # Eventos internos
+|   +-- sessions.jsonl          # Custo/turnos por sessao
+|   +-- workflows.jsonl         # Delegacoes, workflows, Clarity Checkpoint
+|   +-- compression.jsonl       # Metricas do output compressor
+|   +-- checkpoint.json         # Estado da ultima sessao (para recovery)
++-- tests/                      # Testes automatizados
++-- main.py                     # Entrada principal
++-- pyproject.toml              # Dependencias e configuracao
++-- .env.example                # Molde para credenciais
 ```
 
 ---
 
-## 7. Análise Detalhada de Cada Componente
-
-Vamos entender as peças mais importantes que fazem essa engrenagem rodar.
+## 7. Analise Detalhada de Cada Componente
 
 ### O Arquivo Principal (`main.py`)
 
-Pense nele como a porta de entrada da sua empresa. Quando você digita `python main.py` no terminal, este arquivo:
+Quando voce digita `python main.py` no terminal, este arquivo exibe o banner, verifica credenciais, inicia o loop interativo e gerencia o ciclo de vida da sessao.
 
-1. Pinta aquele banner bonito na tela com o nome do projeto.
-2. Chama o `settings.py` para verificar se você configurou as senhas da nuvem.
-3. Inicia o loop interativo (aquela tela preta esperando você digitar algo).
-4. Pega o que você digitou e envia para o Supervisor.
-5. Mostra o "spinner" (a rodinha girando) enquanto a IA pensa, para você não achar que travou.
+**Novidades da v3.1:** O main.py agora gerencia um **estado de sessao** (`_session_state`) que rastreia o ultimo prompt, custo acumulado e turns. Esse estado e usado para salvar checkpoints automaticos quando o budget estoura, o usuario reseta a sessao ou ocorre idle timeout. Na inicializacao, ele verifica se existe um checkpoint anterior e oferece a opcao de retomar.
 
 ### O Motor de Agentes (`loader.py` e `registry/`)
 
-Na versão anterior do projeto, se você quisesse criar um novo agente (ex: um Especialista em Machine Learning), precisava programar em Python em quatro arquivos diferentes.
-Na v2.0, o `loader.py` faz mágica. Ele vai na pasta `agents/registry/`, lê todos os arquivos de texto (`.md`) que encontrar lá e transforma cada arquivo em um agente vivo e pronto para trabalhar.
-Isso significa que, para criar um agente novo, você só precisa copiar o `_template.md`, dar um nome, colar as instruções em português e salvar. O sistema faz o resto.
+O `loader.py` le todos os arquivos Markdown em `agents/registry/`, extrai o frontmatter YAML e transforma cada arquivo em um agente vivo. Para criar um agente novo, basta copiar `_template.md`, personalizar e salvar.
 
-Na v3.0, o `loader.py` ganhou duas capacidades adicionais:
+Capacidades do loader: lazy-loading de KBs por dominio (`kb_domains`), Model Routing por Tier (`tier_model_map`), filtragem automatica de MCP servers indisponiveis e resolucao de aliases de tools (ex: `databricks_readonly` vira a lista completa de tools de leitura).
 
-- **Lazy-loading de KBs por domínio:** Cada agente declara uma lista de `kb_domains` no seu frontmatter YAML (ex: `kb_domains: [sql-patterns, databricks, fabric]`). O loader lê apenas os `index.md` desses domínios e injeta o conteúdo no prompt do agente. Isso reduz drasticamente o consumo de tokens — cada agente recebe apenas o conhecimento que precisa.
-- **Model Routing por Tier:** Cada agente declara seu `tier` (T1 para Engenharia Core, T2 para Especializados). Se a variável `TIER_MODEL_MAP` estiver configurada no `.env` (ex: `'{"T1": "claude-opus-4-6", "T2": "claude-haiku-3-5"}'`), o loader sobrescreve o modelo declarado no frontmatter pelo modelo do tier correspondente. Isso permite otimizar custo/performance globalmente sem editar cada agente individualmente.
+### O Configurador (`settings.py`)
 
-### O Configurar (`settings.py`)
+Painel de controle via Pydantic BaseSettings, com todas as variaveis carregadas do `.env`:
 
-Este arquivo é o painel de controle do projeto. Ele usa uma biblioteca chamada Pydantic para garantir que as configurações estão corretas antes de o sistema iniciar.
-Ele define coisas como:
-
-- **`default_model`**: Qual "cérebro" a IA vai usar (padrão: `claude-opus-4-6`).
-- **`max_budget_usd`**: Quanto a IA pode gastar em dólares por sessão (padrão: `$5.00`). Se passar disso, o sistema para imediatamente.
-- **`max_turns`**: Quantas vezes a IA pode tentar resolver um problema antes de desistir (padrão: 50). Este é um limite de sessão global — os agentes individuais **não** possuem mais este parâmetro em suas definições.
-- **`tier_model_map`**: Dicionário que mapeia tiers (T1, T2) para modelos específicos. Se vazio (padrão), cada agente usa seu modelo individual. Configurável via `.env`: `TIER_MODEL_MAP='{"T1": "claude-opus-4-6", "T2": "claude-haiku-3-5"}'`.
-- **`inject_kb_index`**: Habilita/desabilita a injeção automática de Knowledge Bases nos agentes (padrão: `true`).
-- **`idle_timeout_minutes`**: Tempo em minutos de inatividade antes do reset automático da sessão (padrão: `30`). Use `0` para desabilitar.
-
-> **Detalhe técnico importante:** O `settings.py` usa Pydantic BaseSettings, que lê o arquivo `.env` e carrega as credenciais diretamente no objeto `settings`. Os servidores MCP recebem as credenciais via `settings.databricks_host`, `settings.databricks_token`, etc. — e **não** via `os.environ.get()`. Essa distinção é crucial: `os.environ.get()` leria o ambiente do processo atual, que pode não ter as variáveis do `.env` se o processo MCP foi iniciado antes do carregamento. Usando `settings.*`, as credenciais são sempre entregues corretamente ao servidor MCP.
+- **`default_model`**: Modelo padrao (`claude-opus-4-6`)
+- **`max_budget_usd`**: Limite de custo por sessao (padrao: `$5.00`)
+- **`max_turns`**: Limite de turns (padrao: `50`)
+- **`console_log_level`**: Nivel de log no terminal (padrao: `WARNING` — esconde logs operacionais)
+- **`tier_model_map`**: Override de modelo por tier
+- **`inject_kb_index`**: Injecao automatica de KBs nos agentes
+- **`idle_timeout_minutes`**: Reset automatico por inatividade (padrao: `30`)
 
 ---
 
-## 8. Segurança e Controle de Custos (Hooks)
+## 8. Seguranca e Controle de Custos (Hooks)
 
-Dar acesso ao seu banco de dados na nuvem para uma IA pode parecer assustador. Por isso, o Data Agents possui **5 Hooks** especializados, organizados em duas camadas. Hooks são como filtros invisíveis pelos quais todo comando da IA precisa passar antes de chegar à nuvem.
+O Data Agents possui **7 Hooks** especializados, organizados em camadas. Hooks sao filtros invisiveis pelos quais todo comando da IA precisa passar.
 
 ### Hooks PreToolUse (Executam ANTES da ferramenta)
 
-#### O Segurança (`security_hook.py` → `block_destructive_commands`)
+#### O Seguranca (`security_hook.py` - `block_destructive_commands`)
 
-Intercepta apenas comandos Bash. Antes de a IA executar qualquer comando no terminal, o Segurança lê a intenção. Se a IA tentar rodar comandos como `DROP TABLE` (apagar tabela), `DELETE FROM` (apagar dados), `TRUNCATE` (limpar tabela) ou `rm -rf` (apagar arquivos), o Segurança bloqueia a ação, avisa a IA que ela quebrou as regras e a obriga a tentar outra abordagem. São 17 padrões destrutivos com regex + 11 padrões de evasão que tentam disfarçar o comando (como usar Base64 ou variáveis de shell).
+Intercepta comandos Bash. Se a IA tentar rodar `DROP TABLE`, `DELETE FROM`, `rm -rf` ou qualquer dos 17 padroes destrutivos, o Hook bloqueia e forca outra abordagem. Tambem detecta 11 padroes de evasao (Base64, eval, variáveis de shell disfarçadas).
 
-#### O Fiscal de Queries (`security_hook.py` → `check_sql_cost`)
+#### O Fiscal de Queries (`security_hook.py` - `check_sql_cost`)
 
-Intercepta **todas** as ferramentas (não apenas Bash). Analisa o conteúdo de qualquer tool call buscando instruções SQL. Se encontrar um `SELECT *` sem `WHERE` e sem `LIMIT`/`TOP`, ele bloqueia a execução para evitar full table scans acidentais que poderiam processar milhões de linhas e gerar custos elevados. Ele é inteligente o suficiente para detectar SQL embutido em comandos Bash (como `spark-sql -e "..."`, `beeline`, `databricks query` e `bq query`).
+Intercepta **todas** as ferramentas. Se encontrar um `SELECT *` sem `WHERE` e sem `LIMIT`/`TOP`, bloqueia para evitar full table scans acidentais. Detecta SQL embutido em Bash (spark-sql, beeline, databricks query).
 
 ### Hooks PostToolUse (Executam DEPOIS da ferramenta)
 
 #### O Gravador (`audit_hook.py`)
 
-Para que você nunca perca o controle do que aconteceu, o Gravador anota tudo. Cada comando que a IA tenta rodar, o horário, o tipo de operação (read/write/execute), as chaves do input — tudo é salvo no arquivo `logs/audit.jsonl`. Se amanhã uma tabela sumir, você pode abrir esse arquivo e ver exatamente o que a IA fez.
+Registra cada tool call em `logs/audit.jsonl` com timestamp, ferramenta, classificacao e chaves de input. **Novidade v3.1:** inclui **categorizacao automatica de erros** em 6 categorias (auth, timeout, rate_limit, mcp_connection, not_found, validation) e deteccao automatica de plataforma MCP.
+
+#### O Rastreador de Workflows (`workflow_tracker.py`)
+
+**Novidade v3.1.** Rastreia delegacoes de agentes, workflows colaborativos (WF-01 a WF-04), Clarity Checkpoint (score e resultado) e specs gerados. Grava eventos em `logs/workflows.jsonl`.
 
 #### O Vigilante de Custos (`cost_guard_hook.py`)
 
-Rodar códigos pesados na nuvem custa dinheiro. O Vigilante classifica cada ferramenta da IA em três níveis:
-
-- **LOW (Baixo):** Consultas simples, listar tabelas. Custo quase zero.
-- **MEDIUM (Médio):** Executar SQL pesado. Gasta um pouco de dinheiro.
-- **HIGH (Alto):** Ligar um cluster de computadores (Databricks Cluster) ou iniciar um Pipeline inteiro. Custa caro.
-  Se a IA tentar fazer muitas operações HIGH na mesma sessão (mais de 5 vezes), o Vigilante dispara um alerta no seu terminal, avisando que a IA pode estar gastando dinheiro demais à toa. Na v3.0, o hook exporta a função `reset_session_counters()`, que zera os contadores acumulados. Ela é chamada automaticamente em dois momentos:
-  - Quando a sessão fica inativa por mais de 30 minutos (idle timeout).
-  - Quando o usuário digita `limpar`, `clear` ou `reset` no terminal.
+Classifica cada ferramenta em LOW, MEDIUM ou HIGH. Se a IA fizer mais de 5 operacoes HIGH na mesma sessao, dispara alerta. Contadores sao resetados no idle timeout e no comando `limpar`.
 
 #### O Compressor de Output (`output_compressor_hook.py`)
 
-**Novidade da v3.0.** Este é o maior hook do sistema (383 linhas). Antes das respostas das ferramentas chegarem ao modelo de IA, o Compressor as filtra e trunca inteligentemente para economizar tokens e evitar que a IA "se perca" em outputs gigantescos. As regras de truncamento são:
+Filtra e trunca outputs MCP antes de chegarem ao modelo, economizando tokens:
 
-| Tipo de Ferramenta                                  | Limite                 | Exemplo                          |
-| --------------------------------------------------- | ---------------------- | -------------------------------- |
-| SQL/KQL (`execute_sql`, `kusto_query`)          | Máx. 50 linhas        | Resultado de um SELECT grande    |
-| Listagens (`list_tables`, `list_jobs`)          | Máx. 30 itens         | Lista de tabelas de um catálogo |
-| Leitura de arquivos (`Read`, `export_notebook`) | Máx. 200 linhas       | Conteúdo de um notebook         |
-| Bash                                                | Máx. 100 linhas       | Saída de um comando no terminal |
-| Qualquer outra ferramenta                           | Máx. 8.000 caracteres | Fallback genérico               |
+| Tipo de Ferramenta | Limite | Exemplo |
+|---|---|---|
+| SQL/KQL | Max. 50 linhas | Resultado de SELECT |
+| Listagens | Max. 30 itens | Lista de tabelas |
+| Leitura de arquivos | Max. 200 linhas | Conteudo de notebook |
+| Bash | Max. 100 linhas | Saida de comando |
+| Qualquer outra | Max. 8.000 chars | Fallback generico |
 
-O hook é propositalmente registrado como o **último** PostToolUse, para que o `audit_hook` e o `cost_guard_hook` vejam o output original completo antes da truncagem.
+Registrado como **ultimo** PostToolUse para que audit e cost_guard vejam o output original.
 
-### O Logger de Sessão (`session_logger.py`)
+### Resumo dos Hooks
 
-Não é um hook do SDK, mas uma função chamada após cada interação no `main.py`. Ela grava em `logs/sessions.jsonl` o custo estimado, número de turnos e duração de cada query do usuário.
-
-### Resumo dos Hooks no Supervisor
-
-| Hook                           | Tipo        | Escopo         | Proteção                                            |
-| ------------------------------ | ----------- | -------------- | ----------------------------------------------------- |
-| `block_destructive_commands` | PreToolUse  | Bash           | 17 padrões destrutivos + 11 padrões de evasão      |
-| `check_sql_cost`             | PreToolUse  | Todas as tools | Bloqueia `SELECT *` sem `WHERE`/`LIMIT`         |
-| `audit_hook`                 | PostToolUse | Todas as tools | Log JSONL com classificação de operação           |
-| `cost_guard_hook`            | PostToolUse | Todas as tools | Alerta de custo HIGH/MEDIUM/LOW + counters            |
-| `output_compressor_hook`     | PostToolUse | Todas as tools | Trunca outputs (SQL 50 rows, listas 30 items, max 8K) |
+| Hook | Tipo | Protecao |
+|------|------|----------|
+| `block_destructive_commands` | PreToolUse (Bash) | 17 padroes destrutivos + 11 de evasao |
+| `check_sql_cost` | PreToolUse (All) | Bloqueia SELECT * sem WHERE/LIMIT |
+| `audit_hook` | PostToolUse | Log JSONL com 6 categorias de erro |
+| `workflow_tracker` | PostToolUse | Delegacoes, workflows, Clarity Checkpoint |
+| `cost_guard_hook` | PostToolUse | Custo HIGH/MEDIUM/LOW com alertas |
+| `output_compressor_hook` | PostToolUse | Trunca outputs (SQL 50, listas 30, max 8K) |
+| `checkpoint` | Budget/Reset | Salva estado para recuperacao automatica |
 
 ---
 
-## 9. O Hub de Conhecimento (KBs e Skills)
+## 9. O Hub de Conhecimento (KBs, Skills e Constituicao)
 
-A maior evolução da v2.0 é a separação clara entre **Regras** e **Ferramentas**.
+O conhecimento do sistema e organizado em 3 camadas hierarquicas.
 
-### As Knowledge Bases (`kb/`)
+### Camada 1: A Constituicao (`kb/constitution.md`)
 
-As KBs são o cérebro corporativo. Elas respondem **"Por que estamos fazendo isso e quais são as regras?"**.
+Documento de **autoridade maxima**. Contem ~50 regras inviolaveis que cobrem Medallion, Star Schema, seguranca, qualidade e plataformas. Se houver conflito com qualquer outra fonte, a Constituicao prevalece. O Supervisor a carrega no inicio de sessoes complexas.
 
-- **Exemplo Prático:** Na pasta `kb/sql-patterns/`, há um arquivo que diz: *"Na nossa empresa, toda tabela da camada Silver deve ter uma coluna chamada `data_ingestao` com o horário atual"*.
-- **Como a IA usa:** O Supervisor lê isso antes de planejar. Se você pedir "Crie a tabela Silver", ele já sabe que tem que colocar essa coluna, sem você precisar pedir.
+### Camada 2: Knowledge Bases (`kb/`)
 
-### As Skills (`skills/`)
+Regras de negocio e padroes arquiteturais, organizadas em 8 dominios:
 
-As Skills são os manuais de instruções. Elas respondem **"Como eu aperto os botões dessa ferramenta?"**.
+| Dominio | Conteudo |
+|---------|----------|
+| `sql-patterns` | DDL, otimizacao, conversao de dialetos, Star Schema |
+| `spark-patterns` | Delta Lake, SDP/LakeFlow, streaming, performance |
+| `pipeline-design` | Medallion, orquestracao, cross-platform, Star Schema design |
+| `data-quality` | Expectations, profiling, drift detection, SLAs, alertas |
+| `governance` | Auditoria, linhagem, PII, compliance, controle de acesso |
+| `semantic-modeling` | DAX, Direct Lake, Metric Views, reporting |
+| `databricks` | Unity Catalog, compute, bundles, AI/ML, jobs |
+| `fabric` | RTI, Eventhouse, Data Factory, Direct Lake |
 
-- **Exemplo Prático:** Na pasta `skills/databricks/`, há um manual ensinando a sintaxe exata para criar um Job no Databricks usando a API deles.
-- **Como a IA usa:** O Pipeline Architect lê isso na hora de escrever o código. Ele não precisa decorar a API do Databricks (que muda toda hora); ele lê o manual atualizado e gera o código perfeito.
+Cada agente declara seus dominios em `kb_domains` e recebe apenas as KBs relevantes via lazy-loading.
 
-Essa separação (KBs para o Gerente, Skills para os Operários) reduz a sobrecarga da IA e garante que o código final respeite a arquitetura da sua empresa e a sintaxe da ferramenta ao mesmo tempo.
+### Camada 3: Skills Operacionais (`skills/`)
 
----
+Manuais detalhados lidos pelos especialistas durante a execucao. 27 modulos Databricks e 5 modulos Fabric.
 
-## 10. Conexões com a Nuvem (MCP Servers)
-
-O MCP (Model Context Protocol) é a tecnologia que permite que a IA "saia" do seu computador e interaja com o mundo real. O Data Agents possui quatro conexões de nuvem:
-
-| Servidor                   | Plataforma         | Configuração     | Tools     | Principais Capacidades                                                            |
-| -------------------------- | ------------------ | ------------------ | --------- | --------------------------------------------------------------------------------- |
-| **Databricks**       | Databricks         | `mcp_servers.py` | 31 tools  | Listar Unity Catalog, executar SQL em Warehouses, criar e monitorar Pipelines SDP |
-| **Fabric (oficial)** | Microsoft Fabric   | `mcp_servers.py` | 13 tools  | Listar Workspaces, criar Lakehouses, enviar/baixar arquivos do OneLake            |
-| **Fabric Community** | Microsoft Fabric   | `mcp_servers.py` | 27 tools  | Consultas a tabelas, schemas, linhagem, shortcuts, jobs, dependências            |
-| **Fabric RTI**       | Eventhouse / Kusto | `mcp_servers.py` | ~15 tools | Executar KQL, criar Eventstreams e alertas no Activator                           |
-
-**O Truque Inteligente:** O arquivo `mcp_servers.py` é inteligente. Quando você liga o sistema, ele olha as suas senhas. Se você só colocou a senha do Databricks, ele desliga as conexões do Fabric para não dar erro, e vice-versa.
-
-**Por que as credenciais chegam corretamente ao MCP:** O servidor MCP é um processo externo iniciado em *stdio*. Ele precisa receber as credenciais como variáveis de ambiente próprias. O código dos `server_config.py` usa `settings.databricks_host`, `settings.databricks_token` etc. para montar o dicionário `"env"` que é passado ao processo MCP na inicialização — garantindo que as credenciais do `.env` sempre cheguem ao servidor.
-
-### Como o Fabric Community MCP é configurado
-
-O **Fabric Community MCP** é gerenciado **exclusivamente pelo Python**, via `mcp_servers/fabric/server_config.py`. As credenciais são passadas diretamente pelo código Python, lidas do `.env` via pydantic-settings:
-
-```python
-"fabric_community": {
-    "type": "stdio",
-    "command": settings.fabric_community_command,  # lido do .env
-    "args": [],
-    "env": {
-        "AZURE_TENANT_ID": settings.azure_tenant_id,
-        "AZURE_CLIENT_ID": settings.azure_client_id,
-        "AZURE_CLIENT_SECRET": settings.azure_client_secret,
-        "FABRIC_WORKSPACE_ID": settings.fabric_workspace_id,
-        "FABRIC_API_BASE_URL": settings.fabric_api_base_url,
-    },
-},
-```
-
-**Nenhum `export` manual no shell é necessário.** Basta preencher o `.env`.
-
-O arquivo `.mcp.json` na raiz do projeto está intencionalmente vazio. Configurar `fabric_community` no `.mcp.json` causaria um conflito crítico: quando o Claude Code lê o `.mcp.json`, ele substitui `${VAR}` com variáveis do *shell* (não do `.env`). Se o terminal for aberto sem os exports, as credenciais ficam vazias e a autenticação falha — mesmo com o `.env` corretamente preenchido.
-
-### Por que `export` no `.zshrc` não é mais necessário para o Fabric
-
-O histórico desta decisão é importante para entender a arquitetura:
-
-| Mecanismo                | Quem lê          | Quando carrega                     | Problema                                 |
-| ------------------------ | ----------------- | ---------------------------------- | ---------------------------------------- |
-| `.env` + pydantic      | Python (Settings) | Ao importar `config/settings.py` | Funciona corretamente para o Python      |
-| `~/.zshrc` exports     | zsh               | A cada novo terminal               | Necessário apenas se usar `.mcp.json` |
-| `.mcp.json` `${VAR}` | Claude Code       | Ao spawnar MCP servers             | Ignora o `.env` — lê só o shell     |
-
-A solução adotada: **mover `fabric_community` para o Python** (`server_config.py`) e deixar o `.mcp.json` vazio. Assim, todo o gerenciamento de credenciais passa pelo `.env` + pydantic, que é a abordagem correta e portável para qualquer desenvolvedor que clone o repositório.
-
-### Configurando o comando do Fabric Community MCP
-
-O comando padrão é `microsoft-fabric-mcp` (binário instalado pelo pip, disponível no PATH quando o ambiente está ativado). Se necessário, pode ser sobrescrito no `.env`:
-
-```env
-# Padrão — funciona com conda/venv ativado
-FABRIC_COMMUNITY_COMMAND=microsoft-fabric-mcp
-
-# Caminho absoluto — use se o binário não estiver no PATH
-FABRIC_COMMUNITY_COMMAND=/opt/anaconda3/envs/multi_agents/bin/microsoft-fabric-mcp
-```
+A separacao (Constituicao para regras absolutas, KBs para o Gerente, Skills para os Operarios) reduz a sobrecarga da IA e garante que o codigo final respeite a arquitetura da empresa e a sintaxe da ferramenta ao mesmo tempo.
 
 ---
 
-## 11. Comandos Disponíveis (Slash Commands)
+## 10. Workflows Colaborativos e Spec-First
 
-O arquivo `commands/parser.py` define os atalhos que você pode usar no terminal. Em vez de escrever textos longos, você usa esses comandos para direcionar a IA.
+### Workflows Colaborativos
 
-| Comando         | O que faz                                                                                                     | Modo BMAD           | Quem executa         |
-| --------------- | ------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------- |
-| `/plan`       | Inicia o fluxo completo. Lê as regras, cria o documento de arquitetura (PRD), pede sua aprovação e delega. | Full (Lento/Seguro) | Supervisor + Equipe  |
-| `/sql`        | Pula o planejamento. Envia uma tarefa de banco de dados direto para o especialista.                           | Express (Rápido)   | SQL Expert           |
-| `/spark`      | Envia um problema matemático/lógico direto para o especialista em Python/Spark.                             | Express (Rápido)   | Spark Expert         |
-| `/pipeline`   | Envia uma tarefa de infraestrutura (ex: criar um Job) direto para o arquiteto.                                | Express (Rápido)   | Pipeline Architect   |
-| `/fabric`     | Igual ao `/pipeline`, mas avisa a IA para focar especificamente nas ferramentas da Microsoft.               | Express (Rápido)   | Pipeline Architect   |
-| `/quality`    | Envia uma tarefa de validação de dados (ex: "ache os nulos") para o auditor de qualidade.                   | Express (Rápido)   | Data Quality Steward |
-| `/governance` | Envia uma tarefa de segurança (ex: "quem acessou essa tabela?") para o auditor.                              | Express (Rápido)   | Governance Auditor   |
-| `/semantic`   | Envia uma tarefa de BI (ex: "crie métricas DAX") para o especialista em negócios.                           | Express (Rápido)   | Semantic Modeler     |
-| `/health`     | Verifica se as senhas da nuvem estão funcionando e lista o que está conectado.                              | Internal            | O próprio sistema   |
-| `/status`     | Lista todos os planos de arquitetura (PRDs) que a IA já gerou na sua pasta `output/`.                      | Internal            | O próprio sistema   |
-| `/review`     | Pega um plano antigo e pergunta se você quer continuar de onde parou.                                        | Internal            | O próprio sistema   |
-| `/help`       | Mostra esta lista no terminal.                                                                                | Internal            | O próprio sistema   |
+**Novidade v3.1.** Para tarefas que envolvem multiplos agentes, o sistema oferece 4 workflows pre-definidos em `kb/collaboration-workflows.md`:
 
----
+| Workflow | Sequencia | Quando usar |
+|----------|-----------|-------------|
+| **WF-01: Pipeline End-to-End** | spark -> quality -> semantic -> governance | Pipeline completo Bronze-Gold |
+| **WF-02: Star Schema** | sql -> spark -> quality -> semantic | Modelagem dimensional Gold |
+| **WF-03: Cross-Platform** | pipeline -> sql -> spark -> quality + governance | Migracao Databricks <-> Fabric |
+| **WF-04: Governance Audit** | governance -> quality -> relatorio | Auditoria completa |
 
-## 12. Configuração e Credenciais
+Cada etapa recebe o contexto da etapa anterior via formato de handoff padronizado. Se um agente falhar, o workflow pausa e propoe correcao.
 
-Para que a IA possa trabalhar por você, ela precisa das "chaves" do seu escritório. Isso é feito criando um arquivo chamado `.env` (com um ponto no começo mesmo) na raiz do projeto.
+### Templates Spec-First
 
-> **Aviso de Segurança:** Nunca envie o arquivo `.env` para o GitHub. Ele contém suas senhas. O projeto já vem com um arquivo `.gitignore` que impede que isso aconteça acidentalmente.
+Para tarefas complexas (3+ agentes, 2+ plataformas), o Supervisor preenche um template de spec antes de delegar:
 
-Aqui está a lista completa de variáveis que você pode configurar:
-
-### O "Cérebro" da IA (Obrigatório)
-
-- **`ANTHROPIC_API_KEY`**: A chave da API da Anthropic. Sem isso, a IA não funciona. O projeto exige a família Claude 3.5 (Opus e Sonnet).
-
-### Databricks (Opcional)
-
-Se você for usar o Databricks, preencha:
-
-- **`DATABRICKS_HOST`**: A URL do seu Databricks (ex: `https://adb-123456.azuredatabricks.net`).
-- **`DATABRICKS_TOKEN`**: O seu Personal Access Token (PAT) gerado no Databricks.
-- **`DATABRICKS_SQL_WAREHOUSE_ID`**: O ID do computador que vai rodar as consultas SQL (você acha isso na aba SQL Warehouses).
-
-### Microsoft Fabric (Opcional)
-
-Se você for usar o Microsoft Fabric, preencha no `.env`:
-
-- **`AZURE_TENANT_ID`**: O ID da sua empresa na nuvem da Microsoft.
-- **`FABRIC_WORKSPACE_ID`**: O ID da "pasta" (Workspace) onde a IA vai trabalhar.
-- **`AZURE_CLIENT_ID`** e **`AZURE_CLIENT_SECRET`**: (Service Principal) Se quiser usar um "usuário robô" em vez do seu usuário pessoal.
-
-> **Configuração do Fabric Community MCP:** preencha as variáveis acima no `.env`. O sistema as lê automaticamente via pydantic-settings — **não é necessário `export` no shell**. Se o binário `microsoft-fabric-mcp` não for encontrado no PATH, adicione `FABRIC_COMMUNITY_COMMAND=/caminho/absoluto/microsoft-fabric-mcp` no `.env`.
-
-### Fabric Real-Time Intelligence (Opcional)
-
-Se você for trabalhar com dados em tempo real (Kusto/Eventhouse):
-
-- **`KUSTO_SERVICE_URI`**: A URL do seu banco de dados em tempo real.
-- **`KUSTO_SERVICE_DEFAULT_DB`**: O nome do banco de dados padrão.
-
-### Configurações de Segurança do Projeto
-
-Você pode mudar o comportamento da IA ajustando o arquivo `config/settings.py` ou adicionando estas variáveis no seu `.env`:
-
-- **`MAX_BUDGET_USD`**: O limite de dinheiro que a IA pode gastar por sessão (padrão: `5.0`).
-- **`MAX_TURNS`**: O limite de tentativas da IA (padrão: `50`).
-- **`LOG_LEVEL`**: Se você quiser ver exatamente o que a IA está pensando por baixo dos panos, mude para `DEBUG`. Para um terminal mais limpo, deixe em `INFO`.
+- `templates/pipeline-spec.md` — ETL/ELT com secoes Bronze/Silver/Gold e regras constitucionais
+- `templates/star-schema-spec.md` — Star Schema com DAG, otimizacao e validacao
+- `templates/cross-platform-spec.md` — Fabric <-> Databricks com mapeamento de dialetos
 
 ---
 
-## 13. Qualidade de Código e Testes
+## 11. Conexoes com a Nuvem (MCP Servers)
 
-Como saber se a IA não quebrou ao ser atualizada? O projeto Data Agents possui uma bateria de testes automatizados (na pasta `tests/`).
+O MCP permite que a IA interaja com o mundo real. O Data Agents possui 4 conexoes:
 
-### Como rodar os testes e verificar a qualidade do código
+| Servidor | Plataforma | Tools | Capacidades |
+|----------|-----------|-------|-------------|
+| **Databricks** | Databricks | 31 | Unity Catalog, SQL, Pipelines SDP, Jobs |
+| **Fabric** | Microsoft Fabric | 13 | Workspaces, Lakehouses, OneLake |
+| **Fabric Community** | Microsoft Fabric | 27 | Tabelas, schemas, linhagem, jobs |
+| **Fabric RTI** | Eventhouse / Kusto | ~15 | KQL, Eventstreams, Activator |
 
-Abra o terminal e execute:
+O arquivo `mcp_servers.py` detecta automaticamente quais plataformas tem credenciais validas e desliga as demais. Todas as credenciais sao gerenciadas via `.env` + pydantic-settings — **nenhum `export` manual no shell e necessario**.
+
+O arquivo `.mcp.json` na raiz esta intencionalmente vazio para evitar conflitos de carregamento de credenciais.
+
+---
+
+## 12. Comandos Disponiveis (Slash Commands)
+
+| Comando | O que faz | Modo | Quem executa |
+|---------|----------|------|-------------|
+| `/plan` | Fluxo completo com PRD e aprovacao | Full | Supervisor + Equipe |
+| `/sql` | Tarefa SQL direto ao especialista | Express | SQL Expert |
+| `/spark` | Codigo PySpark/Spark | Express | Spark Expert |
+| `/pipeline` | Pipelines e infraestrutura | Express | Pipeline Architect |
+| `/fabric` | Foco em Microsoft Fabric | Express | Pipeline Architect |
+| `/quality` | Validacao e profiling | Express | Data Quality Steward |
+| `/governance` | Auditoria e compliance | Express | Governance Auditor |
+| `/semantic` | DAX, Direct Lake, metricas | Express | Semantic Modeler |
+| `/health` | Verifica conectividade MCP | Internal | Sistema |
+| `/status` | Lista PRDs em output/ | Internal | Sistema |
+| `/review` | Revisita PRD existente | Internal | Sistema |
+| `/help` | Mostra lista de comandos | Internal | Sistema |
+
+### Controle de Sessao
+
+| Comando | Funcao |
+|---------|--------|
+| `continuar` | Retoma sessao anterior a partir do checkpoint salvo |
+| `limpar` | Reseta sessao atual (salva checkpoint antes) |
+| `sair` | Encerra o Data Agents |
+
+---
+
+## 13. Configuracao e Credenciais
+
+Crie um arquivo `.env` na raiz do projeto (use `.env.example` como base). **Nunca envie o `.env` para o GitHub** — o `.gitignore` ja protege contra isso.
+
+### Obrigatorio
+
+- **`ANTHROPIC_API_KEY`**: Chave da API da Anthropic.
+
+### Databricks (opcional)
+
+- **`DATABRICKS_HOST`**: URL do Databricks (ex: `https://adb-123456.azuredatabricks.net`)
+- **`DATABRICKS_TOKEN`**: Personal Access Token
+- **`DATABRICKS_SQL_WAREHOUSE_ID`**: ID do SQL Warehouse
+
+### Microsoft Fabric (opcional)
+
+- **`AZURE_TENANT_ID`**: ID do tenant Azure
+- **`FABRIC_WORKSPACE_ID`**: ID do Workspace
+- **`AZURE_CLIENT_ID`** e **`AZURE_CLIENT_SECRET`**: Service Principal
+
+### Fabric RTI (opcional)
+
+- **`KUSTO_SERVICE_URI`**: URL do Eventhouse
+- **`KUSTO_SERVICE_DEFAULT_DB`**: Database padrao
+
+### Configuracoes do Sistema
+
+| Variavel | Padrao | Descricao |
+|----------|--------|-----------|
+| `MAX_BUDGET_USD` | 5.0 | Limite de custo por sessao em dolares |
+| `MAX_TURNS` | 50 | Limite de turns por sessao |
+| `LOG_LEVEL` | INFO | Nivel de log para o arquivo JSONL |
+| `CONSOLE_LOG_LEVEL` | WARNING | Nivel de log no terminal (WARNING esconde logs operacionais como OUTPUT COMPRIMIDO) |
+| `TIER_MODEL_MAP` | {} | Override de modelo por tier. Ex: `'{"T1": "claude-opus-4-6", "T2": "claude-haiku-3-5"}'` |
+| `INJECT_KB_INDEX` | true | Injecao automatica de KBs |
+| `IDLE_TIMEOUT_MINUTES` | 30 | Reset automatico por inatividade (0 para desabilitar) |
+
+---
+
+## 14. Checkpoint de Sessao (Recuperacao Automatica)
+
+**Novidade v3.1.** Um dos maiores problemas ao trabalhar com agentes de IA e a perda de contexto quando o orcamento estoura no meio de uma tarefa complexa. O sistema de Checkpoint resolve isso.
+
+### Como funciona
+
+O sistema mantem um **estado de sessao** que rastreia o ultimo prompt enviado, custo acumulado e numero de turns. Quando ocorre uma interrupcao, esse estado e salvo automaticamente em `logs/checkpoint.json` junto com a lista de arquivos gerados em `output/`.
+
+### Quando o checkpoint e salvo automaticamente
+
+1. **Budget excedido (BudgetExceededError):** O orcamento da sessao estourou. O checkpoint e salvo e o terminal exibe uma mensagem orientando o usuario a digitar `continuar` na proxima sessao.
+2. **Reset pelo usuario (`limpar`):** O usuario reseta a sessao. O progresso e salvo antes da limpeza.
+3. **Idle timeout:** A sessao ficou inativa alem do limite configurado.
+
+### Como retomar
+
+Na proxima sessao, o sistema detecta o checkpoint e exibe um painel com detalhes (custo, ultimo prompt, arquivos gerados). Digite **`continuar`** para retomar. O sistema monta automaticamente um prompt de contexto com todo o estado anterior e injeta no Supervisor, que le os arquivos de `output/` e identifica o que foi feito e o que falta.
+
+Se preferir comecar do zero, basta digitar qualquer outro comando — o checkpoint e descartado.
+
+---
+
+## 15. Qualidade de Codigo e Testes
+
+O projeto mantem uma bateria de testes automatizados na pasta `tests/` com cobertura minima de **80%**.
+
+### Como rodar
 
 ```bash
-# Verificar erros de linting (imports não usados, padrões proibidos, etc.)
-ruff check .
-
-# Verificar formatação do código (espaços, quebras de linha, aspas, etc.)
-ruff format --check .
-
-# Rodar os testes automatizados com relatório de cobertura
-pytest
+make lint      # ruff check + ruff format
+make test      # pytest com cobertura
 ```
 
-Ou use o atalho do Makefile que faz tudo de uma vez:
+### O que os testes verificam
 
-```bash
-make lint
-make test
-```
-
-### O que os testes verificam?
-
-1. **O Loader Dinâmico (`test_agents.py`):** Testa o parser de frontmatter YAML, a resolução de tools, o carregamento de todos os agentes do registry, o **Model Routing por Tier** (`tier_model_map`) e a **injeção de KBs** por domínio (`kb_domains`). Se você esqueceu de colocar o nome de um agente no arquivo, o teste falha e te avisa.
-2. **A Segurança (`test_hooks.py`):** Tenta rodar comandos perigosos (como `DROP TABLE`) e verifica se o `security_hook.py` consegue bloquear todos eles. Também testa o `check_sql_cost` (detecção de SELECT * sem WHERE/LIMIT), o `cost_guard_hook` (classificação HIGH/MEDIUM/LOW) e a função `reset_session_counters()`.
-3. **O Compressor de Output (`test_output_compressor.py`):** Teste dedicado e completo para o `output_compressor_hook`. Verifica truncamento de resultados SQL (50 rows), listagens (30 items), arquivos (200 linhas), Bash (100 linhas) e o fallback genérico (8K chars).
-4. **O Parser de Comandos (`test_commands.py`):** Digita comandos como `/quality` e verifica se o sistema sabe que deve chamar o `data-quality-steward`.
-5. **Os Agentes T2:** Verifica se os novos agentes (`data-quality-steward`, `governance-auditor`, `semantic-modeler`) possuem as ferramentas MCP corretas configuradas (parte do `test_agents.py`).
-6. **Os Wrappers MLflow (`test_mlflow_wrapper.py`):** Verifica se o sistema de servimento de modelos consegue formatar respostas e extrair prompts corretamente.
-7. **O Sistema de Logging (`test_logging_config.py`):** Verifica o `JSONLFormatter` (saída JSON válida, campos obrigatórios, formato ISO de timestamps, campos extras como tool_name) e a função `setup_logging` (configuração de handlers, silenciamento de loggers ruidosos, idempotência).
-8. **O Supervisor (`test_supervisor.py`):** Verifica a função `build_supervisor_options` — modo thinking ativado/desativado, `bypassPermissions`, hooks configurados (3 PostToolUse + 2 PreToolUse) e `include_partial_messages`.
-9. **As Configurações (`test_settings.py`):** Valida o carregamento de settings via Pydantic, valores padrão, e a lógica de `validate_platform_credentials()`.
-10. **As Configurações MCP (`test_mcp_configs.py`):** Verifica que as funções `get_databricks_mcp_config()` e `get_fabric_mcp_config()` retornam as credenciais corretas e os conjuntos de tools esperados.
-
-> **Cobertura de código:** A suíte de testes mantém cobertura mínima de **80%** (configurado via `--cov-fail-under=80` no CI). Com os 10 arquivos de teste atuais, a cobertura real está acima de **89%**.
-
-> **Nota sobre a pasta `skills/`:** Os arquivos Python dentro da pasta `skills/` são arquivos de referência/exemplos de tecnologias externas (Databricks SDK, Fabric, etc.) e **não fazem parte do código do projeto**. Por isso, estão excluídos das verificações do `ruff` — eles não precisam seguir os padrões de código do projeto.
-
-Sempre rode `pytest` antes de enviar uma nova versão do projeto para o GitHub.
+1. **Loader Dinamico (`test_agents.py`):** Parser YAML, resolucao de tools, Model Routing por Tier, injecao de KBs.
+2. **Seguranca (`test_hooks.py`):** Bloqueio de comandos destrutivos, check_sql_cost, cost_guard.
+3. **Compressor (`test_output_compressor.py`):** Truncamento por tipo de ferramenta.
+4. **Parser (`test_commands.py`):** Slash commands e roteamento.
+5. **MLflow (`test_mlflow_wrapper.py`):** Servimento de modelos.
+6. **Logging (`test_logging_config.py`):** JSONLFormatter, setup_logging.
+7. **Supervisor (`test_supervisor.py`):** build_supervisor_options, hooks configurados.
+8. **Settings (`test_settings.py`):** Validacao de credenciais, defaults.
+9. **MCP (`test_mcp_configs.py`):** Configs de Databricks e Fabric.
 
 ---
 
-## 14. Deploy e CI/CD (Publicação Automática)
+## 16. Deploy e CI/CD (Publicacao Automatica)
 
-O projeto foi construído para rodar no seu computador (localmente) ou em um servidor na nuvem (como um contêiner Docker).
+### CI (Integracao Continua)
 
-Se você olhar a pasta `.github/workflows/`, verá que o projeto já vem com **Integração Contínua (CI)**. Isso significa que toda vez que você envia uma alteração para o GitHub, três pipelines são executados automaticamente em paralelo:
+Dispara em push/PR para `main`/`develop`. Tres pipelines em paralelo:
 
-**Pipeline 1 — Code Quality (Qualidade de Código):**
+1. **Code Quality:** ruff check + ruff format + mypy (verificacao de tipos)
+2. **Tests:** pytest com cobertura minima 80%
+3. **Security:** bandit para detectar vulnerabilidades
 
-1. Instala as dependências de desenvolvimento.
-2. Roda `ruff check .` — verifica se há imports não usados, variáveis duplicadas, padrões proibidos, etc.
-3. Roda `ruff format --check .` — verifica se o código está formatado seguindo o padrão PEP 8 automaticamente.
-4. Roda `mypy` nos módulos principais (`agents/`, `config/`, `hooks/`, `commands/`) para verificar tipos estáticos.
+### CD (Deploy Continuo)
 
-**Pipeline 2 — Tests (Testes Automatizados):**
+Dispara em tags. Deploy automatico via Databricks Asset Bundles para staging/production.
 
-1. Roda `pytest tests/ -v --cov` com todas as variáveis de nuvem simuladas.
-2. Exige cobertura de código mínima de **80%**.
-3. Gera e publica o relatório de cobertura no Codecov.
+### Pre-commit Hooks
 
-**Pipeline 3 — Security Scan (Varredura de Segurança):**
-
-1. Roda `bandit` nos módulos principais para detectar vulnerabilidades de segurança (senhas hard-coded, uso de funções inseguras, etc.).
-
-Se qualquer um desses passos falhar, o GitHub bloqueia o merge para o branch principal e avisa o desenvolvedor. Isso garante que o time de dados sempre tenha uma versão funcional, segura e bem testada do Data Agents.
+O projeto usa pre-commit hooks locais que rodam automaticamente antes de cada commit: ruff, ruff-format, trailing-whitespace, end-of-file-fixer, bandit. Se o commit falhar, os hooks corrigem os arquivos automaticamente — basta fazer stage novamente e commitar.
 
 ---
 
-## 15. Dashboard de Monitoramento
+## 17. Dashboard de Monitoramento
 
-Para acompanhar o que o sistema está fazendo em tempo real — quais ferramentas foram usadas, quais MCP servers estão ativos, qual foi o custo de cada execução — o projeto inclui um **Dashboard de Monitoramento** construído com Streamlit.
-
-### O que é o Streamlit?
-
-Streamlit é uma biblioteca Python que transforma scripts em aplicativos web interativos com poucas linhas de código. É amplamente usada por engenheiros de dados para criar dashboards de análise e monitoramento sem precisar aprender HTML ou JavaScript.
-
-### Como funciona o Dashboard
-
-O arquivo `monitoring/app.py` lê diretamente os dois arquivos de log do projeto:
-
-- **`logs/audit.jsonl`**: Gerado pelo `audit_hook.py`. Registra cada tool call da IA: nome da ferramenta, horário, input utilizado. Este arquivo é a fonte de verdade para saber o que a IA realmente fez.
-- **`logs/app.jsonl`**: Gerado pelo `logging_config.py`. Registra eventos internos do sistema: erros, avisos, mensagens de configuração.
-
-O dashboard usa `@st.cache_data(ttl=5)` para reler os logs a cada 5 segundos, tornando o painel **dinâmico e em tempo real**.
-
-### Como instalar e iniciar
+### Instalacao e Inicio
 
 ```bash
-# 1. Ative o ambiente conda do projeto
-conda activate multi_agents
-
-# 2. Instale as dependências de monitoramento (apenas na primeira vez)
 pip install -e ".[monitoring]"
-
-# 3. Inicie o dashboard (na raiz do projeto)
 streamlit run monitoring/app.py
 ```
 
-O dashboard abre automaticamente em **http://localhost:8501**.
+Abre em **http://localhost:8501**.
 
-> **Nota sobre instalação:** o comando `pip install -e "."` (sem `[monitoring]`) instala apenas as dependências principais do projeto e **não inclui** o Streamlit. É necessário usar `pip install -e ".[monitoring]"` para instalar o grupo de dependências opcional de monitoramento.
+### As 9 Paginas do Dashboard
 
-### As abas do Dashboard
+| Pagina | O que mostra |
+|--------|-------------|
+| **Overview** | KPIs gerais, atividade por data, top ferramentas, custo acumulado |
+| **Agentes** | Cards dos 6 agentes + KPIs de performance (delegacoes, erros, taxa de erro) + erros por categoria |
+| **Workflows** | Delegacoes por agente, workflows triggered (WF-01 a WF-04), Clarity Checkpoint (pass rate, score medio), specs gerados |
+| **Execucoes** | Volume por ferramenta, chamadas MCP por plataforma, historico |
+| **MCP Servers** | Status real baseado em chamadas do audit.jsonl |
+| **Logs** | Viewer ao vivo do app.jsonl e audit.jsonl com filtros |
+| **Configuracoes** | Modelo, budget, max_turns, mapa de arquivos do projeto |
+| **Custo & Tokens** | Custo por sessao, por data, por tipo, economia do Output Compressor |
+| **Sobre** | Autor, versao, licenca, arquitetura documentada |
 
-| Aba                           | O que mostra                                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 📊**Overview**          | KPIs gerais (total de execuções, ferramentas usadas, tokens estimados), gráfico de atividade por data e top ferramentas mais utilizadas |
-| 🤖**Agentes**           | Cartões dos 6 agentes do registry com modelo de IA, tier, lista de tools e MCP servers configurados                                       |
-| ⚡**Execuções**       | Volume de cada ferramenta chamada, chamadas MCP reais por plataforma e histórico completo das últimas execuções                        |
-| 🔌**MCP Servers**       | Status real de cada plataforma (Databricks, Fabric, Fabric RTI) baseado em chamadas reais do `audit.jsonl`                               |
-| 📋**Logs**              | Viewer ao vivo dos dois arquivos de log com filtros por nível (INFO/WARNING/ERROR) e busca por texto                                      |
-| ⚙️**Configurações** | Modelo padrão, budget máximo, max_turns e mapa completo de arquivos do projeto                                                           |
-| ℹ️**Sobre**           | Autor, data de criação, versão do sistema e texto da licença MIT                                                                       |
+### Funcionalidades Especiais
 
-### Detalhes técnicos
+- **Filtro Global de Datas:** Seletor de periodo na sidebar que filtra todos os dados de todas as paginas.
+- **Auto-refresh:** Atualizacao automatica a cada 5, 10, 30 ou 60 segundos.
+- **Fuso Horario:** Todos os timestamps convertidos para Sao Paulo (UTC-3).
 
-**Status dos MCP Servers:** O dashboard detecta se um servidor MCP está "Ativo" baseando-se nas chamadas reais registradas no `audit.jsonl`. Se há chamadas para `mcp__databricks__*`, o Databricks é marcado como Ativo — independente de mensagens de log. Isso garante que o status seja **baseado em evidências reais**, não em inferências.
+### Fontes de Dados
 
-**Fuso horário:** todos os timestamps são convertidos de UTC para **horário de São Paulo (UTC-3 / America/Sao_Paulo)** usando a biblioteca `zoneinfo` do Python:
+O dashboard le 5 arquivos de log:
 
-```python
-from zoneinfo import ZoneInfo
-SP_TZ = ZoneInfo("America/Sao_Paulo")
-
-def to_sp(ts: str) -> str:
-    dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(SP_TZ).strftime("%Y-%m-%d %H:%M:%S")
-```
-
-**Auto-refresh:** o seletor na sidebar permite configurar atualização automática a cada 5, 10, 30 ou 60 segundos — ideal para acompanhar execuções longas em tempo real.
+- `logs/audit.jsonl` — todas as tool calls (gerado pelo `audit_hook.py`)
+- `logs/app.jsonl` — eventos internos (gerado pelo `logging_config.py`)
+- `logs/sessions.jsonl` — custo/turnos por sessao (gerado pelo `session_logger.py`)
+- `logs/workflows.jsonl` — delegacoes e workflows (gerado pelo `workflow_tracker.py`)
+- `logs/compression.jsonl` — metricas do compressor (gerado pelo `output_compressor_hook.py`)
 
 ---
 
-## 16. Como Começar a Usar
+## 18. Como Comecar a Usar
 
-Pronto para ver a IA trabalhar? Siga este passo a passo simples.
-
-### Passo 1: Instale o Python
-
-Você precisa ter o Python instalado no seu computador (versão 3.10 ou superior).
+### Passo 1: Instale o Python 3.11+
 
 ### Passo 2: Baixe o Projeto
-
-Abra o terminal e clone o repositório:
 
 ```bash
 git clone https://github.com/ThomazRossito/data-agents.git
 cd data-agents
 ```
 
-### Passo 3: Instale as Dependências
-
-Isso vai baixar todas as bibliotecas que o projeto precisa para funcionar (como o SDK do Claude e as ferramentas da Microsoft):
+### Passo 3: Instale as Dependencias
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-### Passo 4: Configure suas Senhas
-
-Copie o arquivo de exemplo e coloque suas credenciais:
+### Passo 4: Configure suas Credenciais
 
 ```bash
 cp .env.example .env
 ```
 
-Abra o arquivo `.env` no bloco de notas ou VS Code e preencha a sua `ANTHROPIC_API_KEY` e as chaves do Databricks/Fabric.
+Edite o `.env` com suas chaves. A `ANTHROPIC_API_KEY` e obrigatoria.
 
-### Passo 5: Ligue o Sistema
+### Passo 5: Inicie o Sistema
 
 ```bash
 python main.py
 ```
 
-Você verá o banner do Data Agents e o prompt `Você:`. Digite `/help` para ver os comandos ou simplesmente escreva: *"Liste todos os catálogos do Databricks"*. A IA cuidará do resto.
+Voce vera o banner do Data Agents e o prompt `Voce:`. Digite `/help` para ver os comandos ou escreva sua solicitacao em linguagem natural.
+
+### Comandos uteis apos iniciar
+
+- `/health` — verifica se as conexoes com a nuvem estao funcionando
+- `/plan Crie um pipeline de vendas` — fluxo completo com planejamento
+- `/sql Liste os catalogos do Databricks` — consulta rapida
+- `continuar` — retoma sessao anterior (se houver checkpoint)
+- `limpar` — reseta a sessao (salva checkpoint)
 
 ---
 
-## 17. Melhorias da Versão 3.0
+## 19. Historico de Melhorias (v3.0 e v3.1)
 
-A versão 3.0 do Data Agents introduziu 6 melhorias significativas, identificadas por análises internas e revisões de código pela comunidade. Todas foram implementadas, testadas e integradas ao sistema:
+### Melhorias da v3.0
 
-| # | Melhoria                                       | Problema Original                                                                                                               | Solução Implementada                                                                                                               | Arquivo Principal                             |
-| - | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| 1 | **Filtragem de outputs MCP**             | Respostas das ferramentas MCP chegavam ao modelo sem filtro, consumindo tokens excessivamente e confundindo o raciocínio da IA | Hook `output_compressor_hook.py` que trunca inteligentemente por tipo de ferramenta (SQL: 50 rows, listas: 30 items, max 8K chars) | `hooks/output_compressor_hook.py`           |
-| 2 | **Model Routing por Tier**               | O campo `tier` existia no frontmatter dos agentes mas não era consumido para roteamento de modelo                            | `loader.py` agora lê `tier_model_map` de `settings.py` e sobrescreve o modelo do agente se o tier estiver mapeado             | `agents/loader.py` + `config/settings.py` |
-| 3 | **Lazy-loading de KB/Skills**            | O campo `kb_domains` existia no frontmatter mas as KBs não eram injetadas automaticamente                                    | `loader.py` lê `kb_domains`, carrega apenas os `index.md` dos domínios declarados e injeta no prompt do agente               | `agents/loader.py`                          |
-| 4 | **`check_sql_cost` ativo**             | O hook estava registrado no código mas não tinha implementação funcional                                                    | Função `_detect_expensive_sql()` analisa SQL em todas as tools e bloqueia `SELECT *` sem `WHERE`/`LIMIT`                   | `hooks/security_hook.py`                    |
-| 5 | **Reset automático por idle**           | Sem mecanismo de timeout — sessões abandonadas mantinham contadores e conexões indefinidamente                               | `main.py` usa `asyncio.wait_for()` com timeout configurável (30min padrão). No timeout: reseta contadores, reconecta MCPs      | `main.py` + `config/settings.py`          |
-| 7 | **`reset_session_counters()` chamado** | A função existia no `cost_guard_hook.py` mas nunca era invocada em produção                                               | Agora é chamada em 3 pontos: idle timeout, comando `limpar`/`clear`/`reset`, e setup de testes                                | `main.py` + `hooks/cost_guard_hook.py`    |
+| Melhoria | Descricao |
+|----------|-----------|
+| Filtragem de outputs MCP | Hook output_compressor_hook.py que trunca por tipo de ferramenta |
+| Model Routing por Tier | tier_model_map no loader.py permite override global de modelos |
+| Lazy-loading de KB/Skills | Agentes recebem apenas KBs dos dominios declarados |
+| check_sql_cost ativo | Bloqueia SELECT * sem WHERE/LIMIT em todas as tools |
+| Reset automatico por idle | asyncio.wait_for com timeout configuravel |
+| reset_session_counters | Contadores resetados em idle timeout e limpar |
 
-> **Nota:** Os itens 6 (canal externo Telegram/Slack) e 8 (`bypassPermissions` hardcoded) foram classificados como fora do escopo da v3.0 e permanecem como melhorias futuras.
+### Melhorias da v3.1
+
+| Melhoria | Descricao |
+|----------|-----------|
+| Constituicao centralizada | kb/constitution.md com ~50 regras inviolaveis em 8 secoes |
+| Clarity Checkpoint | Passo 0.5 com scoring de 5 dimensoes (minimo 3/5) |
+| Spec-First Templates | 3 templates em templates/ com regras constitucionais embutidas |
+| Workflows Colaborativos | 4 workflows pre-definidos (WF-01 a WF-04) com handoff automatico |
+| Checkpoint de Sessao | Save/resume automatico em budget exceeded, limpar e idle timeout |
+| Workflow Tracker Hook | Rastreia delegacoes, workflows e Clarity Checkpoint em workflows.jsonl |
+| Categorizacao de Erros | 6 categorias automaticas no audit_hook (auth, timeout, rate_limit, etc.) |
+| Dashboard Workflows | Nova pagina com KPIs de delegacoes, clarity pass rate e specs |
+| Dashboard Custo & Tokens | Pagina dedicada com economia do compressor |
+| Filtro Global de Datas | Seletor de periodo na sidebar do dashboard |
+| Console Log Level | Separacao de nivel console vs arquivo (WARNING esconde logs operacionais) |
+| SQL Expert com Write | Corrigido — agora pode gravar arquivos .sql diretamente |
 
 ---
 
-## 18. Conclusão
+## 20. Conclusao
 
-O projeto **Data Agents v3.0** não é apenas um chatbot. É uma plataforma de automação corporativa.
+O projeto **Data Agents v3.1** e uma plataforma de automacao corporativa completa. Com a Constituicao como fonte de verdade, Clarity Checkpoint para validacao de requisicoes, Workflows Colaborativos para cadeias de agentes e Checkpoint de Sessao para resiliencia, o sistema cobre todo o ciclo de vida de dados — da ingestao na Bronze ate o modelo semantico para Power BI.
 
-Ao separar as **Regras de Negócio (KBs)** dos **Manuais Técnicos (Skills)**, e ao permitir a criação de novos agentes simplesmente escrevendo arquivos de texto (Markdown), o projeto resolve o maior gargalo da Inteligência Artificial em empresas: a dificuldade de manter a IA atualizada e alinhada com a arquitetura da companhia.
+O ecossistema conta com 6 agentes especialistas, 7 hooks de protecao, 4 servidores MCP, 8 dominios de Knowledge Base, 32 modulos de Skills, 4 workflows pre-definidos e um dashboard de monitoramento com 9 paginas. Tudo isso definido declarativamente em Markdown e YAML, sem necessidade de programacao Python para estender.
 
-Com a v3.0, o sistema ganhou maturidade operacional: filtragem inteligente de outputs para economia de tokens, roteamento de modelos por tier para otimização de custos, injeção seletiva de Knowledge Bases para precisão contextual, proteção contra queries custosas, e gerenciamento automático de sessões ociosas. Cada uma dessas melhorias foi identificada por análise técnica rigorosa, implementada com cobertura de testes acima de 89% e documentada neste manual.
-
-Hoje, o sistema cobre Engenharia, Qualidade, Governança e Análise com 5 hooks de proteção, 4 servidores MCP e 10 suítes de teste. Amanhã, se a sua empresa precisar de um "Especialista em Finanças" ou um "Auditor de LGPD", você só precisará criar um novo arquivo `.md` na pasta `registry/`. A fundação já está construída.
-
-O futuro da engenharia de dados não é escrever código; é arquitetar sistemas e gerenciar agentes inteligentes que escrevem o código por você. Bem-vindo a esse futuro.
+Se a sua empresa precisar de um novo especialista amanha, basta criar um arquivo `.md` na pasta `registry/`. A fundacao ja esta construida.

@@ -10,6 +10,29 @@ decisões técnicas do time.
 
 ---
 
+## Constituição (`constitution.md`)
+
+O arquivo `kb/constitution.md` é o **documento de autoridade máxima** do sistema multi-agente.
+Ele centraliza todas as regras invioláveis extraídas dos domínios de KB, prompts de agentes
+e decisões arquiteturais do time. Toda decisão de qualquer agente deve respeitar a Constituição.
+
+O Supervisor carrega a Constituição no início de sessões complexas e a utiliza como referência
+na fase de Síntese (Passo 4) para validar os resultados dos agentes especialistas.
+
+---
+
+## Workflows Colaborativos (`collaboration-workflows.md`)
+
+O arquivo `kb/collaboration-workflows.md` define **workflows pré-definidos** para tarefas
+que envolvem múltiplos agentes trabalhando em sequência com handoff automático de outputs.
+Inclui 4 workflows (WF-01 a WF-04) para pipeline end-to-end, Star Schema, migração
+cross-platform e auditoria de governança.
+
+Utilizado em conjunto com os **templates spec-first** em `templates/` para garantir que
+tarefas complexas sejam especificadas antes de serem executadas.
+
+---
+
 ## Estrutura de Domínios
 
 | Domínio               | Diretório                  | Agentes que Usam                                      |

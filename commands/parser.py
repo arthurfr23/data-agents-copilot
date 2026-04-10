@@ -309,5 +309,14 @@ def get_help_text() -> str:
         "  [bold green]/exit[/bold green]         [dim]Internal[/dim]              Encerra a sessão."
     )
     lines.append("")
+    lines.append("[bold]Controle de sessão:[/bold]\n")
+    lines.append(
+        "  [bold cyan]continuar[/bold cyan]     Retoma a sessão anterior a partir do checkpoint salvo."
+    )
+    lines.append(
+        "  [bold cyan]limpar[/bold cyan]        Reseta a sessão atual (salva checkpoint antes)."
+    )
+    lines.append("  [bold cyan]sair[/bold cyan]          Encerra o Data Agents.")
+    lines.append("")
 
     return "\n".join(lines)

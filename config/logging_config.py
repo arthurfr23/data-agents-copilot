@@ -60,16 +60,22 @@ def setup_logging(
     log_file: str = "./logs/app.jsonl",
     enable_console: bool = True,
     enable_file: bool = True,
+    console_log_level: str | None = None,
 ) -> None:
     """
     Configura o sistema de logging do Data Agents.
 
     Args:
-        log_level: Nível mínimo para o console (DEBUG, INFO, WARNING, ERROR).
+        log_level: Nível mínimo global e para o arquivo JSONL.
         log_file: Caminho para o arquivo JSONL de log persistente.
         enable_console: Se True, ativa handler de console (Rich ou padrão).
         enable_file: Se True, ativa handler de arquivo JSONL.
+        console_log_level: Nível mínimo para o console. Se None, usa log_level.
+            Use "WARNING" para esconder logs operacionais (OUTPUT COMPRIMIDO, etc)
+            e manter o terminal limpo para o usuário final.
     """
+    effective_console_level = console_log_level or log_level
+
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)  # Captura tudo; filtro nos handlers
 
@@ -81,14 +87,14 @@ def setup_logging(
         console_handler: logging.Handler
         if _RICH_AVAILABLE:
             console_handler = RichHandler(
-                level=getattr(logging, log_level.upper(), logging.INFO),
+                level=getattr(logging, effective_console_level.upper(), logging.WARNING),
                 rich_tracebacks=True,
                 show_time=True,
                 show_path=False,
             )
         else:
             sh = logging.StreamHandler(sys.stdout)
-            sh.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+            sh.setLevel(getattr(logging, effective_console_level.upper(), logging.WARNING))
             sh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
             console_handler = sh
 

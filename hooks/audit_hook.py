@@ -6,11 +6,14 @@ Implementa:
   - Registro estruturado com timestamp, tool, agent e duração
   - Fallback para stderr + logging.warning em caso de falha de I/O
   - Classificação automática de operações (read-only vs write vs execute)
+  - Categorização de erros (auth, timeout, rate_limit, mcp, business_logic, unknown)
+  - Detecção de plataforma para análise por agente
 """
 
 import json
 import logging
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from typing import Any
@@ -59,6 +62,85 @@ def _classify_operation(tool_name: str) -> str:
     return "read"
 
 
+# ─── Categorização de erros ──────────────────────────────────────
+
+# Padrões regex para categorizar erros pelo conteúdo da mensagem
+_ERROR_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    (
+        "auth",
+        re.compile(
+            r"(?i)(unauthorized|forbidden|403|401|invalid.?token|credential|"
+            r"authentication|permission.?denied|access.?denied|not.?authorized)"
+        ),
+    ),
+    (
+        "timeout",
+        re.compile(
+            r"(?i)(timeout|timed?\s*out|deadline.?exceeded|connection.?timed|"
+            r"read.?timeout|connect.?timeout)"
+        ),
+    ),
+    (
+        "rate_limit",
+        re.compile(
+            r"(?i)(rate.?limit|429|too.?many.?requests|throttl|quota.?exceeded|"
+            r"overloaded|capacity)"
+        ),
+    ),
+    (
+        "mcp_connection",
+        re.compile(
+            r"(?i)(mcp.?(?:error|fail|connection)|server.?disconnect|"
+            r"connection.?refused|connection.?reset|broken.?pipe|eof)"
+        ),
+    ),
+    (
+        "not_found",
+        re.compile(
+            r"(?i)(not.?found|404|does.?not.?exist|no.?such|table.?not.?found|"
+            r"schema.?not.?found|catalog.?not.?found)"
+        ),
+    ),
+    (
+        "validation",
+        re.compile(
+            r"(?i)(validation.?error|invalid.?input|malformed|parse.?error|"
+            r"syntax.?error|type.?error|schema.?mismatch)"
+        ),
+    ),
+]
+
+
+def _classify_error(error_text: str) -> str:
+    """
+    Categoriza um erro pelo conteúdo da mensagem.
+
+    Categorias:
+      - auth: Erros de autenticação/autorização (401, 403, token inválido)
+      - timeout: Timeouts de conexão ou execução
+      - rate_limit: Limites de taxa da API (429, throttling)
+      - mcp_connection: Falhas de conexão com servidores MCP
+      - not_found: Recursos não encontrados (404, tabela inexistente)
+      - validation: Erros de validação de input ou schema
+      - unknown: Erros não categorizados
+    """
+    if not error_text:
+        return "unknown"
+    for category, pattern in _ERROR_PATTERNS:
+        if pattern.search(error_text):
+            return category
+    return "unknown"
+
+
+def _detect_platform(tool_name: str) -> str | None:
+    """Detecta a plataforma a partir do nome da tool MCP."""
+    if tool_name.startswith("mcp__"):
+        parts = tool_name.split("__")
+        if len(parts) >= 2:
+            return parts[1]  # databricks, fabric, fabric_rti, fabric_community
+    return None
+
+
 async def audit_tool_usage(
     input_data: dict[str, Any],
     tool_use_id: str | None,
@@ -71,6 +153,11 @@ async def audit_tool_usage(
     Em caso de falha de I/O, faz fallback para stderr e logging.warning.
     Robusto a eventos de teardown/shutdown do SDK (input_data pode ser None ou
     ter formato inesperado durante o encerramento da sessão).
+
+    Campos adicionais (v2):
+      - error_category: Categoria do erro (auth, timeout, rate_limit, etc.)
+      - platform: Plataforma MCP (databricks, fabric, fabric_rti)
+      - has_error: Flag booleana para facilitar filtragem no dashboard
     """
     # Proteção contra eventos de teardown do SDK (hook chamado com dados inválidos)
     if not input_data or not isinstance(input_data, dict):
@@ -82,7 +169,20 @@ async def audit_tool_usage(
     if not tool_name or tool_name in ("unknown", "", None):
         return {}
 
-    log_entry = {
+    # Detectar erros no output da tool (se disponível no input_data)
+    tool_output = input_data.get("tool_output", "") or ""
+    tool_error = input_data.get("tool_error", "") or ""
+    error_text = tool_error or ""
+
+    # Também checa se o output contém indicadores de erro
+    if not error_text and isinstance(tool_output, str):
+        if any(kw in tool_output.lower() for kw in ["error", "failed", "exception", "traceback"]):
+            error_text = tool_output[:500]
+
+    has_error = bool(error_text)
+    error_category = _classify_error(error_text) if has_error else None
+
+    log_entry: dict[str, Any] = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "event": "tool_call",
         "tool_name": tool_name,
@@ -90,7 +190,15 @@ async def audit_tool_usage(
         "operation_type": _classify_operation(tool_name),
         # Registramos apenas os nomes das chaves, não os valores
         "input_keys": list(input_data.get("tool_input", {}).keys()),
+        # Campos v2: categorização de erros e plataforma
+        "platform": _detect_platform(tool_name),
+        "has_error": has_error,
     }
+
+    # Adiciona campos de erro somente quando há erro (economia de espaço)
+    if has_error:
+        log_entry["error_category"] = error_category
+        log_entry["error_preview"] = error_text[:200]
 
     log_line = json.dumps(log_entry, ensure_ascii=False) + "\n"
     log_path = settings.audit_log_path
