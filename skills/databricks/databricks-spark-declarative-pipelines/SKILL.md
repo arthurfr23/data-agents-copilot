@@ -143,9 +143,11 @@ Before writing pipeline code, make sure you have:
 
 | Use Case | Type | Pattern |
 |----------|------|---------|
-| Windowed aggregations, cleanups | Streaming Table | `FROM stream(source)` |
-| Full-table aggregations (totals, counts) | Materialized View | `FROM source` (no stream wrapper) |
-| CDC / SCD Type 1 or 2 | Streaming Table + Flow | `AUTO CDC INTO` or `dp.create_auto_cdc_flow()` |
+| Windowed aggregations (tumbling, sliding, session) | Streaming Table | `FROM stream(source)` + `GROUP BY window()` |
+| Full-table aggregations (totals, daily counts) | Materialized View | `FROM source` (no stream wrapper) |
+| CDC / SCD Type 2 | Streaming Table | `AUTO CDC INTO` or `dp.create_auto_cdc_flow()` |
+
+Use streaming tables for windowed aggregations to enable incremental processing. Use materialized views for simple aggregations that recompute fully on each refresh.
 
 > **CRITICAL RULE (BRONZE INGESTION)**: The Bronze layer **MUST ALWAYS** use Auto Loader (`cloud_files`) for data ingestion to guarantee robust incremental processing. In SQL, this means using `FROM cloud_files(...)` which leverages Auto Loader explicitly. In Python, use `spark.readStream.format("cloudFiles")`. Never use `read_files` or batch reads for initial ingestion into Bronze.
 
@@ -322,7 +324,7 @@ For detailed syntax, see [sql/1-syntax-basics.md](references/sql/1-syntax-basics
 - **Serverless compute** - Do not use classic clusters unless explicitly required (R, RDD APIs, JAR libraries)
 - **Unity Catalog** (required for serverless)
 - **CLUSTER BY** (Liquid Clustering), not PARTITION BY with ZORDER - see [sql/5-performance.md](references/sql/5-performance.md) or [python/5-performance.md](references/python/5-performance.md)
-- **cloud_files()** for SQL cloud storage ingestion - always consume a folder, not a single file - see [sql/2-ingestion.md](references/sql/2-ingestion.md)
+- **read_files()** for SQL cloud storage ingestion - always consume a folder, not a single file - see [sql/2-ingestion.md](references/sql/2-ingestion.md)
 
 ### Multi-Schema Patterns
 
@@ -343,13 +345,13 @@ After running a pipeline (via DAB or MCP), you **MUST** validate both the execut
 
 ### Step 1: Check Pipeline Execution Status
 
-**From MCP (`run_pipeline` or `create_or_update_pipeline`):**
+**From MCP (`manage_pipeline(action="run")` or `manage_pipeline(action="create_or_update")`):**
 - Check `result["success"]` and `result["state"]`
 - If failed, check `result["message"]` and `result["errors"]` for details
 
 **From DAB (`databricks bundle run`):**
 - Check the command output for success/failure
-- Use `get_pipeline(pipeline_id=...)` to get detailed status and recent events
+- Use `manage_pipeline(action="get", pipeline_id=...)` to get detailed status and recent events
 
 ### Step 2: Validate Output Data
 
@@ -396,14 +398,14 @@ If validation reveals problems, trace upstream to find the root cause:
 | **Empty output tables** | Use `get_table_stats_and_schema` to check upstream sources. Verify source files exist and paths are correct. |
 | **Pipeline stuck INITIALIZING** | Normal for serverless, wait a few minutes |
 | **"Column not found"** | Check if your source data actually contains the required columns and they are parsed correctly by Auto Loader |
-| **Streaming reads fail** | For file ingestion into Bronze, you must use `FROM cloud_files(...)`. Do NOT use `read_files`. For table streams (Bronze to Silver) use `FROM stream(table)`. |
+| **Streaming reads fail** | For file ingestion in a streaming table, you must use the `STREAM` keyword with `read_files`: `FROM STREAM read_files(...)`. For table streams use `FROM stream(table)`. See [read_files — Usage in streaming tables](https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files#usage-in-streaming-tables). |
 | **Timeout during run** | Increase `timeout`, or use `wait_for_completion=False` and check status with `get_pipeline` |
 | **MV doesn't refresh** | Enable row tracking on source tables |
 | **SCD2: query column not found** | Lakeflow uses `__START_AT` and `__END_AT` (double underscore), not `START_AT`/`END_AT`. Use `WHERE __END_AT IS NULL` for current rows. See [sql/4-cdc-patterns.md](references/sql/4-cdc-patterns.md). |
 | **AUTO CDC parse error at APPLY/SEQUENCE** | Put `APPLY AS DELETE WHEN` **before** `SEQUENCE BY`. Only list columns in `COLUMNS * EXCEPT (...)` that exist in the source (omit `_rescued_data` unless bronze uses rescue data). Omit `TRACK HISTORY ON *` if it causes "end of input" errors; default is equivalent. See [sql/4-cdc-patterns.md](references/sql/4-cdc-patterns.md). |
-| **"Cannot create streaming table from batch query"** | You are probably not using `cloud_files` for ingestion. Ensure you use `FROM cloud_files(...)` for data ingestion to enforce streaming semantics. |
+| **"Cannot create streaming table from batch query"** | In a streaming table query, use `FROM STREAM read_files(...)` so `read_files` leverages Auto Loader; `FROM read_files(...)` alone is batch. See [sql/2-ingestion.md](references/sql/2-ingestion.md) and [read_files — Usage in streaming tables](https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files#usage-in-streaming-tables). |
 
-**For detailed errors**, the `result["message"]` from `create_or_update_pipeline` includes suggested next steps. Use `get_pipeline(pipeline_id=...)` which includes recent events and error details.
+**For detailed errors**, the `result["message"]` from `manage_pipeline(action="create_or_update")` includes suggested next steps. Use `manage_pipeline(action="get", pipeline_id=...)` which includes recent events and error details.
 
 ---
 

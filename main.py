@@ -43,6 +43,12 @@ from config.logging_config import setup_logging
 from config.settings import settings
 from hooks.session_logger import log_session_result
 from hooks.cost_guard_hook import reset_session_counters
+from hooks.checkpoint import (
+    save_checkpoint,
+    load_checkpoint,
+    clear_checkpoint,
+    build_resume_prompt,
+)
 
 logger = logging.getLogger("data_agents.main")
 console = Console()
@@ -126,7 +132,8 @@ def print_banner() -> None:
     console.print()
     console.print("[dim]Digite sua solicitação em linguagem natural.[/dim]")
     console.print(
-        "[dim]Comandos: [bold]sair[/bold] para encerrar | [bold]limpar[/bold] para nova sessão | [bold]/help[/bold] para ajuda[/dim]"
+        "[dim]Comandos: [bold]sair[/bold] para encerrar | [bold]limpar[/bold] para nova sessão "
+        "| [bold]continuar[/bold] para retomar | [bold]/help[/bold] para ajuda[/dim]"
     )
     console.print(
         "[dim]Slash: [bold]/plan[/bold] | [bold]/sql[/bold] | [bold]/spark[/bold] | "
@@ -136,7 +143,7 @@ def print_banner() -> None:
     )
 
 
-async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> None:
+async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> dict[str, float | int]:
     """
     Processa o stream de resposta do agente com feedback visual em tempo real.
 
@@ -150,6 +157,9 @@ async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> None:
         client: Instância ativa do ClaudeSDKClient para receber o stream.
         prompt: Prompt original enviado ao agente. Apenas os primeiros 100
             caracteres são usados para o log de sessão.
+
+    Returns:
+        Dict com métricas da resposta: {"cost": float, "turns": int}.
     """
     # Estado do streaming
     current_tool: str | None = None
@@ -157,6 +167,7 @@ async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> None:
     response_started: bool = False
     turn_count: int = 0
     live_status: Live | None = None
+    metrics: dict[str, float | int] = {"cost": 0.0, "turns": 0}
 
     def _start_spinner(message: str) -> Live:
         """Inicia um spinner animado com a mensagem fornecida."""
@@ -253,18 +264,34 @@ async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> None:
             # Persistir métricas da sessão para o dashboard de monitoramento
             log_session_result(message, prompt_preview=prompt[:100], session_type="interactive")
 
+            # Capturar métricas para checkpoint
+            metrics["cost"] = float(message.total_cost_usd or 0)
+            metrics["turns"] = int(message.num_turns or 0)
+
     # Garante que o spinner seja parado em qualquer caso
     _stop_spinner(live_status)
+
+    return metrics
 
 
 async def run_interactive() -> None:
     """Loop interativo com histórico de sessão mantido entre mensagens."""
 
+    # Estado de sessão para checkpoint
+    _session_state: dict = {
+        "last_prompt": "",
+        "total_cost": 0.0,
+        "total_turns": 0,
+    }
+
     # ── 1. Banner primeiro — antes de qualquer inicialização ─────────────────
     print_banner()
 
     # ── 2. Logging + diagnósticos aparecem DEPOIS do banner ──────────────────
-    setup_logging(log_level=settings.log_level)
+    setup_logging(
+        log_level=settings.log_level,
+        console_log_level=settings.console_log_level,
+    )
     if hasattr(settings, "startup_diagnostics"):
         settings.startup_diagnostics()
 
@@ -281,6 +308,26 @@ async def run_interactive() -> None:
     # ── 4. ClaudeSDKClient emite "Using bundled Claude Code CLI..." aqui ─────
     try:
         async with ClaudeSDKClient(options=options) as client:
+            # ── 4.1 Verificar checkpoint de sessão anterior ────────────────
+            checkpoint = load_checkpoint()
+            if checkpoint:
+                reason = checkpoint.get("reason", "unknown")
+                cost = checkpoint.get("cost_usd", 0)
+                last = checkpoint.get("last_prompt", "")
+                files = checkpoint.get("output_files", [])
+
+                console.print(
+                    Panel(
+                        f"[bold yellow]Sessão anterior interrompida[/bold yellow] "
+                        f"({reason.replace('_', ' ')})\n"
+                        f"[dim]Custo: ${cost:.4f} | Último prompt: {last[:80]}{'...' if len(last) > 80 else ''}[/dim]\n"
+                        f"[dim]Arquivos gerados: {len(files)}[/dim]\n\n"
+                        f'[bold]Digite [cyan]"continuar"[/cyan] para retomar ou qualquer outra coisa para nova sessão.[/bold]',
+                        title="🔄 Checkpoint Detectado",
+                        border_style="yellow",
+                    )
+                )
+
             while True:
                 try:
                     # Input com idle timeout: detecta inatividade e oferece reset
@@ -295,14 +342,31 @@ async def run_interactive() -> None:
                             else None,
                         )
                     except asyncio.TimeoutError:
+                        # Salvar checkpoint antes do reset por inatividade
+                        if _session_state["last_prompt"]:
+                            save_checkpoint(
+                                last_prompt=_session_state["last_prompt"],
+                                reason="idle_timeout",
+                                cost_usd=_session_state["total_cost"],
+                                turns=_session_state["total_turns"],
+                            )
                         console.print(
                             f"\n[yellow]⏰ Inatividade detectada "
                             f"({settings.idle_timeout_minutes} min). "
                             f"Resetando sessão para economizar tokens...[/yellow]"
                         )
+                        if _session_state["last_prompt"]:
+                            console.print(
+                                "[dim]💾 Checkpoint salvo. Digite [bold]continuar[/bold] "
+                                "para retomar.[/dim]"
+                            )
                         reset_session_counters()
+                        _session_state["last_prompt"] = ""
+                        _session_state["total_cost"] = 0.0
+                        _session_state["total_turns"] = 0
                         await client.disconnect()
                         await client.connect()
+                        checkpoint = load_checkpoint()
                         logger.info(
                             f"Sessão resetada automaticamente por idle "
                             f"({settings.idle_timeout_minutes} min)."
@@ -318,11 +382,38 @@ async def run_interactive() -> None:
                         break
 
                     if user_input.lower() in ("limpar", "clear", "reset"):
+                        # Salvar checkpoint antes de limpar
+                        if _session_state["last_prompt"]:
+                            save_checkpoint(
+                                last_prompt=_session_state["last_prompt"],
+                                reason="user_reset",
+                                cost_usd=_session_state["total_cost"],
+                                turns=_session_state["total_turns"],
+                            )
+                            console.print(
+                                "[dim]💾 Checkpoint salvo. Use [bold]continuar[/bold] "
+                                "na próxima sessão para retomar.[/dim]\n"
+                            )
                         console.clear()
                         print_banner()
                         reset_session_counters()
+                        _session_state["last_prompt"] = ""
+                        _session_state["total_cost"] = 0.0
+                        _session_state["total_turns"] = 0
                         await client.disconnect()
                         await client.connect()
+                        # Verificar checkpoint recém-salvo
+                        checkpoint = load_checkpoint()
+                        if checkpoint:
+                            console.print(
+                                Panel(
+                                    "[bold yellow]Sessão anterior salva.[/bold yellow]\n"
+                                    '[bold]Digite [cyan]"continuar"[/cyan] para retomar '
+                                    "ou qualquer outra coisa para nova sessão.[/bold]",
+                                    title="🔄 Checkpoint Disponível",
+                                    border_style="yellow",
+                                )
+                            )
                         logger.info(
                             "Sessão reiniciada pelo usuário (contadores de custo resetados)."
                         )
@@ -331,6 +422,29 @@ async def run_interactive() -> None:
                     if user_input.lower() in ("/help", "help", "ajuda"):
                         console.print(get_help_text())
                         continue
+
+                    # --- Retomar sessão anterior via checkpoint ---
+                    if (
+                        user_input.lower() in ("continuar", "continue", "retomar", "resume")
+                        and checkpoint
+                    ):
+                        resume_prompt = build_resume_prompt(checkpoint)
+                        clear_checkpoint()
+                        checkpoint = None  # Consumido
+                        console.print("[bold cyan]🔄 Retomando sessão anterior...[/bold cyan]\n")
+                        await client.query(resume_prompt)
+                        result_metrics = await _stream_response(
+                            client, prompt="[RESUME] " + resume_prompt[:100]
+                        )
+                        _session_state["last_prompt"] = resume_prompt[:200]
+                        _session_state["total_cost"] += result_metrics.get("cost", 0)
+                        _session_state["total_turns"] += result_metrics.get("turns", 0)
+                        continue
+
+                    # Se havia checkpoint mas o usuário não quis continuar, limpar
+                    if checkpoint:
+                        clear_checkpoint()
+                        checkpoint = None
 
                     console.print()
 
@@ -356,16 +470,31 @@ async def run_interactive() -> None:
 
                     # --- Enviar para o Supervisor e processar com feedback visual ---
                     await client.query(bmad_prompt)
-                    await _stream_response(client, prompt=bmad_prompt)
+                    result_metrics = await _stream_response(client, prompt=bmad_prompt)
+
+                    # Atualizar estado da sessão para checkpoint
+                    _session_state["last_prompt"] = bmad_prompt
+                    _session_state["total_cost"] += result_metrics.get("cost", 0)
+                    _session_state["total_turns"] += result_metrics.get("turns", 0)
 
                 except KeyboardInterrupt:
                     console.print("\n[yellow]Interrompido. Digite 'sair' para encerrar.[/yellow]")
                     continue
 
                 except BudgetExceededError as e:
+                    # Salvar checkpoint automaticamente ao exceder budget
+                    save_checkpoint(
+                        last_prompt=_session_state["last_prompt"],
+                        reason="budget_exceeded",
+                        cost_usd=_session_state["total_cost"],
+                        turns=_session_state["total_turns"],
+                    )
                     console.print(f"\n[bold red]Orçamento excedido:[/bold red] {e.message}")
                     console.print(
-                        "[dim]Aumente MAX_BUDGET_USD no .env ou inicie nova sessão.[/dim]\n"
+                        "[bold yellow]💾 Checkpoint salvo automaticamente![/bold yellow]\n"
+                        "[dim]Na próxima sessão, digite [bold]continuar[/bold] para retomar "
+                        "de onde parou.[/dim]\n"
+                        "[dim]Ou aumente MAX_BUDGET_USD no .env para mais orçamento.[/dim]\n"
                     )
                     logger.warning(f"Budget exceeded: {e.message}")
                     continue

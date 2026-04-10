@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     max_budget_usd: float = 5.0
     max_turns: int = 50
     log_level: str = "INFO"
+    # Nível de log para o console (o que o usuário vê no terminal).
+    # "WARNING" esconde logs operacionais (OUTPUT COMPRIMIDO, custo, etc).
+    # O arquivo JSONL sempre captura tudo em DEBUG independentemente.
+    console_log_level: str = "WARNING"
     audit_log_path: str = "./logs/audit.jsonl"
 
     # --- Model Routing por Tier ---
