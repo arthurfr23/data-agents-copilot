@@ -22,6 +22,15 @@ Carregue a Constituição com `Read("kb/constitution.md")` no início de sessõe
 
 Você dispõe dos seguintes agentes, invocáveis via a tool `Agent`:
 
+## Tier 0 — Intake de Requisitos (Pré-Planejamento)
+
+**business-analyst** — Analista de Negócios.
+  Quando usar: sempre que o input do usuário for um documento bruto (transcript de reunião,
+  briefing, notas, e-mail) que precisa ser convertido em backlog estruturado antes do /plan.
+  Use via comando `/brief`. O agente extrai requisitos, prioriza em P0/P1/P2, mapeia
+  domínios técnicos e gera `output/backlog/backlog_<nome>.md` pronto para alimentar o /plan.
+  NÃO invoque este agente para tarefas técnicas — somente para intake de negócio.
+
 ## Tier 1 — Engenharia de Dados (Core)
 
 **sql-expert** — Especialista em SQL e metadados.
@@ -52,7 +61,10 @@ Você dispõe dos seguintes agentes, invocáveis via a tool `Agent`:
 **semantic-modeler** — Especialista em Modelagem Semântica e Consumo Analítico.
   Quando usar: design de modelos semânticos sobre tabelas Gold no Fabric Direct Lake,
   geração de medidas DAX e métricas de negócio, criação de Metric Views no Databricks,
-  recomendações de otimização de tabelas Gold para consumo analítico.
+  recomendações de otimização de tabelas Gold para consumo analítico,
+  criação e atualização de Genie Spaces (Conversational BI),
+  criação e publicação de AI/BI Dashboards nativos do Databricks,
+  consulta de endpoints de modelo via Model Serving.
 
 ---
 
@@ -73,9 +85,14 @@ os padrões arquiteturais e regras de negócio do time. As KBs estão em `kb/`.
 | SQL Warehouse / Materialized Views               | `kb/databricks/index.md`            | `skills/databricks/databricks-dbsql/SKILL.md`                                                       |
 | Databricks Jobs / Workflows / Orquestração       | `kb/databricks/index.md`            | `skills/databricks/databricks-jobs/SKILL.md`                                                        |
 | Databricks Asset Bundles / CI-CD                 | `kb/databricks/index.md`            | `skills/databricks/databricks-bundles/SKILL.md`                                                     |
-| Model Serving / MLflow / Deploy de Agentes       | `kb/databricks/index.md`            | `skills/databricks/databricks-model-serving/SKILL.md`                                               |
+| Model Serving / MLflow / Deploy de Agentes       | `kb/databricks/index.md`            | `skills/databricks/databricks-model-serving/SKILL.md` — use `list/get/query_serving_endpoint`      |
 | Vector Search / RAG                              | `kb/databricks/index.md`            | `skills/databricks/databricks-vector-search/SKILL.md`                                               |
 | AI Functions (ai_query, ai_forecast)             | `kb/databricks/index.md`            | `skills/databricks/databricks-ai-functions/SKILL.md`                                                |
+| Genie Space (criar/atualizar — Conversational BI)| `kb/semantic-modeling/index.md`     | `skills/databricks/databricks-genie/SKILL.md` — use `mcp__databricks__create_or_update_genie`      |
+| AI/BI Dashboard (criar/publicar)                 | `kb/semantic-modeling/index.md`     | `skills/databricks/databricks-aibi-dashboards/SKILL.md` — use `mcp__databricks__create_or_update_dashboard` |
+| Knowledge Assistants / Mosaic AI Agents (KA/MAS) | `kb/databricks/index.md`            | `skills/databricks/databricks-agent-bricks/SKILL.md` — use `manage_ka` / `manage_mas`             |
+| Execução de código serverless (debug/validação)  | `kb/databricks/index.md`            | *(sem skill específica)* — use `mcp__databricks__execute_code`                                      |
+| Múltiplas queries SQL em paralelo                | `kb/sql-patterns/index.md`          | `skills/sql_generation.md` — use `mcp__databricks__execute_sql_multi`                              |
 | Fabric Lakehouse / Medallion                     | `kb/fabric/index.md`                | `skills/fabric/fabric-medallion/SKILL.md` + `skills/pipeline_design.md`                            |
 | Fabric Direct Lake / Power BI                    | `kb/fabric/index.md`                | `skills/fabric/fabric-direct-lake/SKILL.md`                                                         |
 | Semantic Model Fabric (análise/criação/DAX)      | `kb/semantic-modeling/index.md`     | `skills/fabric/fabric-direct-lake/SKILL.md`                                                         |
@@ -90,6 +107,7 @@ os padrões arquiteturais e regras de negócio do time. As KBs estão em `kb/`.
 | Padrões Spark genéricos                          | `kb/spark-patterns/index.md`        | `skills/spark_patterns.md`                                                                          |
 | Pipeline End-to-End / Multi-Agente / Workflow    | `kb/collaboration-workflows.md`     | `templates/pipeline-spec.md` ou `templates/star-schema-spec.md`                                    |
 | Migração Cross-Platform / Multi-Plataforma       | `kb/collaboration-workflows.md`     | `templates/cross-platform-spec.md`                                                                  |
+| Transcript / Briefing / Requisitos não estruturados | *(não aplicável — delegar ao business-analyst)* | `templates/backlog.md`                                                             |
 
 ## Passo 0.5 — Clarity Checkpoint (Validação de Clareza)
 
@@ -123,7 +141,7 @@ Se a tarefa envolve 3+ agentes, 2+ plataformas ou criação de infraestrutura no
    - Star Schema / Gold Layer → `templates/star-schema-spec.md`
    - Cross-Platform (Fabric ↔ Databricks) → `templates/cross-platform-spec.md`
 3. Preencha o template com base na requisição do usuário e KBs consultadas.
-4. Salve o spec preenchido em `output/specs/[nome].md`.
+4. Garanta que o diretório existe (Bash: mkdir -p output/specs) e salve o spec em `output/specs/spec_[nome].md`.
 5. Referencie o spec no prompt de delegação de cada agente.
 
 **Quando pular:** Tarefas single-agent, consultas simples, Modo Express.
@@ -133,7 +151,7 @@ Se a tarefa envolve 3+ agentes, 2+ plataformas ou criação de infraestrutura no
 - Se a requisição envolver criação de pipelines, migrações ou infraestrutura complexa,
   **NÃO DELEGUE IMEDIATAMENTE**.
 - Após ler as KBs, Skills e Spec relevantes, defina a arquitetura em um documento `.md`.
-- Salve em `output/` via Bash (Ex: `output/prd_fabric_pipeline.md`).
+- Garanta que o diretório existe (Bash: mkdir -p output/prd) e salve em `output/prd/prd_<nome_descritivo>.md`.
 - Se a solicitação começar com "IGNORE PLANEJAMENTO E PASSE ISSO DIRETAMENTE:",
   pule este passo e acione o agente solicitado diretamente.
 
@@ -153,23 +171,33 @@ Se um workflow pré-definido foi identificado no Passo 0.9 (WF-01 a WF-04):
 - Siga a sequência de agentes definida no workflow.
 - Inclua no prompt de cada agente o **contexto da etapa anterior** (resumo do output).
 - Se um agente falhar, **pause** o workflow e proponha correção antes de continuar.
-- Salve o resultado de cada etapa em `output/` para rastreabilidade.
+- Salve o resultado de cada etapa em `output/prd/` (PRDs), `output/specs/` (SPECs) ou `output/` (demais artefatos) para rastreabilidade.
 - Consulte `kb/collaboration-workflows.md` §3.2 para o formato de handoff.
 
 ### Guia de Roteamento para Novos Agentes
 
 | Situação                                         | Agente a Acionar          |
 |--------------------------------------------------|---------------------------|
+| Transcript de reunião / briefing / notas brutas  | business-analyst          |
+| Input não estruturado antes do /plan             | business-analyst          |
 | Tabela nova ingerida → validar qualidade         | data-quality-steward      |
 | Pipeline modificado → verificar conformidade     | governance-auditor        |
 | Gold Layer criada → preparar para consumo BI     | semantic-modeler          |
 | Semantic Model mencionado (Fabric/Power BI/DAX)  | semantic-modeler          |
 | "analise o semantic model" (com ou sem /fabric)  | semantic-modeler          |
+| Criar ou atualizar Genie Space (Databricks)      | semantic-modeler          |
+| Criar ou publicar AI/BI Dashboard (Databricks)   | semantic-modeler          |
+| Consultar endpoint de modelo ML/GenAI            | semantic-modeler          |
+| Criar Knowledge Assistant (Databricks KA)        | pipeline-architect        |
+| Criar Mosaic AI Supervisor Agent (MAS)           | pipeline-architect        |
+| Executar código diretamente em serverless        | pipeline-architect        |
+| Criar ou modificar cluster/warehouse             | pipeline-architect        |
 | Alerta de qualidade disparado → investigar       | data-quality-steward      |
 | Acesso incomum detectado → auditar               | governance-auditor        |
 | Relatório de métricas solicitado                 | semantic-modeler          |
 | Schema drift detectado em streaming              | data-quality-steward      |
 | Dados PII expostos → classificar e proteger      | governance-auditor        |
+| Múltiplas queries SQL independentes em paralelo  | sql-expert (execute_sql_multi) |
 
 ## Passo 4 — Síntese e Validação Constitucional
 
@@ -209,7 +237,7 @@ Se um workflow pré-definido foi identificado no Passo 0.9 (WF-01 a WF-04):
 
 Ao apresentar o plano (demanda de Arquitetura):
 ```
-📋 Artefato Gerado: `output/nome_do_plano.md`
+📋 Artefato Gerado: `output/prd/prd_<nome_descritivo>.md`
 1. [Especialista] — [Resumo da Etapa 1]
 2. [Especialista] — [Resumo da Etapa 2]
 ```
@@ -219,5 +247,14 @@ Ao processar ordens diretas via Slash Commands (Modo Agile):
 🚀 B-MAD Express Routing -> Delegando a solicitação diretamente para o especialista: [Nome]
 
 ✅ Resultado: ...
+```
+
+Ao processar intake de requisitos via /brief:
+```
+📋 [BMAD Intake] Delegando para: business-analyst
+
+Processando documento... aguarde o backlog estruturado.
+
+Próximo passo: /plan output/backlog/backlog_<nome>.md
 ```
 """

@@ -44,6 +44,7 @@ KNOWN_AGENTS = {
     "data-quality-steward",
     "governance-auditor",
     "semantic-modeler",
+    "business-analyst",
 }
 
 # Detecta referências ao Clarity Checkpoint
@@ -72,9 +73,10 @@ def _write_event(event: dict[str, Any]) -> None:
 
 def _extract_agent_name(tool_input: dict[str, Any]) -> str:
     """Extrai o nome do agente do input do tool Agent."""
-    # O SDK pode usar agent_name ou name como campo
+    # O Claude Agent SDK usa subagent_type como campo principal (ex: "sql-expert")
     return (
-        tool_input.get("agent_name")
+        tool_input.get("subagent_type")
+        or tool_input.get("agent_name")
         or tool_input.get("name")
         or tool_input.get("agent")
         or "unknown"
@@ -83,8 +85,24 @@ def _extract_agent_name(tool_input: dict[str, Any]) -> str:
 
 def _extract_prompt_preview(tool_input: dict[str, Any]) -> str:
     """Extrai preview do prompt de delegação (máximo 200 chars)."""
+    # Prioriza o prompt completo; description é mais curto mas sempre presente
     prompt = tool_input.get("prompt", "") or tool_input.get("description", "") or ""
     return prompt[:200]
+
+
+def _normalize_agent_name(raw: str) -> str:
+    """Normaliza o nome do agente para exibição no dashboard."""
+    # Mapeia nomes internos para nomes legíveis
+    _DISPLAY_NAMES = {
+        "sql-expert": "SQL Expert",
+        "spark-expert": "Spark Expert",
+        "pipeline-architect": "Pipeline Architect",
+        "data-quality-steward": "Data Quality Steward",
+        "governance-auditor": "Governance Auditor",
+        "semantic-modeler": "Semantic Modeler",
+        "business-analyst": "Business Analyst",
+    }
+    return _DISPLAY_NAMES.get(raw, raw)
 
 
 async def track_workflow_events(
@@ -112,7 +130,7 @@ async def track_workflow_events(
 
     # ── Rastrear delegações de agentes ──
     if tool_name == "Agent":
-        agent_name = _extract_agent_name(tool_input)
+        agent_name = _normalize_agent_name(_extract_agent_name(tool_input))
         prompt_preview = _extract_prompt_preview(tool_input)
 
         # Evento base: delegação

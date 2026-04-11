@@ -1,4 +1,4 @@
-# Manual e Relatorio Tecnico: Projeto Data Agents v3.2
+# Manual e Relatorio Tecnico: Projeto Data Agents v4.0
 
 ---
 
@@ -47,11 +47,12 @@ Repositorio: [github.com/ThomazRossito/data-agents](https://github.com/ThomazRos
 15. [Deploy com MLflow (Model Serving)](#15-deploy-com-mlflow-model-serving)
 16. [Qualidade de Codigo e Testes](#16-qualidade-de-codigo-e-testes)
 17. [Deploy e CI/CD (Publicacao Automatica)](#17-deploy-e-cicd-publicacao-automatica)
-18. [Dashboard de Monitoramento](#18-dashboard-de-monitoramento)
-19. [Como Comecar a Usar](#19-como-comecar-a-usar)
-20. [Historico de Melhorias (v3.0 e v3.1)](#20-historico-de-melhorias-v30-e-v31)
-21. [Metricas do Projeto](#21-metricas-do-projeto)
-22. [Conclusao](#22-conclusao)
+18. [Interfaces do Usuario (Terminal e Web UI)](#18-interfaces-do-usuario-terminal-e-web-ui)
+19. [Dashboard de Monitoramento](#19-dashboard-de-monitoramento)
+20. [Como Comecar a Usar](#20-como-comecar-a-usar)
+21. [Historico de Melhorias](#21-historico-de-melhorias)
+22. [Metricas do Projeto](#22-metricas-do-projeto)
+23. [Conclusao](#23-conclusao)
 
 ## 1. O que e este projeto?
 
@@ -61,7 +62,7 @@ Se voce ja usou o ChatGPT ou o Claude para pedir ajuda com codigo, imagine dar u
 
 O diferencial do Data Agents e que a IA opera sob uma **Constituicao** — um documento central com regras inviolaveis — e uma **camada declarativa de governanca e conhecimento**. Isso significa que a IA e rigorosamente obrigada a ler as regras de negocio da sua empresa (Knowledge Bases) e os manuais tecnicos oficiais (Skills) antes de planejar ou executar qualquer acao. O resultado e um codigo nao apenas funcional, mas seguro, auditavel e perfeitamente alinhado com a arquitetura corporativa moderna.
 
-Na versao 3.1, o sistema tambem conta com **Workflows Colaborativos** (cadeias automaticas de agentes), **Checkpoint de Sessao** (recuperacao automatica quando o orcamento estoura), um **Dashboard de Monitoramento** com 9 paginas e filtro de datas, e integracao com **MLflow** para deploy de modelos em producao.
+A versao 4.0 expande o sistema com uma **Interface Web local** (Streamlit Chat UI na porta 8502) que substitui o terminal para uso mais amigavel, um novo **Agente Business Analyst** (Tier 3) para processamento de transcripts e briefings com geracao de backlogs P0/P1/P2, **16 novas tools Databricks** para AI/BI, Model Serving e compute, e uma **estrutura organizada de outputs** com subpastas `output/prd/`, `output/specs/` e `output/backlog/`.
 
 ## 2. Conceitos Fundamentais (Glossario)
 
@@ -131,7 +132,7 @@ O sistema oferece tres modos de velocidade para diferentes necessidades:
 
 ## 4. Os Agentes: A Equipe Virtual
 
-O projeto conta com **6 agentes especialistas** divididos em dois niveis de atuacao (Tiers), mais o Supervisor. Todos sao definidos em arquivos Markdown na pasta agents/registry/, tornando facil adicionar novos membros a equipe sem programar em Python.
+O projeto conta com **7 agentes especialistas** divididos em tres niveis de atuacao (Tiers), mais o Supervisor. Todos sao definidos em arquivos Markdown na pasta agents/registry/, tornando facil adicionar novos membros a equipe sem programar em Python.
 
 ### 4.1 O Supervisor (Data Orchestrator)
 
@@ -165,7 +166,26 @@ O projeto conta com **6 agentes especialistas** divididos em dois niveis de atua
 - **O que faz:** Orquestra execucao na nuvem: cria Jobs no Databricks, monta Pipelines no Data Factory, move arquivos entre plataformas.
 - **Seguranca:** Unico agente de engenharia com permissoes de execucao e escrita completas. Fortemente monitorado pelos Hooks.
 
-### 4.3 Tier 2 — Qualidade, Governanca e Analise
+### 4.3 Tier 3 — Pre-Planejamento e Intake de Requisitos
+
+#### Business Analyst (/brief)
+
+- **Modelo:** claude-opus-4-6
+- **Tier:** T3 (pre-planejamento — executa antes do /plan)
+- **Analogia:** O Analista de Negocios que transforma reunioes em backlog acionavel.
+- **O que faz:** Processa documentos brutos (transcripts de reuniao, briefings, notas, e-mails) e gera um backlog estruturado com prioridades P0/P1/P2. Mapeia cada requisito ao dominio tecnico correto (Databricks, Fabric, SQL, pipelines, etc.) e ao agente responsavel. Salva o resultado em `output/backlog/backlog_<nome>.md`.
+- **Quando usar:** Sempre que o input for um documento nao estruturado que precisa ser convertido em tarefas tecnicas antes de acionar o `/plan`. O fluxo tipico e: `/brief` → backlog P0/P1/P2 → `/plan output/backlog/...`
+- **Protocolo de 7 etapas:**
+  1. Recebe o documento (caminho de arquivo ou texto direto)
+  2. Le o template `templates/backlog.md`
+  3. Extrai contexto, stakeholders, decisoes e restricoes
+  4. Mapeia cada requisito ao dominio tecnico e agente responsavel
+  5. Prioriza em P0 (bloqueadores, max 3), P1 (importantes) e P2 (desejaveis)
+  6. Salva backlog em `output/backlog/backlog_<nome>.md`
+  7. Apresenta resumo e instrui o proximo passo com `/plan`
+- **Ferramentas:** Read, Write, Grep, Glob (sem acesso MCP — trabalha com documentos locais)
+
+### 4.4 Tier 2 — Qualidade, Governanca e Analise
 
 #### Data Quality Steward (/quality)
 
@@ -186,14 +206,15 @@ O projeto conta com **6 agentes especialistas** divididos em dois niveis de atua
 - **O que faz:** Constroi modelos semanticos DAX (Power BI), otimiza tabelas Gold para Direct Lake e configura Metric Views no Databricks.
 - **Roteamento inteligente:** O comando /fabric redireciona automaticamente para o Semantic Modeler quando a requisicao menciona semantic model, DAX, Power BI ou Direct Lake.
 
-| **Agente**     | **Tier** | **Modelo** | **MCP Servers**   | **Acesso**                  |
-| -------------------- | -------------- | ---------------- | ----------------------- | --------------------------------- |
-| SQL Expert           | T1             | sonnet-4-6       | Databricks, Fabric, RTI | Read-only na nuvem, write em .sql |
-| Spark Expert         | T1             | sonnet-4-6       | Databricks, Fabric      | Read/Write + filesystem local     |
-| Pipeline Architect   | T1             | sonnet-4-6       | Databricks, Fabric      | Execucao completa                 |
-| Data Quality Steward | T2             | sonnet-4-6       | Databricks, Fabric      | Read/Write completo               |
-| Governance Auditor   | T2             | sonnet-4-6       | Databricks, Fabric      | Read/Write completo               |
-| Semantic Modeler     | T2             | sonnet-4-6       | Databricks, Fabric      | Read-only + execute_sql           |
+| **Agente**          | **Tier** | **Modelo** | **MCP Servers**         | **Acesso**                          |
+| ------------------- | -------- | ---------- | ----------------------- | ----------------------------------- |
+| Business Analyst    | T3       | opus-4-6   | Nenhum (local)          | Read/Write local (documentos)       |
+| SQL Expert          | T1       | sonnet-4-6 | Databricks, Fabric, RTI | Read-only na nuvem, write em .sql   |
+| Spark Expert        | T1       | sonnet-4-6 | Databricks, Fabric      | Read/Write + filesystem local       |
+| Pipeline Architect  | T1       | sonnet-4-6 | Databricks, Fabric      | Execucao completa + compute/KA/MAS  |
+| Data Quality Steward| T2       | sonnet-4-6 | Databricks, Fabric      | Read/Write completo                 |
+| Governance Auditor  | T2       | sonnet-4-6 | Databricks, Fabric      | Read/Write completo                 |
+| Semantic Modeler    | T2       | sonnet-4-6 | Databricks, Fabric      | Read-only + Genie + AI/BI Dashboard |
 
 ## 5. O Metodo BMAD, KB-First e Constituicao
 
@@ -239,7 +260,7 @@ Antes de planejar tarefas complexas, o Supervisor pontua a clareza da requisicao
 | 0               | KB-First            | Le Knowledge Bases relevantes ao tipo de tarefa.                |
 | 0.5             | Clarity Checkpoint  | Valida clareza (5 dimensoes, minimo 3/5).                       |
 | 0.9             | Spec-First          | Seleciona template de spec para tarefas complexas (3+ agentes). |
-| 1               | Planejamento        | Cria PRD em output/ com a arquitetura da solucao.               |
+| 1               | Planejamento        | Cria PRD em `output/prd/prd_<nome>.md` com a arquitetura da solucao.  |
 | 2               | Aprovacao           | Mostra resumo e aguarda confirmacao do usuario.                 |
 | 3               | Delegacao           | Aciona agentes (com suporte a Workflows Colaborativos).         |
 | 4               | Sintese e Validacao | Verifica aderencia a kb/constitution.md.                        |
@@ -250,12 +271,16 @@ O projeto segue uma organizacao modular e declarativa. Abaixo esta a estrutura c
 
 | **Pasta / Arquivo**           | **Descricao**                                                                                            |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| agents/registry/                    | Agentes definidos em Markdown (6 agentes + template)                                                           |
+| agents/registry/                    | Agentes definidos em Markdown (7 agentes + template)                                                           |
+| agents/registry/business-analyst.md | Business Analyst (Tier 3) para intake de transcripts e briefings                                             |
 | agents/loader.py                    | Motor que transforma .md em agentes vivos                                                                      |
 | agents/supervisor.py                | Factory do ClaudeAgentOptions para o Supervisor                                                                |
-| agents/prompts/supervisor_prompt.py | System prompt completo do Supervisor (223 linhas)                                                              |
+| agents/prompts/supervisor_prompt.py | System prompt completo do Supervisor                                                                           |
 | agents/mlflow_wrapper.py            | Wrapper PyFunc para Databricks Model Serving                                                                   |
-| commands/parser.py                  | Slash commands com roteamento BMAD (10 comandos)                                                               |
+| commands/parser.py                  | Slash commands com roteamento BMAD (12 comandos)                                                               |
+| ui/__init__.py                      | Modulo da Interface Web local                                                                                  |
+| ui/chat.py                          | Chat UI Streamlit com ClaudeSDKClient persistente (porta 8502)                                                 |
+| start.sh                            | Script para iniciar Web UI + Monitoring simultaneamente                                                        |
 | config/settings.py                  | Configuracoes via Pydantic BaseSettings                                                                        |
 | config/exceptions.py                | Hierarquia de erros personalizados                                                                             |
 | config/logging_config.py            | Logging estruturado JSONL + console Rich                                                                       |
@@ -270,20 +295,23 @@ O projeto segue uma organizacao modular e declarativa. Abaixo esta a estrutura c
 | kb/constitution.md                  | Documento de autoridade maxima (aproximadamente 50 regras)                                                     |
 | kb/collaboration-workflows.md       | Workflows Colaborativos (WF-01 a WF-04)                                                                        |
 | kb/ (8 subdominios)                 | data-quality, databricks, fabric, governance, pipeline-design, semantic-modeling, spark-patterns, sql-patterns |
-| templates/                          | 3 templates Spec-First (pipeline, star-schema, cross-platform)                                                 |
+| templates/                          | 4 templates: pipeline-spec, star-schema-spec, cross-platform-spec + backlog (novo)                             |
+| output/prd/                         | PRDs gerados pelo /plan                                                                                        |
+| output/specs/                       | SPECs geradas apos aprovacao do /plan                                                                          |
+| output/backlog/                     | Backlogs P0/P1/P2 gerados pelo /brief                                                                          |
 | skills/databricks/                  | 27 modulos operacionais Databricks                                                                             |
 | skills/fabric/                      | 5 modulos operacionais Fabric                                                                                  |
-| mcp_servers/databricks/             | 50+ tools para Unity Catalog, SQL, Jobs, LakeFlow                                                              |
+| mcp_servers/databricks/             | 65+ tools: Unity Catalog, SQL, Jobs, LakeFlow, Compute, AI/BI, Model Serving, KA/MAS                          |
 | mcp_servers/databricks_genie/      | MCP customizado: 9 tools para Genie Conversation API + Space Management                                        |
 | mcp_servers/fabric/                 | 28 tools Community + servidor oficial                                                                          |
 | mcp_servers/fabric_sql/             | MCP customizado: 8 tools para SQL Analytics Endpoint (bronze/silver/gold)                                      |
 | mcp_servers/fabric_rti/             | Tools para KQL, Eventstreams, Activator                                                                        |
-| monitoring/app.py                   | Dashboard Streamlit (9 paginas)                                                                                |
+| monitoring/app.py                   | Dashboard de Monitoramento Streamlit (9 paginas, porta 8501)                                                   |
 | tests/                              | 11 modulos de teste (cobertura 80%)                                                                            |
 | logs/                               | 5 arquivos JSONL (audit, app, sessions, workflows, compression) + checkpoint.json                              |
 | main.py                             | Entrada principal com loop interativo e gestao de sessao                                                       |
 | pyproject.toml                      | Dependencias, metadata e configuracao de ferramentas                                                           |
-| Makefile                            | 15 targets de automacao de desenvolvimento                                                                     |
+| Makefile                            | 18 targets de automacao (inclui make ui, make ui-chat, make ui-monitor)                                        |
 
 ## 7. Analise Detalhada de Cada Componente
 
@@ -338,22 +366,28 @@ O settings.py tambem inclui **validadores** que checam formato de API keys, limi
 
 ### 7.5 O Parser de Comandos (parser.py)
 
-O parser.py implementa o sistema de roteamento BMAD com 10 slash commands. Cada comando e mapeado para um agente e um modo BMAD especifico:
+O parser.py implementa o sistema de roteamento BMAD com 12 slash commands. Cada comando e mapeado para um agente e um modo BMAD especifico:
 
-| **Comando** | **Agente**     | **Modo BMAD**   |
-| ----------------- | -------------------- | --------------------- |
-| /plan             | Supervisor           | Full (thinking ativo) |
-| /sql              | sql-expert           | Express               |
-| /spark            | spark-expert         | Express               |
-| /pipeline         | pipeline-architect   | Express               |
-| /fabric           | Auto-roteado         | Express               |
-| /quality          | data-quality-steward | Express               |
-| /governance       | governance-auditor   | Express               |
-| /semantic         | semantic-modeler     | Express               |
-| /health           | Sistema              | Internal              |
-| /status           | Sistema              | Internal              |
+| **Comando** | **Agente**           | **Modo BMAD**         |
+| ----------- | -------------------- | --------------------- |
+| /brief      | business-analyst     | Full (thinking ativo) |
+| /plan       | Supervisor           | Full (thinking ativo) |
+| /sql        | sql-expert           | Express               |
+| /spark      | spark-expert         | Express               |
+| /pipeline   | pipeline-architect   | Express               |
+| /fabric     | Auto-roteado         | Express               |
+| /quality    | data-quality-steward | Express               |
+| /governance | governance-auditor   | Express               |
+| /semantic   | semantic-modeler     | Express               |
+| /health     | Sistema              | Internal              |
+| /status     | Sistema              | Internal              |
+| /review     | Sistema              | Internal              |
+
+O comando **/brief** inicia o fluxo de intake: delega para business-analyst, que le o documento, gera o backlog P0/P1/P2 em `output/backlog/` e instrui o proximo passo com `/plan`.
 
 O comando **/fabric** possui roteamento inteligente: se o prompt mencionar semantic model, DAX, Power BI ou Direct Lake, ele redireciona para o semantic-modeler em vez do pipeline-architect.
+
+O comando **/review** le o PRD mais recente em `output/prd/` (e a SPEC correspondente em `output/specs/`) e pergunta se o usuario quer continuar, modificar ou recriar.
 
 ### 7.6 O Sistema de Excecoes (exceptions.py)
 
@@ -491,14 +525,14 @@ O Passo 0.9 do protocolo BMAD seleciona automaticamente o template adequado com 
 
 O MCP (Model Context Protocol) permite que a IA interaja com o mundo real. O Data Agents possui 6 conexoes:
 
-| **Servidor**          | **Plataforma**      | **Tools** | **Capacidades**                                                      |
-| --------------------- | ------------------- | --------- | -------------------------------------------------------------------- |
-| Databricks            | Databricks          | 50+       | Unity Catalog, SQL, Pipelines SDP, Jobs, LakeFlow, Clusters, Volumes |
-| Databricks Genie ⭐   | Databricks          | 9         | Genie Conversation API, Space Management, Export/Import/Migracao     |
-| Fabric Community      | Microsoft Fabric    | 28        | Lakehouses, Jobs, Linhagem, Compute, Shortcuts                       |
-| Fabric SQL ⭐         | Microsoft Fabric    | 8         | SQL Analytics Endpoint via TDS — ve todos os schemas (bronze/silver/gold) |
-| Fabric Official       | Microsoft Fabric    | Variavel  | OneLake, operacoes de arquivo (opcional)                             |
-| Fabric RTI            | Eventhouse / Kusto  | 15+       | KQL, Eventstreams, Activator, triggers                               |
+| **Servidor**          | **Plataforma**      | **Tools** | **Capacidades**                                                                       |
+| --------------------- | ------------------- | --------- | ------------------------------------------------------------------------------------- |
+| Databricks            | Databricks          | 65+       | Unity Catalog, SQL, Pipelines SDP, Jobs, LakeFlow, Compute, AI/BI, Serving, KA/MAS  |
+| Databricks Genie ⭐   | Databricks          | 9         | Genie Conversation API, Space Management, Export/Import/Migracao                     |
+| Fabric Community      | Microsoft Fabric    | 28        | Lakehouses, Jobs, Linhagem, Compute, Shortcuts                                       |
+| Fabric SQL ⭐         | Microsoft Fabric    | 8         | SQL Analytics Endpoint via TDS — ve todos os schemas (bronze/silver/gold)            |
+| Fabric Official       | Microsoft Fabric    | Variavel  | OneLake, operacoes de arquivo (opcional)                                             |
+| Fabric RTI            | Eventhouse / Kusto  | 15+       | KQL, Eventstreams, Activator, triggers                                               |
 
 > ⭐ = MCP customizado desenvolvido neste projeto para resolver limitacoes dos servidores oficiais.
 
@@ -506,7 +540,23 @@ O arquivo mcp_servers.py detecta automaticamente quais plataformas tem credencia
 
 ### 11.1 Databricks (oficial)
 
-Usa o pacote **databricks-mcp-server** (ai-dev-kit) com ferramentas separadas em readonly e full-access. Expoe Unity Catalog, SQL Warehouses, Jobs, LakeFlow, Clusters e Volumes.
+Usa o pacote **databricks-mcp-server** (ai-dev-kit) com ferramentas separadas em subconjuntos especializados. Alem do conjunto base (Unity Catalog, SQL Warehouses, Jobs, LakeFlow, Clusters, Volumes), a versao 4.0 adiciona **16 novas tools** organizadas em 3 subsets:
+
+| **Subset**               | **Alias**              | **Tools incluidas**                                                                 |
+| ------------------------ | ---------------------- | ----------------------------------------------------------------------------------- |
+| databricks_aibi          | `databricks_aibi`      | `create_or_update_genie`, `create_or_update_dashboard`, `manage_ka`, `manage_mas`  |
+| databricks_serving       | `databricks_serving`   | `list_serving_endpoints`, `get_serving_endpoint_status`, `query_serving_endpoint`  |
+| databricks_compute       | `databricks_compute`   | `manage_cluster`, `manage_sql_warehouse`, `list_compute`, `execute_code`, `upload_to_workspace`, `wait_for_run` |
+
+**Novas tools de alta utilidade:**
+
+- **`execute_sql_multi`:** Executa multiplas queries SQL em paralelo — usado pelo sql-expert para analises comparativas.
+- **`get_table_stats_and_schema`:** Combina schema + estatisticas em uma unica chamada — reduz turns do sql-expert.
+- **`get_best_warehouse`:** Seleciona automaticamente o warehouse mais rapido disponivel.
+- **`execute_code`:** Execucao de codigo Python/Scala em clusters serverless — usado pelo pipeline-architect.
+- **`wait_for_run`:** Aguarda conclusao de Jobs/Pipelines de forma polling-friendly.
+- **`create_or_update_genie` / `create_or_update_dashboard`:** Criacao e atualizacao de Genie Spaces e AI/BI Dashboards — usado pelo semantic-modeler.
+- **`manage_ka` / `manage_mas`:** Gerenciamento de Knowledge Assistants e Mosaic AI Supervisor Agents — usado pelo pipeline-architect.
 
 ### 11.2 Databricks Genie (customizado)
 
@@ -560,28 +610,42 @@ Suporta Real-Time Intelligence com KQL, Eventstreams e Activator.
 
 ## 12. Comandos Disponiveis (Slash Commands)
 
-| **Comando** | **O que faz**                     | **Modo** | **Quem executa**                 |
-| ----------------- | --------------------------------------- | -------------- | -------------------------------------- |
-| /plan             | Fluxo completo com PRD e aprovacao      | Full           | Supervisor + Equipe                    |
-| /sql              | Tarefa SQL direto ao especialista       | Express        | SQL Expert                             |
-| /spark            | Codigo PySpark/Spark                    | Express        | Spark Expert                           |
-| /pipeline         | Pipelines e infraestrutura              | Express        | Pipeline Architect                     |
-| /fabric           | Foco em Microsoft Fabric (auto-roteado) | Express        | Pipeline Architect ou Semantic Modeler |
-| /quality          | Validacao e profiling                   | Express        | Data Quality Steward                   |
-| /governance       | Auditoria e compliance                  | Express        | Governance Auditor                     |
-| /semantic         | DAX, Direct Lake, metricas              | Express        | Semantic Modeler                       |
-| /health           | Verifica conectividade MCP              | Internal       | Sistema                                |
-| /status           | Lista PRDs em output/                   | Internal       | Sistema                                |
-| /review           | Revisita PRD existente                  | Internal       | Sistema                                |
-| /help             | Mostra lista de comandos                | Internal       | Sistema                                |
+| **Comando** | **O que faz**                                        | **Modo** | **Quem executa**                       | **Output**             |
+| ----------- | ---------------------------------------------------- | -------- | -------------------------------------- | ---------------------- |
+| /brief      | Processa transcript/briefing → backlog P0/P1/P2      | Full     | Business Analyst                       | output/backlog/        |
+| /plan       | Fluxo completo com PRD, SPEC e aprovacao             | Full     | Supervisor + Equipe                    | output/prd/ + specs/   |
+| /sql        | Tarefa SQL direto ao especialista                    | Express  | SQL Expert                             | —                      |
+| /spark      | Codigo PySpark/Spark                                 | Express  | Spark Expert                           | —                      |
+| /pipeline   | Pipelines e infraestrutura                           | Express  | Pipeline Architect                     | —                      |
+| /fabric     | Foco em Microsoft Fabric (auto-roteado)              | Express  | Pipeline Architect ou Semantic Modeler | —                      |
+| /quality    | Validacao e profiling                                | Express  | Data Quality Steward                   | —                      |
+| /governance | Auditoria e compliance                               | Express  | Governance Auditor                     | —                      |
+| /semantic   | DAX, Direct Lake, Genie, AI/BI Dashboard             | Express  | Semantic Modeler                       | —                      |
+| /health     | Verifica conectividade MCP                           | Internal | Sistema                                | —                      |
+| /status     | Lista PRDs, SPECs e Backlogs em output/              | Internal | Sistema                                | —                      |
+| /review     | Revisita PRD + SPEC existentes                       | Internal | Sistema                                | —                      |
+| /help       | Mostra lista de comandos                             | Internal | Sistema                                | —                      |
 
-### 12.1 Controle de Sessao
+### 12.1 Fluxo BMAD Recomendado
+
+O fluxo tipico de trabalho segue esta sequencia:
+
+```
+[Input nao estruturado]   → /brief → output/backlog/backlog_<nome>.md
+[Backlog ou ideia clara]  → /plan  → PRD (output/prd/) + SPEC (output/specs/) + aprovacao
+[Apos aprovacao]          → Delegacao automatica para agentes especialistas
+[Tarefas pontuais]        → /sql | /spark | /pipeline | /fabric | /quality | /governance | /semantic
+```
+
+### 12.2 Controle de Sessao
+
+### 12.2 Controle de Sessao (Terminal)
 
 | **Comando** | **Funcao**                                    |
-| ----------------- | --------------------------------------------------- |
-| continuar         | Retoma sessao anterior a partir do checkpoint salvo |
-| limpar            | Reseta sessao atual (salva checkpoint antes)        |
-| sair              | Encerra o Data Agents                               |
+| ----------- | --------------------------------------------- |
+| continuar   | Retoma sessao anterior a partir do checkpoint |
+| limpar      | Reseta sessao atual (salva checkpoint antes)  |
+| sair        | Encerra o Data Agents                         |
 
 ## 13. Configuracao e Credenciais
 
@@ -750,38 +814,99 @@ Dispara em tags de versao. Deploy automatico via **Databricks Asset Bundles** (D
 
 O projeto usa pre-commit hooks locais que rodam automaticamente antes de cada commit: ruff (lint + format), trailing-whitespace, end-of-file-fixer, YAML/TOML/JSON validation, verificacao de tamanho de arquivo (max 500KB) e bandit (seguranca). Se o commit falhar, os hooks corrigem os arquivos automaticamente — basta fazer stage novamente e commitar.
 
-## 18. Dashboard de Monitoramento
+## 18. Interfaces do Usuario (Terminal e Web UI)
 
-### 18.1 Instalacao e Inicio
+O Data Agents v4.0 oferece duas interfaces de uso: o **Terminal** (modo classico) e a **Web UI** (nova interface grafica local).
 
-Para iniciar o dashboard, instale as dependencias de monitoramento e execute:
+### 18.1 Interface Web (ui/chat.py) — NOVO em v4.0
 
-pip install -e \".\[monitoring\]\" && streamlit run monitoring/app.py
+A Web UI e uma aplicacao Streamlit que substitui o terminal para uso mais amigavel. Roda na **porta 8502** e se conecta ao mesmo conjunto de agentes e MCP servers.
 
-O dashboard abre em http://localhost:8501.
+**Arquitetura da sessao:**
+A UI utiliza `ClaudeSDKClient` persistente — identico ao padrao de `run_interactive()` em main.py. Isso significa que o **historico de conversa e mantido entre mensagens**: quando o agente pede aprovacao do PRD, o usuario digita "sim" no campo de chat e a delegacao continua na mesma sessao, gerando a SPEC corretamente.
 
-### 18.2 As 9 Paginas do Dashboard
+```
+ClaudeSDKClient (persistente)
+  ├── background thread com asyncio event loop (loop.run_forever)
+  ├── client.query(prompt) → envia mensagem
+  ├── client.receive_response() → recebe stream
+  └── client.disconnect() / client.connect() → "Nova conversa"
+```
 
-| **Pagina** | **O que mostra**                                                                                                 |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Overview         | KPIs gerais, atividade por data, top ferramentas, custo acumulado                                                      |
-| Agentes          | Cards dos 6 agentes + KPIs de performance (delegacoes, erros, taxa de erro) + erros por categoria                      |
-| Workflows        | Delegacoes por agente, workflows triggered (WF-01 a WF-04), Clarity Checkpoint (pass rate, score medio), specs gerados |
-| Execucoes        | Volume por ferramenta, chamadas MCP por plataforma, historico                                                          |
-| MCP Servers      | Status real baseado em chamadas do audit.jsonl                                                                         |
-| Logs             | Viewer ao vivo do app.jsonl e audit.jsonl com filtros                                                                  |
-| Configuracoes    | Modelo, budget, max_turns, mapa de arquivos do projeto                                                                 |
-| Custo & Tokens   | Custo por sessao, por data, por tipo, economia do Output Compressor                                                    |
-| Sobre            | Autor, versao, licenca, arquitetura documentada                                                                        |
+**Funcionalidades da Web UI:**
 
-### 18.3 Funcionalidades Especiais
+| **Elemento**        | **Descricao**                                                                 |
+| ------------------- | ----------------------------------------------------------------------------- |
+| Sidebar — Comandos  | Botoes de Comandos Rapidos agrupados (Intake, Databricks, Fabric, Qualidade)  |
+| Sidebar — Outputs   | Lista os ultimos PRDs, SPECs e Backlogs por subpasta                          |
+| Sidebar — Link      | Botao direto para o Monitoring Dashboard (porta 8501)                         |
+| Area de chat        | Historico com ferramentas expandiveis e metricas (custo, turns, duracao)      |
+| Composicao          | Campo de texto livre + text_area para comandos com argumento                  |
+| Nova conversa       | Reseta historico e reconecta o cliente (equivale ao `limpar` do terminal)     |
+
+### 18.2 Terminal (main.py)
+
+O modo classico via `python main.py`. Mantem todas as funcionalidades originais: banner Rich, feedback em tempo real com spinner, loop interativo, checkpoint de sessao, idle timeout e single-query mode.
+
+### 18.3 Iniciando com start.sh (recomendado)
+
+O script `start.sh` sobe **ambas as interfaces simultaneamente** com um unico comando:
+
+```bash
+./start.sh                # Web UI (8502) + Monitoring (8501)
+./start.sh --chat-only    # Somente Web UI
+./start.sh --monitor-only # Somente Monitoring
+```
+
+**O que o start.sh faz:**
+- Carrega o `.env` com parser seguro (sem executar valores com caracteres especiais)
+- Detecta e ativa automaticamente o virtualenv (`.venv`, `venv`)
+- Inicia os dois apps em background com logs em `logs/chat.log` e `logs/monitor.log`
+- Abre o browser automaticamente (macOS/Linux)
+- Monitora se algum processo morreu inesperadamente
+- `Ctrl+C` encerra ambos com shutdown limpo
+
+**Targets Makefile:**
+
+```bash
+make ui          # ./start.sh (Web UI + Monitoring)
+make ui-chat     # ./start.sh --chat-only
+make ui-monitor  # ./start.sh --monitor-only
+```
+
+## 19. Dashboard de Monitoramento
+
+### 19.1 Instalacao e Inicio
+
+```bash
+pip install -e ".[monitoring]"
+streamlit run monitoring/app.py   # porta 8501
+# OU via start.sh:
+./start.sh --monitor-only
+```
+
+### 19.2 As 9 Paginas do Dashboard
+
+| **Pagina**     | **O que mostra**                                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Overview       | KPIs gerais, atividade por data, top ferramentas, custo acumulado                                                |
+| Agentes        | Cards dos 7 agentes + KPIs de performance (delegacoes, erros, taxa de erro) + erros por categoria               |
+| Workflows      | Delegacoes por agente, workflows triggered (WF-01 a WF-04), Clarity Checkpoint (pass rate, score medio), specs  |
+| Execucoes      | Volume por ferramenta, chamadas MCP por plataforma, historico                                                    |
+| MCP Servers    | Status real baseado em chamadas do audit.jsonl                                                                   |
+| Logs           | Viewer ao vivo do app.jsonl e audit.jsonl com filtros                                                            |
+| Configuracoes  | Modelo, budget, max_turns, mapa de arquivos do projeto                                                           |
+| Custo & Tokens | Custo por sessao, por data, por tipo, economia do Output Compressor                                              |
+| Sobre          | Autor, versao, licenca, arquitetura documentada                                                                  |
+
+### 19.3 Funcionalidades Especiais
 
 - **Filtro Global de Datas:** Seletor de periodo na sidebar que filtra todos os dados de todas as paginas.
 - **Auto-refresh:** Atualizacao automatica a cada 5, 10, 30 ou 60 segundos.
 - **Fuso Horario:** Todos os timestamps convertidos para Sao Paulo (UTC-3).
 - **Cache de 5 segundos:** Leitura de logs otimizada com cache de curta duracao.
 
-### 18.4 Fontes de Dados
+### 19.4 Fontes de Dados
 
 O dashboard le 5 arquivos de log:
 
@@ -791,45 +916,58 @@ O dashboard le 5 arquivos de log:
 - **logs/workflows.jsonl:** Delegacoes e workflows (gerado pelo workflow_tracker.py).
 - **logs/compression.jsonl:** Metricas do compressor (gerado pelo output_compressor_hook.py).
 
-## 19. Como Comecar a Usar
+## 20. Como Comecar a Usar
 
 #### Passo 1: Instale o Python 3.11+
 
-O projeto requer Python 3.11 ou superior. Verifique sua versao com python \--version.
+O projeto requer Python 3.11 ou superior. Verifique sua versao com `python --version`.
 
 #### Passo 2: Baixe o Projeto
 
+```bash
 git clone https://github.com/ThomazRossito/data-agents.git && cd data-agents
+```
 
 #### Passo 3: Instale as Dependencias
 
-pip install -e \".\[dev\]\"
-
-Para incluir o dashboard de monitoramento: pip install -e \".\[dev,monitoring\]\"
+```bash
+pip install -e ".[dev,ui,monitoring]"
+```
 
 #### Passo 4: Configure suas Credenciais
 
+```bash
 cp .env.example .env
-
-Edite o .env com suas chaves. A ANTHROPIC_API_KEY e obrigatoria. Credenciais de Databricks, Fabric e Fabric RTI sao opcionais — o sistema detecta automaticamente quais plataformas estao disponiveis.
+# Edite o .env — ANTHROPIC_API_KEY e obrigatoria.
+# Databricks, Fabric e Fabric RTI sao opcionais.
+```
 
 #### Passo 5: Inicie o Sistema
 
+**Opcao A — Web UI (recomendado):**
+
+```bash
+./start.sh
+# Abre http://localhost:8502 (Chat) e http://localhost:8501 (Monitoring)
+```
+
+**Opcao B — Terminal:**
+
+```bash
 python main.py
+```
 
-Voce vera o banner do Data Agents e o prompt. Digite /help para ver os comandos ou escreva sua solicitacao em linguagem natural.
+#### Primeiros passos
 
-#### Comandos uteis apos iniciar
+- **/health** — Verifica se as conexoes com a nuvem estao funcionando.
+- **/brief inputs/reuniao.txt** — Processa um documento e gera backlog P0/P1/P2.
+- **/plan** — Inicia fluxo completo com PRD, aprovacao e SPEC.
+- **/sql Liste os catalogos do Databricks** — Consulta rapida direto ao especialista.
+- **continuar** — Retoma sessao anterior (se houver checkpoint). Somente no terminal.
 
-- **/health:** Verifica se as conexoes com a nuvem estao funcionando.
-- **/plan Crie um pipeline de vendas:** Fluxo completo com planejamento e aprovacao.
-- **/sql Liste os catalogos do Databricks:** Consulta rapida direto ao especialista.
-- **continuar:** Retoma sessao anterior (se houver checkpoint).
-- **limpar:** Reseta a sessao (salva checkpoint antes).
+## 21. Historico de Melhorias
 
-## 20. Historico de Melhorias (v3.0, v3.1 e v3.2)
-
-### 20.1 Melhorias da v3.0
+### 21.1 Melhorias da v3.0
 
 | **Melhoria**        | **Descricao**                                              |
 | ------------------------- | ---------------------------------------------------------------- |
@@ -840,7 +978,7 @@ Voce vera o banner do Data Agents e o prompt. Digite /help para ver os comandos 
 | Reset automatico por idle | asyncio.wait_for com timeout configuravel                        |
 | reset_session_counters    | Contadores resetados em idle timeout e limpar                    |
 
-### 20.2 Melhorias da v3.1
+### 21.2 Melhorias da v3.1
 
 | **Melhoria**        | **Descricao**                                                      |
 | ------------------------- | ------------------------------------------------------------------------ |
@@ -859,46 +997,70 @@ Voce vera o banner do Data Agents e o prompt. Digite /help para ver os comandos 
 | SQL Expert com Write      | Agora pode gravar arquivos .sql diretamente                              |
 | Fabric auto-routing       | Comando /fabric redireciona inteligentemente para semantic-modeler       |
 
-### 20.3 Melhorias da v3.2
+### 21.3 Melhorias da v3.2
 
-| **Melhoria**                  | **Descricao**                                                                                         |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
-| MCP Databricks Genie          | Novo servidor customizado com 9 tools: Conversation API, Space Management, Export/Import/Migracao     |
-| MCP Fabric SQL                | Novo servidor customizado com 8 tools: acesso ao SQL Analytics Endpoint via TDS (bronze/silver/gold)  |
-| Registry de Genie Spaces      | JSON registry com nomes amigaveis para space_ids (DATABRICKS_GENIE_SPACES)                            |
-| Registry de Fabric Lakehouses | JSON registry multi-lakehouse (FABRIC_SQL_LAKEHOUSES) — sem hardcode                                 |
-| Isolamento de plataforma      | Regra critica nos agentes: nunca retornar dados Databricks quando solicitado Fabric e vice-versa       |
-| fabric_sql_all / readonly     | Novos aliases no MCP_TOOL_SETS para expansao em frontmatter dos agentes                               |
-| databricks_genie_all / readonly | Novos aliases no MCP_TOOL_SETS para agentes com diferentes niveis de acesso ao Genie               |
-| Agentes atualizados           | sql-expert, semantic-modeler e pipeline-architect agora declaram mcp__databricks_genie__* e mcp__fabric_sql__* |
+| **Melhoria**                    | **Descricao**                                                                                                  |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| MCP Databricks Genie            | Novo servidor customizado com 9 tools: Conversation API, Space Management, Export/Import/Migracao              |
+| MCP Fabric SQL                  | Novo servidor customizado com 8 tools: SQL Analytics Endpoint via TDS (ve bronze/silver/gold)                  |
+| Registry de Genie Spaces        | JSON registry com nomes amigaveis para space_ids (DATABRICKS_GENIE_SPACES)                                     |
+| Registry de Fabric Lakehouses   | JSON registry multi-lakehouse (FABRIC_SQL_LAKEHOUSES) — sem hardcode                                          |
+| Isolamento de plataforma        | Regra critica: nunca retornar dados Databricks quando solicitado Fabric e vice-versa                            |
+| Aliases MCP expandidos          | fabric_sql_all, databricks_genie_all e variantes readonly para uso em frontmatter dos agentes                  |
+| Agentes atualizados             | sql-expert, semantic-modeler e pipeline-architect integrados com Genie e Fabric SQL                            |
 
-## 21. Metricas do Projeto
+### 21.4 Melhorias da v4.0
 
-Um resumo numerico do ecossistema Data Agents v3.2:
+| **Melhoria**                          | **Descricao**                                                                                                           |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Agente Business Analyst (Tier 3)      | Novo agente em agents/registry/business-analyst.md: processa transcripts/briefings, gera backlog P0/P1/P2 estruturado  |
+| Comando /brief                        | Novo slash command que delega para business-analyst com modo Full (thinking ativo)                                      |
+| Template backlog.md                   | Novo template em templates/backlog.md com secoes P0/P1/P2, mapa de dominios, stakeholders e checklist de qualidade      |
+| Web UI local (ui/chat.py)             | Interface Streamlit na porta 8502 com ClaudeSDKClient persistente — historico de conversa mantido entre mensagens       |
+| start.sh                              | Script shell para subir Web UI + Monitoring simultaneamente com parser seguro de .env e shutdown limpo                  |
+| ClaudeSDKClient persistente na UI     | Substituicao de query() stateless por ClaudeSDKClient (identico ao run_interactive) — aprovacoes e multi-turn funcionam |
+| 16 novas tools Databricks             | execute_sql_multi, get_table_stats_and_schema, get_best_warehouse, wait_for_run, execute_code, manage_cluster/warehouse |
+| Subsets Databricks AI/BI              | create_or_update_genie, create_or_update_dashboard, manage_ka, manage_mas — usados pelo semantic-modeler               |
+| Subsets Databricks Serving            | list/get_serving_endpoints, query_serving_endpoint — Model Serving diretamente pelos agentes                           |
+| Aliases loader.py expandidos          | databricks_aibi, databricks_serving, databricks_compute no MCP_TOOL_SETS                                               |
+| Semantic Modeler expandido            | Agora cria Genie Spaces, publica AI/BI Dashboards e consulta Model Serving endpoints                                    |
+| Pipeline Architect expandido          | Gerencia clusters, SQL warehouses, executa codigo serverless, cria KA e MAS                                            |
+| SQL Expert expandido                  | Usa execute_sql_multi para queries paralelas, get_table_stats_and_schema antes de qualquer analise                     |
+| Estrutura output/ organizada          | Subpastas output/prd/, output/specs/, output/backlog/ — cada tipo de artefato no lugar certo                           |
+| /status e /review atualizados         | Listam e leem as subpastas corretas de output/                                                                          |
+| make ui / ui-chat / ui-monitor        | 3 novos targets no Makefile para iniciar as interfaces                                                                  |
 
-| **Metrica**                | **Valor**                                                       |
-| -------------------------------- | --------------------------------------------------------------------- |
-| Linhas de codigo Python (core)   | Aproximadamente 4.500                                                 |
-| Agentes especialistas            | 6 (3 Tier 1 + 3 Tier 2)                                               |
-| Slash commands                   | 10 (Express, Full, Internal)                                          |
-| Hooks de seguranca               | 7 (audit, cost, security, compression, workflow, session, checkpoint) |
-| Tipos de log                     | 5 (audit, app, sessions, workflows, compression)                      |
-| Dominios de Knowledge Base       | 8 principais + subdominios                                            |
-| Tools MCP total                  | 50+ Databricks + 9 Databricks Genie + 28 Fabric + 8 Fabric SQL + 15+ Fabric RTI |
-| Modulos de Skills                | 27 Databricks + 5 Fabric = 32 total                                   |
-| Modulos de teste                 | 11 (cobertura 80%)                                                    |
-| Workflows pre-definidos          | 4 (WF-01 a WF-04)                                                     |
-| Templates Spec-First             | 3 (pipeline, star-schema, cross-platform)                             |
-| CI/CD workflows                  | 2 (ci.yml + cd.yml)                                                   |
-| Pre-commit hooks                 | 6 categorias                                                          |
-| Makefile targets                 | 15                                                                    |
-| Variaveis de configuracao (.env) | 20+                                                                   |
-| Paginas do Dashboard             | 9                                                                     |
+## 22. Metricas do Projeto
 
-## 22. Conclusao
+Um resumo numerico do ecossistema Data Agents v4.0:
 
-O projeto **Data Agents v3.2** e uma plataforma de automacao corporativa completa para equipes de dados. Com a Constituicao como fonte de verdade, Clarity Checkpoint para validacao de requisicoes, Workflows Colaborativos para cadeias de agentes e Checkpoint de Sessao para resiliencia, o sistema cobre todo o ciclo de vida de dados — da ingestao na Bronze ate o modelo semantico para Power BI.
+| **Metrica**                      | **Valor**                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| Linhas de codigo Python (core)   | Aproximadamente 5.200                                                       |
+| Agentes especialistas            | 7 (1 Tier 3 + 3 Tier 1 + 3 Tier 2)                                          |
+| Slash commands                   | 12 (Express, Full, Internal)                                                |
+| Interfaces de usuario            | 2 (Terminal + Web UI Streamlit)                                             |
+| Hooks de seguranca               | 7 (audit, cost, security, compression, workflow, session, checkpoint)       |
+| Tipos de log                     | 5 (audit, app, sessions, workflows, compression)                            |
+| Dominios de Knowledge Base       | 8 principais + subdominios                                                  |
+| Tools MCP total                  | 65+ Databricks + 9 Databricks Genie + 28 Fabric + 8 Fabric SQL + 15+ RTI   |
+| Subsets MCP (aliases loader.py)  | 8 (databricks_all, readonly, aibi, serving, compute, genie_all, fabric_all, fabric_sql_all) |
+| Modulos de Skills                | 27 Databricks + 5 Fabric = 32 total                                         |
+| Templates Spec-First + Intake    | 4 (pipeline, star-schema, cross-platform, backlog)                          |
+| Modulos de teste                 | 11 (cobertura 80%)                                                          |
+| Workflows pre-definidos          | 4 (WF-01 a WF-04)                                                           |
+| CI/CD workflows                  | 2 (ci.yml + cd.yml)                                                         |
+| Pre-commit hooks                 | 6 categorias                                                                |
+| Makefile targets                 | 18                                                                          |
+| Variaveis de configuracao (.env) | 20+                                                                         |
+| Paginas do Dashboard             | 9                                                                           |
 
-O ecossistema conta com 6 agentes especialistas, 7 hooks de protecao, 6 servidores MCP (incluindo 2 customizados), 8 dominios de Knowledge Base, 32 modulos de Skills, 4 workflows pre-definidos, integracao com MLflow para deploy em producao e um dashboard de monitoramento com 9 paginas. Tudo isso definido declarativamente em Markdown e YAML, sem necessidade de programacao Python para estender.
+## 23. Conclusao
+
+O projeto **Data Agents v4.0** e uma plataforma de automacao corporativa completa para equipes de dados. Com a Constituicao como fonte de verdade, Clarity Checkpoint para validacao de requisicoes, Workflows Colaborativos para cadeias de agentes e Checkpoint de Sessao para resiliencia, o sistema cobre todo o ciclo de vida de dados — da ingestao na Bronze ate o modelo semantico para Power BI.
+
+A versao 4.0 completa o ecossistema com tres expansoes significativas: a **Web UI local** elimina a barreira do terminal para usuarios que preferem uma interface grafica; o **Agente Business Analyst** fecha o gap de intake entre documentos brutos de negocio e tarefas tecnicas estruturadas; e a **expansao do MCP Databricks** com 16 novas tools cobre AI/BI Dashboards, Genie Spaces, Model Serving e execucao serverless diretamente pelos agentes especialistas.
+
+O ecossistema conta agora com 7 agentes especialistas, 7 hooks de protecao, 6 servidores MCP (incluindo 2 customizados), 65+ tools Databricks, 8 dominios de Knowledge Base, 32 modulos de Skills, 4 workflows pre-definidos, 2 interfaces de usuario e um dashboard de monitoramento com 9 paginas. Tudo isso definido declarativamente em Markdown e YAML, sem necessidade de programacao Python para estender.
 
 A arquitetura foi projetada para ser extensivel: se a sua empresa precisar de um novo especialista amanha, basta criar um arquivo .md na pasta registry/. Se precisar de um novo workflow, adicione-o ao kb/collaboration-workflows.md. Se precisar de novas regras, estenda a Constituicao. A fundacao ja esta construida.

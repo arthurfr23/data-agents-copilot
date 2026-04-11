@@ -8,7 +8,7 @@
     <strong>Sistema Multi-Agentes para Engenharia de Dados, Qualidade, Governanca e Analise Corporativa</strong>
   </p>
   <p align="center">
-    <img src="https://img.shields.io/badge/Version-3.2.0-brightgreen.svg" alt="Version 3.2.0">
+    <img src="https://img.shields.io/badge/Version-4.0.0-brightgreen.svg" alt="Version 4.0.0">
     <img src="https://img.shields.io/badge/Python-3.11+-blue.svg" alt="Python Version">
     <img src="https://img.shields.io/badge/Databricks-MCP-FF3621.svg" alt="Databricks MCP">
     <img src="https://img.shields.io/badge/Microsoft%20Fabric-MCP-0078D4.svg" alt="Fabric MCP">
@@ -18,6 +18,8 @@
 </p>
 
 Sistema multi-agente construido sobre o **Claude Agent SDK** da Anthropic com integracao nativa via **Model Context Protocol (MCP)** ao **Databricks** e **Microsoft Fabric**. Transforma um assistente de IA em uma equipe autonoma de dados que opera diretamente nas suas plataformas de nuvem, seguindo regras corporativas declarativas.
+
+A versao 4.0 adiciona uma **Interface Web local** (Streamlit Chat UI), um novo **Agente Business Analyst** para intake de transcripts e briefings, e **16 novas tools Databricks** cobrindo AI/BI Dashboards, Genie Spaces, Model Serving e execucao serverless.
 
 ---
 
@@ -49,33 +51,36 @@ Sistema multi-agente construido sobre o **Claude Agent SDK** da Anthropic com in
   <img src="img/readme/architecture_v3.svg" alt="Arquitetura Multi-Agent System" width="100%">
 </p>
 
-O sistema opera com um **Supervisor** (Opus) que orquestra **6 agentes especialistas** definidos declarativamente em Markdown. Cada agente declara seus dominios de conhecimento (`kb_domains`), ferramentas e tier no frontmatter YAML. O Supervisor segue o **Protocolo KB-First + BMAD** com validacao constitucional.
+O sistema opera com um **Supervisor** (Opus) que orquestra **7 agentes especialistas** definidos declarativamente em Markdown. Cada agente declara seus dominios de conhecimento (`kb_domains`), ferramentas e tier no frontmatter YAML. O Supervisor segue o **Protocolo KB-First + BMAD** com validacao constitucional.
 
 ### Fluxo Completo do Supervisor
 
 ```
-Passo 0   - KB-First: le Knowledge Bases relevantes
-Passo 0.5 - Clarity Checkpoint: valida clareza da requisicao (5 dimensoes, minimo 3/5)
-Passo 0.9 - Spec-First: seleciona template de spec para tarefas complexas
-Passo 1   - Planejamento: cria PRD em output/
-Passo 2   - Aprovacao: mostra resumo e aguarda confirmacao do usuario
-Passo 3   - Delegacao: aciona agentes (com suporte a Workflows Colaborativos WF-01 a WF-04)
-Passo 4   - Sintese e Validacao Constitucional: verifica aderencia a kb/constitution.md
+[Input bruto]  → /brief → Business Analyst → output/backlog/
+[Backlog/ideia] → /plan:
+  Passo 0   - KB-First: le Knowledge Bases relevantes
+  Passo 0.5 - Clarity Checkpoint: valida clareza (5 dimensoes, minimo 3/5)
+  Passo 0.9 - Spec-First: seleciona template para tarefas complexas
+  Passo 1   - Planejamento: cria PRD em output/prd/
+  Passo 2   - Aprovacao: aguarda confirmacao e cria SPEC em output/specs/
+  Passo 3   - Delegacao: aciona agentes (Workflows Colaborativos WF-01 a WF-04)
+  Passo 4   - Validacao Constitucional: verifica aderencia a kb/constitution.md
 ```
 
 ---
 
 ## Agentes Especialistas
 
-| Agente                         | Comando         | Tier | Papel                                                 |
-| ------------------------------ | --------------- | ---- | ----------------------------------------------------- |
-| **Supervisor**           | `/plan`       | -    | Orquestra, planeja e valida contra a Constituicao     |
-| **SQL Expert**           | `/sql`        | T1   | SQL (Spark SQL, T-SQL, KQL), metadados, Unity Catalog |
-| **Spark Expert**         | `/spark`      | T1   | PySpark, Delta Lake, pipelines SDP/LakeFlow           |
-| **Pipeline Architect**   | `/pipeline`   | T1   | ETL/ELT cross-platform, DABs, DataOps                 |
-| **Data Quality Steward** | `/quality`    | T2   | Profiling, expectations, alertas, SLAs                |
-| **Governance Auditor**   | `/governance` | T2   | Auditoria, linhagem, PII, LGPD/GDPR                   |
-| **Semantic Modeler**     | `/semantic`   | T2   | DAX, Direct Lake, Metric Views, Power BI              |
+| Agente                         | Comando         | Tier | Papel                                                             |
+| ------------------------------ | --------------- | ---- | ----------------------------------------------------------------- |
+| **Supervisor**           | `/plan`       | -    | Orquestra, planeja e valida contra a Constituicao                 |
+| **Business Analyst**     | `/brief`      | T3   | Processa transcripts/briefings → backlog P0/P1/P2                 |
+| **SQL Expert**           | `/sql`        | T1   | SQL (Spark SQL, T-SQL, KQL), queries paralelas, Unity Catalog     |
+| **Spark Expert**         | `/spark`      | T1   | PySpark, Delta Lake, pipelines SDP/LakeFlow                       |
+| **Pipeline Architect**   | `/pipeline`   | T1   | ETL/ELT, DABs, DataOps, serverless, KA/MAS                        |
+| **Data Quality Steward** | `/quality`    | T2   | Profiling, expectations, alertas, SLAs                            |
+| **Governance Auditor**   | `/governance` | T2   | Auditoria, linhagem, PII, LGPD/GDPR                               |
+| **Semantic Modeler**     | `/semantic`   | T2   | DAX, Direct Lake, Genie Spaces, AI/BI Dashboards, Model Serving   |
 
 ---
 
@@ -88,13 +93,16 @@ git clone git@github.com:ThomazRossito/data-agents.git && cd data-agents
 # 2. Crie o ambiente
 conda create -n data-agents python=3.11 && conda activate data-agents
 
-# 3. Instale dependencias
-pip install -e ".[dev]"
+# 3. Instale dependencias (inclui Web UI e Monitoring)
+pip install -e ".[dev,ui,monitoring]"
 
 # 4. Configure credenciais
 cp .env.example .env   # edite com suas chaves
 
-# 5. Inicie
+# 5a. Inicie com Web UI (recomendado)
+./start.sh             # abre http://localhost:8502 (Chat) + http://localhost:8501 (Monitoring)
+
+# 5b. OU inicie pelo terminal
 python main.py
 ```
 
@@ -143,18 +151,29 @@ O conhecimento e organizado em 3 camadas:
 
 **Workflows Colaborativos** (`kb/collaboration-workflows.md`): 4 workflows pre-definidos com handoff automatico entre agentes (WF-01 Pipeline End-to-End, WF-02 Star Schema, WF-03 Cross-Platform, WF-04 Governance Audit).
 
-**Spec-First Templates** (`templates/`): 3 templates para pipeline, star-schema e cross-platform, com regras constitucionais embutidas.
+**Spec-First Templates** (`templates/`): 4 templates para pipeline, star-schema, cross-platform e backlog (Business Analyst), com regras constitucionais embutidas.
 
 ---
 
-## Dashboard de Monitoramento
+## Interfaces do Usuario
+
+### Web UI (Chat)
 
 ```bash
-pip install -e ".[monitoring]"
-python -m streamlit run monitoring/app.py
+./start.sh             # abre http://localhost:8502 (Chat) + http://localhost:8501 (Monitoring)
+./start.sh --chat-only # apenas o Chat
 ```
 
-9 paginas: Overview, Agentes (com metricas de performance), Workflows (delegacoes, Clarity Checkpoint, specs), Execucoes, MCP Servers, Logs, Configuracoes, Custo & Tokens (economia do compressor), Sobre. Inclui filtro global de datas e auto-refresh.
+Interface de chat Streamlit com historico de conversa persistente (usa `ClaudeSDKClient` com sessao de longa duracao), suporte a todos os slash commands, exibicao de artefatos gerados (PRDs, SPECs, Backlogs) e botao "Nova conversa" para reset de sessao.
+
+### Dashboard de Monitoramento
+
+```bash
+./start.sh --monitor-only                   # via start.sh
+python -m streamlit run monitoring/app.py   # manual
+```
+
+9 paginas: Overview, Agentes (com metricas de performance, 7 agentes), Workflows (delegacoes, Clarity Checkpoint, specs), Execucoes, MCP Servers, Logs, Configuracoes, Custo & Tokens (economia do compressor), Sobre. Inclui filtro global de datas e auto-refresh.
 
 ---
 
@@ -164,9 +183,12 @@ python -m streamlit run monitoring/app.py
 - **CD** (tags): deploy via Databricks Asset Bundles
 
 ```bash
-make lint      # ruff check + format
-make test      # pytest com cobertura
-make run       # python main.py
+make lint         # ruff check + format
+make test         # pytest com cobertura
+make run          # python main.py
+make ui           # ./start.sh (Chat + Monitoring)
+make ui-chat      # apenas Web UI Chat (porta 8502)
+make ui-monitor   # apenas Dashboard (porta 8501)
 ```
 
 ---

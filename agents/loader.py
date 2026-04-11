@@ -31,6 +31,9 @@ from claude_agent_sdk import AgentDefinition
 from mcp_servers.databricks.server_config import (
     DATABRICKS_MCP_TOOLS,
     DATABRICKS_MCP_READONLY_TOOLS,
+    DATABRICKS_AIBI_TOOLS,
+    DATABRICKS_SERVING_TOOLS,
+    DATABRICKS_COMPUTE_TOOLS,
 )
 from mcp_servers.fabric.server_config import (
     FABRIC_MCP_TOOLS,
@@ -58,6 +61,10 @@ KB_BASE_DIR = Path(__file__).parent.parent / "kb"
 MCP_TOOL_SETS: dict[str, list[str]] = {
     "databricks_all": DATABRICKS_MCP_TOOLS,
     "databricks_readonly": DATABRICKS_MCP_READONLY_TOOLS,
+    # Novos aliases granulares para as tools do ai-dev-kit
+    "databricks_aibi": DATABRICKS_AIBI_TOOLS,  # Genie, Dashboards, KA, MAS
+    "databricks_serving": DATABRICKS_SERVING_TOOLS,  # Model Serving endpoints
+    "databricks_compute": DATABRICKS_COMPUTE_TOOLS,  # Clusters, execute_code, wait_for_run
     "databricks_genie_all": DATABRICKS_GENIE_MCP_TOOLS,
     "databricks_genie_readonly": DATABRICKS_GENIE_MCP_READONLY_TOOLS,
     "fabric_all": FABRIC_MCP_TOOLS + FABRIC_COMMUNITY_MCP_TOOLS,

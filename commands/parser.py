@@ -67,6 +67,33 @@ class CommandDefinition:
 # ─── Registry de Comandos ─────────────────────────────────────────
 
 COMMAND_REGISTRY: dict[str, CommandDefinition] = {
+    "brief": CommandDefinition(
+        name="brief",
+        agent="business-analyst",
+        bmad_mode="full",
+        description=(
+            "Processa transcript de reunião ou briefing e gera backlog estruturado (P0/P1/P2). "
+            "Use antes do /plan quando o input for um documento bruto de negócio."
+        ),
+        skills=["templates/backlog.md"],
+        prompt_template=(
+            "[BMAD INTAKE] Delegue IMEDIATAMENTE para business-analyst. "
+            "NÃO crie PRD, NÃO peça aprovação neste momento. "
+            "O agente deve: "
+            "(1) Ler o template em `templates/backlog.md` para entender o formato de saída. "
+            "(2) Processar o documento abaixo extraindo stakeholders, decisões, requisitos e restrições. "
+            "(3) Mapear cada requisito ao domínio técnico correto (Databricks/Fabric/pipelines/SQL/etc). "
+            "(4) Priorizar os itens em P0 (crítico, máx 3), P1 (importante) e P2 (desejável). "
+            "(5) Garantir que o diretório `output/backlog/` existe (Bash: mkdir -p output/backlog). "
+            "(6) Salvar o backlog preenchido em `output/backlog/backlog_<nome_descritivo>.md` via Write. "
+            "(7) Apresentar resumo com contagem por prioridade e o próximo passo: "
+            "    /plan output/backlog/backlog_<nome_descritivo>.md "
+            "IMPORTANTE: Se o input for um caminho de arquivo (ex: inputs/reuniao.txt), "
+            "leia o arquivo com Read() antes de processar. "
+            "Documento: {task}"
+        ),
+        display_template="[bold blue]📋 [BMAD Intake] Processando documento com: {agent}[/bold blue]",
+    ),
     "sql": CommandDefinition(
         name="sql",
         agent="sql-expert",
@@ -153,13 +180,16 @@ COMMAND_REGISTRY: dict[str, CommandDefinition] = {
             "(1) Identifique o tipo de tarefa (SDP, Structured Streaming, Jobs, Fabric Lakehouse, RTI, etc). "
             "(2) Consulte o Mapa de Skills no seu system prompt para decidir quais SKILL.md ler. "
             "(3) Leia TODOS os skills identificados antes de começar o PRD. "
-            "(4) Crie um PRD detalhado em `output/prd_<nome_descritivo>.md` usando Bash, incluindo: "
+            "(4) Garanta que o diretório `output/prd/` existe (Bash: mkdir -p output/prd). "
+            "(5) Crie um PRD detalhado em `output/prd/prd_<nome_descritivo>.md` usando Bash, incluindo: "
             "arquitetura Medallion moderna (Bronze→Silver→Gold), padrões obrigatórios por camada, "
             "agentes a acionar e ordem de execução. "
             "Se a tarefa envolver Star Schema ou Gold Layer com dim_*/fact_*, inclua no PRD as regras de "
             "`skills/star_schema_design.md`: autonomia das dimensões, geração sintética de dim_data via SEQUENCE, "
             "e INNER JOIN obrigatório nas fact_*. "
-            "(5) Apresente o resumo do PRD e aguarde aprovação antes de delegar. "
+            "(6) Apresente o resumo do PRD e aguarde aprovação antes de delegar. "
+            "Após aprovação: garanta que `output/specs/` existe (mkdir -p output/specs) e salve a SPEC em "
+            "`output/specs/spec_<nome_descritivo>.md`. "
             "Tarefa: {task}"
         ),
         display_template="[bold purple]🗺️ [BMAD Agile] Iniciando Context Engineering — lendo skills relevantes...[/bold purple]",
@@ -187,10 +217,11 @@ COMMAND_REGISTRY: dict[str, CommandDefinition] = {
         description="Lista PRDs gerados e status da sessão atual.",
         skills=[],
         prompt_template=(
-            "Liste todos os arquivos PRD existentes na pasta output/ usando Glob e Read. "
-            "Para cada PRD encontrado, mostre: nome do arquivo, data de criação, "
-            "e as primeiras 5 linhas do conteúdo. "
-            "Se a pasta output/ não existir ou estiver vazia, informe que nenhum PRD foi gerado."
+            "Liste os artefatos gerados nas seguintes pastas usando Glob e Read: "
+            "(1) PRDs em `output/prd/` — mostre nome, data e primeiras 5 linhas de cada um. "
+            "(2) SPECs em `output/specs/` — mostre nome e primeiras 3 linhas. "
+            "(3) Backlogs em `output/backlog/` — mostre nome e prioridades (P0/P1/P2). "
+            "Se alguma pasta não existir ou estiver vazia, informe que nenhum artefato foi gerado ainda."
         ),
         display_template="[bold cyan]📋 [Status] Consultando PRDs e estado da sessão...[/bold cyan]",
     ),
@@ -201,7 +232,8 @@ COMMAND_REGISTRY: dict[str, CommandDefinition] = {
         description="Revisita um PRD existente sem recriar do zero.",
         skills=[],
         prompt_template=(
-            "Leia o PRD mais recente da pasta output/ (ou o PRD especificado: {task}). "
+            "Leia o PRD mais recente da pasta `output/prd/` (ou o PRD especificado: {task}). "
+            "Se existir uma SPEC correspondente em `output/specs/`, leia-a também. "
             "Apresente um resumo do PRD e pergunte ao usuário se deseja: "
             "(1) Continuar a implementação a partir deste PRD, "
             "(2) Modificar algum aspecto da arquitetura, ou "
