@@ -139,11 +139,14 @@ def print_banner() -> None:
         "[dim]Slash: [bold]/plan[/bold] | [bold]/sql[/bold] | [bold]/spark[/bold] | "
         "[bold]/pipeline[/bold] | [bold]/fabric[/bold] | [bold]/semantic[/bold] | "
         "[bold]/quality[/bold] | [bold]/governance[/bold] | "
-        "[bold]/health[/bold] | [bold]/status[/bold] | [bold]/review[/bold][/dim]\n"
+        "[bold]/health[/bold] | [bold]/status[/bold] | [bold]/review[/bold] | "
+        "[bold cyan]/geral[/bold cyan] [cyan](Claude Haiku · conversacional)[/cyan][/dim]\n"
     )
 
 
-async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> dict[str, float | int]:
+async def _stream_response(
+    client: ClaudeSDKClient, prompt: str = "", session_type: str = "interactive"
+) -> dict[str, float | int]:
     """
     Processa o stream de resposta do agente com feedback visual em tempo real.
 
@@ -262,7 +265,7 @@ async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> dict[st
                 console.print(f"[dim]💰 {' | '.join(parts)}[/dim]\n")
 
             # Persistir métricas da sessão para o dashboard de monitoramento
-            log_session_result(message, prompt_preview=prompt[:100], session_type="interactive")
+            log_session_result(message, prompt_preview=prompt[:100], session_type=session_type)
 
             # Capturar métricas para checkpoint
             metrics["cost"] = float(message.total_cost_usd or 0)
@@ -270,6 +273,106 @@ async def _stream_response(client: ClaudeSDKClient, prompt: str = "") -> dict[st
 
     # Garante que o spinner seja parado em qualquer caso
     _stop_spinner(live_status)
+
+    return metrics
+
+
+_GERAL_MODEL = "claude-sonnet-4-6"
+_GERAL_SYSTEM = (
+    "Você é um assistente técnico especializado em Engenharia de Dados: "
+    "Databricks, Microsoft Fabric, Apache Spark, Delta Lake, SQL, arquitetura Medallion e boas práticas. "
+    "Responda em português brasileiro, de forma direta e objetiva. "
+    "Use exemplos e code blocks quando enriquecer a resposta. "
+    "Não peça aprovação, não crie documentos, não acesse arquivos externos."
+)
+_geral_history: list[dict] = []
+
+
+async def _stream_geral(user_message: str, session_type: str = "geral") -> dict[str, float]:
+    """
+    Chama claude-haiku diretamente via Anthropic REST API (urllib stdlib).
+    Sem dependência do pacote 'anthropic' — sem passar pelo Supervisor.
+
+    Mantém histórico de conversa em _geral_history para follow-ups na mesma sessão.
+    Custo típico: ~$0.001–0.005 (vs ~$0.15 com o Supervisor).
+    """
+    import json
+    import time
+    import urllib.request
+
+    _geral_history.append({"role": "user", "content": user_message})
+    history = _geral_history[-20:]  # máximo 10 turnos de contexto
+
+    payload = json.dumps(
+        {
+            "model": _GERAL_MODEL,
+            "max_tokens": 2048,
+            "system": _GERAL_SYSTEM,
+            "messages": history,
+        }
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "x-api-key": settings.anthropic_api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "User-Agent": "data-agents/1.0 (python-urllib/3)",
+        },
+        method="POST",
+    )
+
+    spinner = Spinner("dots", text=Text("💬 Haiku pensando...", style="dim"))
+    live = Live(spinner, console=console, refresh_per_second=10, transient=True)
+    live.start()
+
+    t0 = time.time()
+    metrics: dict[str, float] = {"cost": 0.0}
+
+    try:
+        # Add the nosec comment to bypass the Bandit check for this line
+        with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310
+            data = json.loads(resp.read().decode("utf-8"))
+        elapsed = time.time() - t0
+        live.stop()
+
+        text = data["content"][0]["text"] if data.get("content") else ""
+        input_tok = data.get("usage", {}).get("input_tokens", 0)
+        output_tok = data.get("usage", {}).get("output_tokens", 0)
+        # Preços claude-sonnet-4-6: $3.00/1M input, $15.00/1M output
+        cost = (input_tok * 3.00 + output_tok * 15.00) / 1_000_000
+
+        console.print("[bold cyan]💬 Geral (Haiku):[/bold cyan]")
+        console.print(Markdown(text))
+        console.print()
+        console.print(
+            f"[dim]💰 Custo: ${cost:.5f} | "
+            f"🔢 tokens: {input_tok} in / {output_tok} out | "
+            f"⏱ {elapsed:.1f}s[/dim]\n"
+        )
+
+        _geral_history.append({"role": "assistant", "content": text})
+        metrics["cost"] = cost
+
+        log_session_result(
+            type(
+                "R",
+                (),
+                {"total_cost_usd": cost, "num_turns": 1, "duration_ms": int(elapsed * 1000)},
+            )(),
+            prompt_preview=user_message[:100],
+            session_type=session_type,
+        )
+
+    except Exception as e:
+        if live.is_started:
+            live.stop()
+        console.print(f"\n[bold red]Erro no /geral:[/bold red] {e}\n")
+        logger.error(f"Geral direct call error: {e}", exc_info=True)
+        if _geral_history and _geral_history[-1]["role"] == "user":
+            _geral_history.pop()
 
     return metrics
 
@@ -397,6 +500,7 @@ async def run_interactive() -> None:
                         console.clear()
                         print_banner()
                         reset_session_counters()
+                        _geral_history.clear()  # Limpa histórico do /geral
                         _session_state["last_prompt"] = ""
                         _session_state["total_cost"] = 0.0
                         _session_state["total_turns"] = 0
@@ -453,24 +557,34 @@ async def run_interactive() -> None:
 
                     if command_result:
                         bmad_prompt = command_result.bmad_prompt
+                        _session_type = command_result.command.lstrip("/")
                         console.print(command_result.display_message)
                         logger.info(
                             f"Slash command: {command_result.command} "
                             f"(mode={command_result.bmad_mode}, agent={command_result.agent})"
                         )
-                        # Ativa thinking apenas para BMAD Full (/plan) — planejamento complexo
-                        if command_result.bmad_mode == "full":
-                            options.thinking = {"type": "enabled", "budget_tokens": 8000}
-                        else:
-                            options.thinking = {"type": "disabled"}
                     else:
-                        # Texto livre → BMAD Auto (Supervisor decide), sem thinking extra
                         bmad_prompt = user_input
+                        _session_type = "interactive"
+
+                    # --- /geral → Haiku direto, sem Supervisor ---
+                    if command_result and command_result.command == "/geral":
+                        result_metrics = await _stream_geral(user_input, session_type="geral")
+                        _session_state["last_prompt"] = user_input
+                        _session_state["total_cost"] += result_metrics.get("cost", 0)
+                        continue
+
+                    # Ativa thinking apenas para BMAD Full (/plan) — planejamento complexo
+                    if command_result and command_result.bmad_mode == "full":
+                        options.thinking = {"type": "enabled", "budget_tokens": 8000}
+                    else:
                         options.thinking = {"type": "disabled"}
 
                     # --- Enviar para o Supervisor e processar com feedback visual ---
                     await client.query(bmad_prompt)
-                    result_metrics = await _stream_response(client, prompt=bmad_prompt)
+                    result_metrics = await _stream_response(
+                        client, prompt=bmad_prompt, session_type=_session_type
+                    )
 
                     # Atualizar estado da sessão para checkpoint
                     _session_state["last_prompt"] = bmad_prompt
