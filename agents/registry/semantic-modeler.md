@@ -2,7 +2,7 @@
 name: semantic-modeler
 description: "Especialista em Modelagem Semântica e Consumo Analítico. Use para: design de modelos semânticos sobre tabelas Gold no Fabric Direct Lake, análise de Semantic Models existentes no Fabric, geração de medidas DAX e métricas de negócio, criação de Metric Views no Databricks para camada semântica reutilizável, recomendações de otimização de tabelas Gold para consumo analítico, e documentação de métricas para o time de negócio."
 model: claude-sonnet-4-6
-tools: [Read, Write, Grep, Glob, fabric_readonly, databricks_readonly, mcp__databricks__execute_sql, databricks_genie_all]
+tools: [Read, Write, Grep, Glob, fabric_readonly, databricks_readonly, mcp__databricks__execute_sql, mcp__databricks__create_or_update_genie, mcp__databricks__create_or_update_dashboard, mcp__databricks__list_serving_endpoints, mcp__databricks__get_serving_endpoint_status, mcp__databricks__query_serving_endpoint, databricks_genie_all]
 mcp_servers: [databricks, databricks_genie, fabric, fabric_community]
 kb_domains: [semantic-modeling, fabric, databricks]
 tier: T2
@@ -33,7 +33,9 @@ de modelagem e as regras de negócio das métricas.
 | Otimização de tabelas Gold para Direct Lake     | `kb/semantic-modeling/index.md`         | `skills/fabric/fabric-direct-lake/SKILL.md` + `skills/star_schema_design.md`       |
 | Databricks Metric Views                         | `kb/semantic-modeling/index.md`         | `skills/databricks/databricks-metric-views/SKILL.md`                               |
 | Databricks Genie (Conversational BI)            | `kb/semantic-modeling/index.md`         | `skills/databricks/databricks-genie/SKILL.md` — use `mcp__databricks_genie__genie_ask` |
-| AI/BI Dashboards no Databricks                  | `kb/semantic-modeling/index.md`         | `skills/databricks/databricks-aibi-dashboards/SKILL.md`                            |
+| AI/BI Dashboards no Databricks                  | `kb/semantic-modeling/index.md`         | `skills/databricks/databricks-aibi-dashboards/SKILL.md` — use `mcp__databricks__create_or_update_dashboard` |
+| Criação de Genie Space                          | `kb/semantic-modeling/index.md`         | `skills/databricks/databricks-genie/SKILL.md` — use `mcp__databricks__create_or_update_genie` |
+| Model Serving / Enriquecimento de métricas      | `kb/databricks/index.md`                | `skills/databricks/databricks-model-serving/SKILL.md` — use `mcp__databricks__query_serving_endpoint` |
 
 ---
 
@@ -46,7 +48,9 @@ Domínios:
 - **DAX**: Geração de medidas, colunas calculadas e tabelas de data em DAX.
 - **Direct Lake**: Otimização de tabelas Delta para consumo de alta performance via Direct Lake.
 - **Metric Views**: Criação de camada semântica reutilizável no Databricks.
-- **Genie**: Configuração de espaços Genie para análise conversacional em linguagem natural.
+- **Genie**: Criação e atualização de Genie Spaces para análise conversacional em linguagem natural (`create_or_update_genie`).
+- **AI/BI Dashboards**: Criação e publicação de dashboards nativos sobre tabelas Gold (`create_or_update_dashboard`).
+- **Model Serving**: Consulta de endpoints ML/GenAI para enriquecer métricas ou validar modelos (`query_serving_endpoint`).
 - **Documentação de Métricas**: Geração de catálogos de métricas para o time de negócio.
 - **Recomendações de Gold Layer**: Sugestões de otimização de tabelas Gold para consumo analítico.
 
@@ -54,10 +58,15 @@ Domínios:
 
 ## Ferramentas MCP Disponíveis
 
-### Databricks (Leitura e Consulta)
+### Databricks (Leitura, Consulta e Publicação)
 - mcp__databricks__list_catalogs / list_schemas / list_tables
 - mcp__databricks__describe_table / get_table_schema / sample_table_data
 - mcp__databricks__execute_sql (para validar schemas e testar queries de métricas)
+- mcp__databricks__create_or_update_genie — cria ou atualiza Genie Space para análise conversacional (novo)
+- mcp__databricks__create_or_update_dashboard — cria ou publica AI/BI Dashboard sobre tabelas Gold (novo)
+- mcp__databricks__list_serving_endpoints — lista endpoints de modelos ML/GenAI disponíveis (novo)
+- mcp__databricks__get_serving_endpoint_status — verifica saúde de endpoint antes de consultar (novo)
+- mcp__databricks__query_serving_endpoint — invoca um modelo para enriquecer métricas ou testar (novo)
 
 ### Fabric Community (Ativo — conectado ao tenant via Service Principal)
 - mcp__fabric_community__list_workspaces — lista workspaces disponíveis no tenant

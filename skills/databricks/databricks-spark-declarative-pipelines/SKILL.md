@@ -149,14 +149,6 @@ Before writing pipeline code, make sure you have:
 
 Use streaming tables for windowed aggregations to enable incremental processing. Use materialized views for simple aggregations that recompute fully on each refresh.
 
-> **CRITICAL RULE (BRONZE INGESTION)**: The Bronze layer **MUST ALWAYS** use Auto Loader (`cloud_files`) for data ingestion to guarantee robust incremental processing. In SQL, this means using `FROM cloud_files(...)` which leverages Auto Loader explicitly. In Python, use `spark.readStream.format("cloudFiles")`. Never use `read_files` or batch reads for initial ingestion into Bronze.
-
-> **CRITICAL ANTI-PATTERN (CDC & SILVER LAYER)**: NEVER use `MATERIALIZED VIEW` in the Silver layer. Silver layers **MUST ALWAYS** use `STREAMING TABLE` reading via `stream()` to process data incrementally from Bronze. Wait to use Materialized Views **only** in the Gold layer for final business aggregations and Star Schemas.
-
-> **CRITICAL ANTI-PATTERN (SCD LOGIC)**: NEVER implement Slow Changing Dimensions (SCD Type 1 or 2) manually using window functions (`LAG()`, `LEAD()`), `ROW_NUMBER()`, or hashing (`sha2()`). You **MUST** use the native Lakeflow features: `AUTO CDC INTO` (SQL) ou `dp.create_auto_cdc_flow()` (Python). The old `APPLY CHANGES INTO` is deprecated in favor of `AUTO CDC`.
-
-Use streaming tables to enable incremental processing. Use materialized views only at the end (Gold) for aggregations that recompute fully on each refresh.
-
 ---
 
 ## Task-Based Routing
@@ -206,9 +198,20 @@ After choosing your workflow (see [Choose Your Workflow](#choose-your-workflow))
 
 | Layer | SDP Pattern | Common Practices |
 |-------|-------------|------------------|
-| **Bronze** | `cloud_files()` → streaming table | Often adds `_metadata.file_path`, `_ingested_at`. Minimal transforms, append-only. |
-| **Silver** | `stream(bronze)` → streaming table + `AUTO CDC INTO` | Clean/validate, type casting, quality filters. SCD Type 1/2 via `AUTO CDC INTO`. ⚠️ NEVER use MATERIALIZED VIEW here. |
-| **Gold** | Materialized view (aggregations, Star Schema) | Aggregated, denormalized. Star schema with `dim_*`/`fact_*`. |
+| **Bronze** | `STREAM read_files()` → streaming table | Often adds `_metadata.file_path`, `_ingested_at`. Minimal transforms, append-only. |
+| **Silver** | `stream(bronze)` → streaming table | Clean/validate, type casting, quality filters. Prefer `DECIMAL(p,s)` for money. Dedup can happen here or gold. |
+| **Gold** | `AUTO CDC INTO` or materialized view | Aggregated, denormalized. SCD/dedup often via `AUTO CDC`. Star schema typically uses `dim_*`/`fact_*`. |
+
+#### Gold Layer: Preserve Key Dimensions
+
+When aggregating data in gold tables, **keep the main business dimensions** to enable flexible analysis. Over-aggregating loses information that analysts may need later.
+
+**Guidance based on context:**
+- **If a dashboard is mentioned**: Include all dimensions that appear as filters. Dashboard filters only work if the underlying data has those columns.
+- **If analysis by dimension is mentioned** (e.g., "analyze by store", "breakdown by department"): Include those dimensions in the aggregation.
+- **If no specific instructions**: Default to keeping key business dimensions (location, department, product line, customer segment, time period) rather than aggregating them away. This preserves flexibility for future analysis.
+
+**Rule of thumb**: If users might want to slice the data by a dimension, include it in the gold table. It's easier to aggregate further in queries than to recover lost dimensions.
 
 **For medallion architecture** (bronze/silver/gold), two approaches work:
 - **Flat with naming** (template default): `bronze_*.sql`, `silver_*.sql`, `gold_*.sql`
@@ -221,79 +224,13 @@ See **[1-project-initialization.md](references/1-project-initialization.md)** fo
 ---
 ## General SDP development guidance
 
-**Bronze SQL Example (Ingestion):**
+**SQL Example:**
 ```sql
-CREATE OR REFRESH STREAMING TABLE tarn_dev.bronze.bronze_cliente (
-  -- Primary Key
-  cliente_id STRING NOT NULL COMMENT 'Customer unique identifier',
-
-  -- Business Fields
-  nome STRING COMMENT 'First name (PII: high, name)',
-  sobrenome STRING COMMENT 'Last name (PII: high, name)',
-  email STRING COMMENT 'Email address (PII: high, email)',
-  telefone STRING COMMENT 'Phone number (PII: high, phone)',
-  cidade STRING COMMENT 'City',
-  estado STRING COMMENT 'State (UF)',
-  data_cadastro DATE COMMENT 'Registration date',
-
-  -- Metadata
-  _ingest_timestamp TIMESTAMP COMMENT 'Ingest time',
-  _source_file STRING COMMENT 'Source file path',
-
-  PRIMARY KEY (cliente_id)
-)
-TBLPROPERTIES (
-  'quality' = 'bronze',
-  'layer' = 'bronze',
-  'domain' = 'customer',
-  'pii_level' = 'high',
-  'technical_manager' = 'thomaz.rossito@hotmail.com',
-  'pipelines.autoOptimize.zOrderCols' = 'cliente_id',
-  'delta.enableChangeDataFeed' = 'true'
-)
-COMMENT 'Bronze: Raw customer data ingested from CSV files via Auto Loader'
-AS SELECT
-  CAST(cliente_id AS STRING) AS cliente_id,
-  CAST(nome AS STRING) AS nome,
-  CAST(sobrenome AS STRING) AS sobrenome,
-  CAST(email AS STRING) AS email,
-  CAST(telefone AS STRING) AS telefone,
-  CAST(cidade AS STRING) AS cidade,
-  CAST(estado AS STRING) AS estado,
-  CAST(data_cadastro AS DATE) AS data_cadastro,
-  current_timestamp() AS _ingest_timestamp,
-  _metadata.file_path AS _source_file
-FROM cloud_files(
-  "/Volumes/tarn_dev/files/transient/clientes/",
-  "csv",
-  map(
-    "cloudFiles.schemaLocation", "/Volumes/tarn_dev/files/schemas/clientes/",
-    "header", "true",
-    "delimiter", ","
-  )
-);
+CREATE OR REFRESH STREAMING TABLE bronze_orders
+CLUSTER BY (order_date)
+AS SELECT *, current_timestamp() AS _ingested_at
+FROM STREAM read_files('/Volumes/catalog/schema/raw/orders/', format => 'json');
 ```
-
-**Silver SQL Example (AUTO CDC / SCD Type 2):**
-```sql
-CREATE OR REFRESH STREAMING TABLE users_history;
-
-CREATE FLOW apply_cdc AS AUTO CDC INTO
-  users_history
-FROM
-  stream(bronze_users_cdc)
-KEYS
-  (userId)
-APPLY AS DELETE WHEN
-  operation = 'DELETE'
-SEQUENCE BY
-  sequenceNum
-COLUMNS * EXCEPT
-  (operation, sequenceNum)
-STORED AS
-  SCD TYPE 2;
-```
-
 
 **Python Example:**
 ```python
@@ -397,9 +334,9 @@ If validation reveals problems, trace upstream to find the root cause:
 |-------|----------|
 | **Empty output tables** | Use `get_table_stats_and_schema` to check upstream sources. Verify source files exist and paths are correct. |
 | **Pipeline stuck INITIALIZING** | Normal for serverless, wait a few minutes |
-| **"Column not found"** | Check if your source data actually contains the required columns and they are parsed correctly by Auto Loader |
+| **"Column not found"** | Check `schemaHints` match actual data |
 | **Streaming reads fail** | For file ingestion in a streaming table, you must use the `STREAM` keyword with `read_files`: `FROM STREAM read_files(...)`. For table streams use `FROM stream(table)`. See [read_files — Usage in streaming tables](https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files#usage-in-streaming-tables). |
-| **Timeout during run** | Increase `timeout`, or use `wait_for_completion=False` and check status with `get_pipeline` |
+| **Timeout during run** | Increase `timeout`, or use `wait_for_completion=False` and check status with `manage_pipeline(action="get")` |
 | **MV doesn't refresh** | Enable row tracking on source tables |
 | **SCD2: query column not found** | Lakeflow uses `__START_AT` and `__END_AT` (double underscore), not `START_AT`/`END_AT`. Use `WHERE __END_AT IS NULL` for current rows. See [sql/4-cdc-patterns.md](references/sql/4-cdc-patterns.md). |
 | **AUTO CDC parse error at APPLY/SEQUENCE** | Put `APPLY AS DELETE WHEN` **before** `SEQUENCE BY`. Only list columns in `COLUMNS * EXCEPT (...)` that exist in the source (omit `_rescued_data` unless bronze uses rescue data). Omit `TRACK HISTORY ON *` if it causes "end of input" errors; default is equivalent. See [sql/4-cdc-patterns.md](references/sql/4-cdc-patterns.md). |

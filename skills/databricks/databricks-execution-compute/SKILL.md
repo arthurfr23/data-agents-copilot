@@ -37,6 +37,7 @@ Need state across calls? → Interactive Cluster (list and ask which one to use)
 Scala/R? → Interactive Cluster (list and ask which one to use)
 ```
 
+
 ## How to Run Code
 
 **Read the reference file for your chosen mode before proceeding.**
@@ -74,9 +75,8 @@ execute_code(code="...", context_id=result["context_id"], cluster_id=result["clu
 | `manage_cluster` | Interactive | Create, start, terminate, delete. **COSTLY:** `start` takes 3-8 min—ask user |
 | `manage_sql_warehouse` | SQL | Create, modify, delete SQL warehouses |
 
-
 ## Related Skills
 
-- **[databricks-jobs](../databricks-jobs/SKILL.md)** — Production job orchestration with scheduling, retries, and multi-task DAGs
-- **[databricks-dbsql](../databricks-dbsql/SKILL.md)** — SQL warehouse capabilities and AI functions
-- **[databricks-python-sdk](../databricks-python-sdk/SKILL.md)** — Direct SDK usage for workspace automation
+- **[databricks-synthetic-data-gen](../databricks-synthetic-data-gen/SKILL.md)** — Data generation using Spark + Faker
+- **[databricks-jobs](../databricks-jobs/SKILL.md)** — Production job orchestration
+- **[databricks-dbsql](../databricks-dbsql/SKILL.md)** — SQL warehouse and AI functions

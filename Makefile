@@ -24,8 +24,8 @@ help: ## Exibe esta ajuda
 install: ## Instala dependências de produção
 	pip install -e .
 
-dev: ## Instala dependências de desenvolvimento
-	pip install -e ".[dev]"
+dev: ## Instala dependências de desenvolvimento + UI
+	pip install -e ".[dev,ui,monitoring]"
 
 # ─── Quality ──────────────────────────────────────────────────────
 
@@ -51,6 +51,15 @@ security: ## Scan de segurança (bandit)
 
 run: ## Inicia o Data Agents em modo interativo
 	python main.py
+
+ui: ## Inicia a UI de Chat + Monitoring (./start.sh)
+	./start.sh
+
+ui-chat: ## Inicia somente a UI de Chat (porta 8502)
+	./start.sh --chat-only
+
+ui-monitor: ## Inicia somente o Monitoring (porta 8501)
+	./start.sh --monitor-only
 
 health-databricks: ## Verifica conectividade e credenciais do Databricks
 	python tools/databricks_health_check.py
