@@ -109,7 +109,7 @@ class Settings(BaseSettings):
     # Se 0, desabilita o idle timeout. Padrão: 30 minutos.
     idle_timeout_minutes: int = 30
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     # --- Campos internos (não carregados do .env) ---
     _available_platforms: ClassVar[list[str]] = []

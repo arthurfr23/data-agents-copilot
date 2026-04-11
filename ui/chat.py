@@ -79,6 +79,7 @@ COMMAND_GROUPS: dict[str, list[str]] = {
     "🏭 Microsoft Fabric": ["/fabric", "/semantic"],
     "🔍 Qualidade & Gov.": ["/quality", "/governance"],
     "🔧 Sistema": ["/health"],
+    "💬 Conversacional": ["/geral"],
 }
 
 # Comandos que executam sem precisar de texto adicional
@@ -223,7 +224,7 @@ def _strip_rich(text: str) -> str:
 
 
 # ── Execução do agente (ClaudeSDKClient persistente) ─────────────────────────
-def _run_agent(prompt: str, enable_thinking: bool = False) -> dict:
+def _run_agent(prompt: str, enable_thinking: bool = False, session_type: str = "ui") -> dict:
     """
     Envia prompt para o ClaudeSDKClient persistente e aguarda a resposta.
 
@@ -279,6 +280,12 @@ def _run_agent(prompt: str, enable_thinking: bool = False) -> dict:
                     result["cost"] = float(message.total_cost_usd or 0)
                     result["turns"] = int(message.num_turns or 0)
                     result["duration"] = float(message.duration_ms or 0) / 1000
+                    # Persiste métricas no sessions.jsonl para o monitoramento
+                    from hooks.session_logger import log_session_result
+
+                    log_session_result(
+                        message, prompt_preview=prompt[:100], session_type=session_type
+                    )
 
         except Exception as exc:
             result["error"] = str(exc)
@@ -299,6 +306,112 @@ def _run_agent(prompt: str, enable_thinking: bool = False) -> dict:
 
     if exc_holder:
         result["error"] = str(exc_holder[0])
+
+    return result
+
+
+# ── Execução direta via Haiku (sem Supervisor) ───────────────────────────────
+# Bypass do Supervisor para /geral: chama claude-haiku diretamente via SDK Anthropic.
+# Evita o overhead do agente orquestrador, reduzindo custo de ~$0.15 para ~$0.002.
+_GERAL_MODEL = "claude-sonnet-4-6"
+_GERAL_SYSTEM = (
+    "Você é um assistente técnico especializado em Engenharia de Dados: "
+    "Databricks, Microsoft Fabric, Apache Spark, Delta Lake, SQL, arquitetura Medallion e boas práticas. "
+    "Responda em português brasileiro, de forma direta e objetiva. "
+    "Use exemplos e code blocks quando enriquecer a resposta. "
+    "Não peça aprovação, não crie documentos, não acesse arquivos externos."
+)
+
+
+def _run_geral(user_message: str) -> dict:
+    """
+    Chama claude-haiku diretamente via Anthropic REST API (urllib stdlib).
+    Sem dependência do pacote 'anthropic' — sem passar pelo Supervisor.
+
+    Mantém histórico de conversa em st.session_state["geral_history"] para
+    suportar perguntas de follow-up dentro da mesma sessão do App.
+
+    Custo típico: ~$0.001–0.005 por pergunta (vs ~$0.15 com Supervisor).
+    """
+    import json
+    import time
+    import urllib.request
+
+    result: dict = {
+        "text": "",
+        "tools": [],
+        "cost": 0.0,
+        "turns": 1,
+        "duration": 0.0,
+        "error": None,
+    }
+
+    # Histórico de conversa para follow-ups
+    if "geral_history" not in st.session_state:
+        st.session_state["geral_history"] = []
+
+    st.session_state["geral_history"].append({"role": "user", "content": user_message})
+
+    # Mantém no máximo 20 mensagens (10 turnos) para limitar tokens de contexto
+    history = st.session_state["geral_history"][-20:]
+
+    payload = json.dumps(
+        {
+            "model": _GERAL_MODEL,
+            "max_tokens": 2048,
+            "system": _GERAL_SYSTEM,
+            "messages": history,
+        }
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "x-api-key": settings.anthropic_api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "User-Agent": "data-agents/1.0 (python-urllib/3)",
+        },
+        method="POST",
+    )
+
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310
+            data = json.loads(resp.read().decode("utf-8"))
+        elapsed = time.time() - t0
+
+        text = data["content"][0]["text"] if data.get("content") else ""
+        input_tok = data.get("usage", {}).get("input_tokens", 0)
+        output_tok = data.get("usage", {}).get("output_tokens", 0)
+
+        # Preços claude-sonnet-4-6: $3.00/1M input, $15.00/1M output
+        cost = (input_tok * 3.00 + output_tok * 15.00) / 1_000_000
+
+        result["text"] = text
+        result["cost"] = cost
+        result["duration"] = elapsed
+
+        # Adiciona resposta ao histórico
+        st.session_state["geral_history"].append({"role": "assistant", "content": text})
+
+        # Grava no sessions.jsonl para o monitoramento
+        from hooks.session_logger import log_session_result
+
+        class _FakeResult:
+            total_cost_usd = cost
+            num_turns = 1
+            duration_ms = int(elapsed * 1000)
+
+        log_session_result(_FakeResult(), prompt_preview=user_message[:100], session_type="geral")
+
+    except Exception as exc:
+        result["error"] = str(exc)
+        result["duration"] = time.time() - t0
+        # Remove a mensagem do histórico em caso de erro
+        if st.session_state["geral_history"]:
+            st.session_state["geral_history"].pop()
 
     return result
 
@@ -490,10 +603,21 @@ with st.chat_message("assistant"):
     text_box = st.empty()
     metric_box = st.empty()
 
-    with st.spinner("⏳ Agente processando..."):
-        result = _run_agent(bmad_prompt, enable_thinking=enable_thinking)
+    # session_type = nome do comando (ex: "geral", "sql") ou "ui" para texto livre
+    _session_type = command_result.command.lstrip("/") if command_result else "ui"
+    is_geral = command_result is not None and command_result.command == "/geral"
 
-    # Ferramentas usadas
+    if is_geral:
+        # Bypass do Supervisor — chama Haiku diretamente (~$0.002 vs ~$0.15 com Supervisor)
+        with st.spinner("💬 Haiku pensando..."):
+            result = _run_geral(bmad_prompt)
+    else:
+        with st.spinner("⏳ Agente processando..."):
+            result = _run_agent(
+                bmad_prompt, enable_thinking=enable_thinking, session_type=_session_type
+            )
+
+    # Ferramentas usadas (apenas para Claude — Gemini não usa ferramentas)
     if result["tools"]:
         with tools_box.expander(
             f"🔧 {len(result['tools'])} ferramenta(s) executada(s)", expanded=False

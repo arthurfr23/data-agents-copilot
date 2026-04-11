@@ -283,6 +283,24 @@ COMMAND_REGISTRY: dict[str, CommandDefinition] = {
         ),
         display_template="[bold yellow]📊 [BMAD Express] Direcionando para: {agent}[/bold yellow]",
     ),
+    "geral": CommandDefinition(
+        name="geral",
+        agent="geral",
+        bmad_mode="express",
+        description=(
+            "Pergunta conversacional respondida pelo Claude Haiku. "
+            "Ideal para dúvidas técnicas, conceitos, explicações e perguntas gerais de dados. "
+            "Rápido e econômico."
+        ),
+        skills=[],
+        prompt_template=(
+            "[BMAD EXPRESS] Delegue IMEDIATAMENTE para geral. "
+            "NÃO leia arquivos, NÃO use ferramentas, NÃO consulte KBs. "
+            "O agente responde do próprio conhecimento. Não crie PRD, não peça aprovação. "
+            "Pergunta: {task}"
+        ),
+        display_template="[bold cyan]💬 [Geral] Respondendo com Claude Haiku...[/bold cyan]",
+    ),
 }
 
 
