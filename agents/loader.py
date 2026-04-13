@@ -24,7 +24,7 @@ Campos opcionais: mcp_servers, kb_domains, tier
 import logging
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from claude_agent_sdk import AgentDefinition
 
@@ -320,13 +320,14 @@ def load_agent(
 
     # Effort por tier (Ch. 5 — Agent Loop):
     # Prioridade: frontmatter > tier_effort_map > None (sem especificação)
+    # Cast para Literal satisfaz mypy — valores válidos: 'low', 'medium', 'high', 'max'
     effort_raw = metadata.get("effort")
-    agent_effort: str | None = None
+    agent_effort: Literal["low", "medium", "high", "max"] | None = None
     if effort_raw is not None:
-        agent_effort = str(effort_raw)
+        agent_effort = cast(Literal["low", "medium", "high", "max"], str(effort_raw))
         logger.debug(f"Agente '{name}': effort={agent_effort} (frontmatter override)")
     elif tier_effort_map and tier in tier_effort_map:
-        agent_effort = tier_effort_map[tier]
+        agent_effort = cast(Literal["low", "medium", "high", "max"], tier_effort_map[tier])
         logger.debug(f"Agente '{name}': effort={agent_effort} (tier={tier} map)")
 
     # Cache prefix injection (Ch. 9 — Fork Agents & Prompt Cache):
