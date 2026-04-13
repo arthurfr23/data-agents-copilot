@@ -23,8 +23,9 @@ Campos opcionais: mcp_servers, kb_domains, tier
 
 import logging
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from claude_agent_sdk import AgentDefinition
 
@@ -92,6 +93,82 @@ MCP_TOOL_SETS: dict[str, list[str]] = {
         if any(kw in t for kw in ["list_", "describe_", "sample_", "count_", "diagnostics"])
     ],
 }
+
+
+@dataclass
+class AgentMeta:
+    """
+    Metadata-only snapshot de um agente (Ch. 12 — Two-Phase Loading).
+
+    Fase rápida: lê apenas o frontmatter YAML, sem carregar o corpo do prompt.
+    Útil para descoberta, roteamento e verificações de capacidade sem pagar
+    o custo completo de I/O do carregamento do prompt.
+
+    Para carregamento completo, use load_agent(path=meta.path, ...).
+    """
+
+    name: str
+    description: str
+    model: str
+    tier: str
+    tools: list[str] = field(default_factory=list)
+    mcp_servers: list[str] = field(default_factory=list)
+    kb_domains: list[str] = field(default_factory=list)
+    max_turns: int | None = None
+    effort: str | None = None
+    path: Path = field(default_factory=Path)
+
+
+def preload_registry(
+    registry_dir: Path | None = None,
+) -> dict[str, AgentMeta]:
+    """
+    Fase rápida: escaneia o registry lendo apenas o frontmatter de cada agente (Ch. 12).
+
+    Retorna um dicionário de nome → AgentMeta sem carregar os corpos dos prompts.
+    Útil para listagem de agentes, roteamento e verificações antes de iniciar a sessão.
+
+    Args:
+        registry_dir: Diretório do registry. Default: agents/registry/.
+
+    Returns:
+        Dict de nome_do_agente → AgentMeta.
+    """
+    registry_dir = registry_dir or AGENTS_REGISTRY_DIR
+    agents_meta: dict[str, AgentMeta] = {}
+
+    for path in sorted(registry_dir.glob("*.md")):
+        if path.name.startswith("_"):
+            continue
+        try:
+            content = path.read_text(encoding="utf-8")
+            metadata, _ = _parse_frontmatter(content)
+
+            name = metadata.get("name", "")
+            if not name:
+                logger.warning(f"Agente sem 'name' em {path.name} — ignorado no preload")
+                continue
+
+            max_turns_raw = metadata.get("max_turns")
+            effort_raw = metadata.get("effort")
+
+            agents_meta[name] = AgentMeta(
+                name=name,
+                description=metadata.get("description", ""),
+                model=metadata.get("model", ""),
+                tier=metadata.get("tier", ""),
+                tools=metadata.get("tools", []),
+                mcp_servers=metadata.get("mcp_servers", []),
+                kb_domains=metadata.get("kb_domains", []),
+                max_turns=int(max_turns_raw) if max_turns_raw is not None else None,
+                effort=str(effort_raw) if effort_raw is not None else None,
+                path=path,
+            )
+        except Exception as e:
+            logger.warning(f"Erro no preload de {path.name}: {e}")
+
+    logger.info(f"Registry preloaded: {len(agents_meta)} agentes (frontmatter apenas)")
+    return agents_meta
 
 
 def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
@@ -247,6 +324,8 @@ def _load_cache_prefix(prefix_path: Path | None = None) -> str:
 def load_agent(
     path: Path,
     tier_model_map: dict[str, str] | None = None,
+    tier_turns_map: dict[str, int] | None = None,
+    tier_effort_map: dict[str, str] | None = None,
     inject_kb_index: bool = False,
     kb_base_dir: Path | None = None,
     inject_cache_prefix: bool = True,
@@ -258,16 +337,20 @@ def load_agent(
     Args:
         path: Caminho absoluto para o arquivo .md do agente.
         tier_model_map: Mapeamento tier -> modelo para model routing.
-            Se None ou vazio, usa o model do frontmatter (comportamento padrão).
-        inject_kb_index: Se True, injeta o conteúdo dos index.md das KBs
-            declaradas em kb_domains no prompt do agente.
+            Se None ou vazio, usa o model do frontmatter.
+        tier_turns_map: Mapeamento tier -> maxTurns por sub-agente.
+            Limita o número de chamadas de tool por chamada ao agente.
+            Override por frontmatter: campo `max_turns` no YAML.
+            Se None, usa frontmatter ou sem limite.
+        tier_effort_map: Mapeamento tier -> effort ("high"/"medium"/"low").
+            Controla o nível de raciocínio do modelo por tier.
+            Override por frontmatter: campo `effort` no YAML.
+            Se None, usa frontmatter ou sem especificação de effort.
+        inject_kb_index: Se True, injeta index.md das KBs no prompt.
         kb_base_dir: Diretório base das KBs. Padrão: kb/ na raiz do projeto.
         inject_cache_prefix: Se True (padrão), prepend o prefixo de cache
             compartilhado (agents/cache_prefix.md) ao system prompt.
-            O prefixo deve ser byte-idêntico em TODOS os agentes para que
-            o prompt caching da API do Claude funcione corretamente.
         cache_prefix_path: Caminho alternativo para o arquivo de prefixo.
-            Padrão: agents/cache_prefix.md
 
     Returns:
         Tupla (agent_name, AgentDefinition)
@@ -299,6 +382,30 @@ def load_agent(
             f"model overridden de '{model}' para '{routed_model}'"
         )
         model = routed_model
+
+    # Token budget por tier (Ch. 5 — Agent Loop):
+    # Prioridade: frontmatter > tier_turns_map > None (sem limite)
+    max_turns_raw = metadata.get("max_turns")
+    agent_max_turns: int | None = None
+    if max_turns_raw is not None:
+        # Override explícito no frontmatter do agente
+        agent_max_turns = int(max_turns_raw)
+        logger.debug(f"Agente '{name}': maxTurns={agent_max_turns} (frontmatter override)")
+    elif tier_turns_map and tier in tier_turns_map:
+        agent_max_turns = tier_turns_map[tier]
+        logger.debug(f"Agente '{name}': maxTurns={agent_max_turns} (tier={tier} map)")
+
+    # Effort por tier (Ch. 5 — Agent Loop):
+    # Prioridade: frontmatter > tier_effort_map > None (sem especificação)
+    # Cast para Literal satisfaz mypy — valores válidos: 'low', 'medium', 'high', 'max'
+    effort_raw = metadata.get("effort")
+    agent_effort: Literal["low", "medium", "high", "max"] | None = None
+    if effort_raw is not None:
+        agent_effort = cast(Literal["low", "medium", "high", "max"], str(effort_raw))
+        logger.debug(f"Agente '{name}': effort={agent_effort} (frontmatter override)")
+    elif tier_effort_map and tier in tier_effort_map:
+        agent_effort = cast(Literal["low", "medium", "high", "max"], tier_effort_map[tier])
+        logger.debug(f"Agente '{name}': effort={agent_effort} (tier={tier} map)")
 
     # Cache prefix injection (Ch. 9 — Fork Agents & Prompt Cache):
     # Prepend um bloco idêntico byte-a-byte ao topo de todos os agentes.
@@ -332,11 +439,14 @@ def load_agent(
         tools=tools,
         model=model,
         mcpServers=mcp_servers if mcp_servers else None,
+        maxTurns=agent_max_turns,
+        effort=agent_effort,
     )
 
     logger.info(
         f"Agente carregado: '{name}' | tier={tier} | model={model} | "
-        f"tools={len(tools)} | mcp_servers={mcp_servers} | "
+        f"tools={len(tools)} | mcp_servers={len(mcp_servers)} | "
+        f"maxTurns={agent_max_turns} | effort={agent_effort} | "
         f"kb_injected={len(kb_domains) if kb_content else 0} | "
         f"cache_prefix={bool(prefix)}"
     )
@@ -347,6 +457,8 @@ def load_all_agents(
     registry_dir: Path | None = None,
     available_mcp_servers: set[str] | None = None,
     tier_model_map: dict[str, str] | None = None,
+    tier_turns_map: dict[str, int] | None = None,
+    tier_effort_map: dict[str, str] | None = None,
     inject_kb_index: bool = False,
     kb_base_dir: Path | None = None,
     inject_cache_prefix: bool = True,
@@ -369,6 +481,8 @@ def load_all_agents(
             no registry. Se None, não filtra (mantém todos os declarados).
         tier_model_map: Mapeamento tier -> modelo para model routing.
             Se None ou vazio, usa o model do frontmatter (comportamento padrão).
+        tier_turns_map: Mapeamento tier -> maxTurns. Se None, sem limite por tier.
+        tier_effort_map: Mapeamento tier -> effort. Se None, sem override por tier.
         inject_kb_index: Se True, injeta index.md das KBs no prompt dos agentes.
         kb_base_dir: Diretório base das KBs. Padrão: kb/ na raiz do projeto.
         inject_cache_prefix: Se True (padrão), prepend o prefixo de cache
@@ -399,6 +513,8 @@ def load_all_agents(
             name, agent = load_agent(
                 path,
                 tier_model_map=tier_model_map,
+                tier_turns_map=tier_turns_map,
+                tier_effort_map=tier_effort_map,
                 inject_kb_index=inject_kb_index,
                 kb_base_dir=kb_base_dir,
                 inject_cache_prefix=inject_cache_prefix,
