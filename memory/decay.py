@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Callable
 from datetime import datetime, timezone
 
 from memory.types import Memory, DECAY_CONFIG
@@ -72,7 +73,7 @@ def compute_decayed_confidence(
 def apply_decay(
     memories: list[Memory],
     now: datetime | None = None,
-    save_fn: callable | None = None,
+    save_fn: Callable[[Memory], object] | None = None,
 ) -> tuple[list[Memory], list[Memory]]:
     """
     Aplica decay a uma lista de memórias e retorna as ativas e expiradas.

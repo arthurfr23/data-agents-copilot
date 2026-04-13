@@ -178,16 +178,18 @@ def _parse_daily_entries(content: str) -> list[dict[str, Any]]:
 
 
 def _parse_entry_section(section: str) -> dict[str, Any] | None:
-    """Parseia uma seção individual do daily log."""
-    # Formato esperado (produzido pelo memory_hook e extractor):
-    # type: architecture
-    # summary: Pipeline usa Auto Loader
-    # tags: pipeline, bronze
-    # ---
-    # Conteúdo da memória...
+    """Parseia uma seção individual do daily log.
 
-    # OU formato livre (quando adicionado manualmente):
-    # Conteúdo da memória sem frontmatter
+    Formato esperado (produzido pelo memory_hook e extractor)::
+
+        type_field: architecture
+        summary: Pipeline usa Auto Loader
+        tags: pipeline, bronze
+
+        Conteúdo da memória...
+
+    Ou formato livre (adicionado manualmente) sem frontmatter.
+    """
 
     frontmatter_match = re.match(r"^((?:\w+:.*\n)+)\n*(.*)", section, re.DOTALL)
 
