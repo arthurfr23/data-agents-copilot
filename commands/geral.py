@@ -59,7 +59,7 @@ def build_geral_options() -> ClaudeAgentOptions:
         model=settings.default_model,
         system_prompt=GERAL_SYSTEM,
         allowed_tools=[],
-        agents=[],
+        agents=None,
         mcp_servers={},
         max_turns=1,
         permission_mode="bypassPermissions",
