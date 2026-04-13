@@ -361,7 +361,9 @@ async def _handle_memory_command(user_input: str) -> None:
         console.print("[yellow]Subcomandos: status, flush, compile, lint, search <query>[/yellow]")
 
 
-_GERAL_MODEL = "claude-sonnet-4-6"
+# Modelo para /geral: usa o DEFAULT_MODEL do settings (proxy-aware)
+# Fallback para claude-sonnet-4-6 quando não configurado
+_GERAL_MODEL = settings.default_model or "claude-sonnet-4-6"
 _GERAL_SYSTEM = (
     "Você é um assistente técnico especializado em Engenharia de Dados: "
     "Databricks, Microsoft Fabric, Apache Spark, Delta Lake, SQL, arquitetura Medallion e boas práticas. "
@@ -396,8 +398,13 @@ async def _stream_geral(user_message: str, session_type: str = "geral") -> dict[
         }
     ).encode("utf-8")
 
+    # Usa o proxy Flow se ANTHROPIC_BASE_URL estiver configurado,
+    # caso contrário cai no endpoint padrão da Anthropic.
+    _base = (settings.anthropic_base_url or "https://api.anthropic.com").rstrip("/")
+    _endpoint = f"{_base}/v1/messages"
+
     req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
+        _endpoint,
         data=payload,
         headers={
             "x-api-key": settings.anthropic_api_key,
