@@ -318,10 +318,10 @@ def _run_agent(prompt: str, enable_thinking: bool = False, session_type: str = "
     return result
 
 
-# ── Execução direta via Haiku (sem Supervisor) ───────────────────────────────
-# Bypass do Supervisor para /geral: chama claude-haiku diretamente via SDK Anthropic.
-# Evita o overhead do agente orquestrador, reduzindo custo de ~$0.15 para ~$0.002.
-_GERAL_MODEL = "claude-sonnet-4-6"
+# ── Execução direta via SDK (sem Supervisor) ─────────────────────────────────
+# /geral: usa claude_agent_sdk query() com ClaudeAgentOptions mínimo.
+# Mesmo mecanismo de auth (Authorization: Bearer) do Supervisor → sem 401 no Flow.
+# Zero sub-agentes, zero MCP, zero hooks — resposta direta e barata.
 _GERAL_SYSTEM = (
     "Você é um assistente técnico especializado em Engenharia de Dados: "
     "Databricks, Microsoft Fabric, Apache Spark, Delta Lake, SQL, arquitetura Medallion e boas práticas. "
@@ -333,17 +333,23 @@ _GERAL_SYSTEM = (
 
 def _run_geral(user_message: str) -> dict:
     """
-    Chama claude-haiku diretamente via Anthropic REST API (urllib stdlib).
-    Sem dependência do pacote 'anthropic' — sem passar pelo Supervisor.
+    Chama o modelo via claude_agent_sdk — sem Supervisor, sem sub-agentes, sem MCP.
+
+    Usa o mesmo loop asyncio e fluxo de auth Bearer do Supervisor, garantindo
+    compatibilidade com o proxy Flow sem nenhuma configuração extra.
 
     Mantém histórico de conversa em st.session_state["geral_history"] para
     suportar perguntas de follow-up dentro da mesma sessão do App.
 
-    Custo típico: ~$0.001–0.005 por pergunta (vs ~$0.15 com Supervisor).
+    Custo típico: ~$0.002–0.01 por pergunta (vs ~$0.30–0.40 com Supervisor).
     """
-    import json
-    import time
-    import urllib.request
+    from claude_agent_sdk import (
+        ClaudeAgentOptions,
+        AssistantMessage,
+        ResultMessage,
+        TextBlock,
+        query as sdk_query,
+    )
 
     result: dict = {
         "text": "",
@@ -360,66 +366,77 @@ def _run_geral(user_message: str) -> dict:
 
     st.session_state["geral_history"].append({"role": "user", "content": user_message})
 
-    # Mantém no máximo 20 mensagens (10 turnos) para limitar tokens de contexto
-    history = st.session_state["geral_history"][-20:]
+    # Embute histórico recente no prompt — sdk_query() é stateless (sem multi-turn API)
+    history_prefix = ""
+    history = st.session_state["geral_history"]
+    if len(history) > 1:
+        lines: list[str] = []
+        for msg in history[-21:-1]:  # até 10 turnos anteriores
+            role = "Usuário" if msg["role"] == "user" else "Assistente"
+            lines.append(f"{role}: {msg['content']}")
+        if lines:
+            history_prefix = "Histórico:\n" + "\n".join(lines) + "\n\n"
 
-    payload = json.dumps(
-        {
-            "model": _GERAL_MODEL,
-            "max_tokens": 2048,
-            "system": _GERAL_SYSTEM,
-            "messages": history,
-        }
-    ).encode("utf-8")
+    prompt = history_prefix + user_message
 
-    req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=payload,
-        headers={
-            "x-api-key": settings.anthropic_api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-            "User-Agent": "data-agents/1.0 (python-urllib/3)",
-        },
-        method="POST",
+    # ClaudeAgentOptions mínimo — zero sub-agentes, zero MCP, zero hooks.
+    # O SDK gerencia auth internamente → mesmo mecanismo Bearer do Supervisor.
+    options = ClaudeAgentOptions(
+        model=settings.default_model,
+        system_prompt=_GERAL_SYSTEM,
+        allowed_tools=[],
+        agents=[],
+        mcp_servers={},
+        max_turns=1,
+        permission_mode="bypassPermissions",
     )
 
-    t0 = time.time()
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310
-            data = json.loads(resp.read().decode("utf-8"))
-        elapsed = time.time() - t0
+    # Reutiliza o loop de background da sessão do Supervisor
+    session = _get_agent_session()
+    loop = session["loop"]
 
-        text = data["content"][0]["text"] if data.get("content") else ""
-        input_tok = data.get("usage", {}).get("input_tokens", 0)
-        output_tok = data.get("usage", {}).get("output_tokens", 0)
+    async def _async() -> None:
+        try:
+            async for message in sdk_query(prompt=prompt, options=options):
+                if isinstance(message, AssistantMessage):
+                    for blk in message.content:
+                        if isinstance(blk, TextBlock) and blk.text.strip():
+                            result["text"] += blk.text
+                elif isinstance(message, ResultMessage):
+                    result["cost"] = float(message.total_cost_usd or 0)
+                    result["turns"] = int(message.num_turns or 1)
+                    result["duration"] = float(message.duration_ms or 0) / 1000
+                    from hooks.session_logger import log_session_result
 
-        # Preços claude-sonnet-4-6: $3.00/1M input, $15.00/1M output
-        cost = (input_tok * 3.00 + output_tok * 15.00) / 1_000_000
+                    log_session_result(
+                        message, prompt_preview=user_message[:100], session_type="geral"
+                    )
+        except Exception as exc:
+            result["error"] = str(exc)
 
-        result["text"] = text
-        result["cost"] = cost
-        result["duration"] = elapsed
+    # Submete ao loop de background e aguarda — mesmo padrão de _run_agent()
+    exc_holder: list[Exception] = []
 
-        # Adiciona resposta ao histórico
-        st.session_state["geral_history"].append({"role": "assistant", "content": text})
+    def _submit() -> None:
+        future = asyncio.run_coroutine_threadsafe(_async(), loop)
+        try:
+            future.result()
+        except Exception as e:
+            exc_holder.append(e)
 
-        # Grava no sessions.jsonl para o monitoramento
-        from hooks.session_logger import log_session_result
+    t = threading.Thread(target=_submit, daemon=True)
+    t.start()
+    t.join()
 
-        class _FakeResult:
-            total_cost_usd = cost
-            num_turns = 1
-            duration_ms = int(elapsed * 1000)
+    if exc_holder:
+        result["error"] = str(exc_holder[0])
 
-        log_session_result(_FakeResult(), prompt_preview=user_message[:100], session_type="geral")
-
-    except Exception as exc:
-        result["error"] = str(exc)
-        result["duration"] = time.time() - t0
-        # Remove a mensagem do histórico em caso de erro
+    if result["error"]:
+        # Desfaz push do histórico em caso de erro
         if st.session_state["geral_history"]:
             st.session_state["geral_history"].pop()
+    elif result["text"]:
+        st.session_state["geral_history"].append({"role": "assistant", "content": result["text"]})
 
     return result
 
