@@ -186,12 +186,16 @@ def _agent_author(raw_name: str) -> str:
     return _AGENT_AUTHORS.get(raw_name, raw_name.replace("-", " ").title())
 
 
-def _build_dev_options() -> ClaudeAgentOptions:
+def _build_dev_options(stderr_lines: list[str] | None = None) -> ClaudeAgentOptions:
     """
     ClaudeAgentOptions para o Dev Assistant.
 
     Usa settings.default_model (Bedrock) — custo zero pelo acordo da empresa.
     Ferramentas de desenvolvimento habilitadas. Zero MCPs de plataforma.
+
+    stderr_lines: lista mutável onde as linhas do stderr do processo serão
+    acumuladas — útil para exibir o erro real quando o processo falha com
+    exit code 1 (por padrão o SDK só retorna "Check stderr output for details").
     """
     from config.settings import settings  # importação local — evita circular import
 
@@ -205,6 +209,8 @@ def _build_dev_options() -> ClaudeAgentOptions:
         permission_mode="bypassPermissions",
     )
     opts.include_partial_messages = True
+    if stderr_lines is not None:
+        opts.stderr = stderr_lines.append  # type: ignore[assignment]
     return opts
 
 
@@ -536,7 +542,8 @@ async def _handle_dev(user_input: str) -> None:
     history.append({"role": "user", "content": user_input})
 
     prompt = build_prompt_with_history(user_input, history)
-    options = _build_dev_options()
+    stderr_lines: list[str] = []
+    options = _build_dev_options(stderr_lines=stderr_lines)
 
     # ── Estado do streaming ───────────────────────────────────────────────────
     steps = _StepManager()
@@ -626,7 +633,13 @@ async def _handle_dev(user_input: str) -> None:
 
     except Exception as exc:
         await steps.close_error(str(exc))
-        await response_msg.stream_token(f"\n\n❌ **Erro:** `{exc}`")
+        # Inclui o stderr real se foi capturado (exit code 1, etc.)
+        if stderr_lines:
+            stderr_preview = "\n".join(stderr_lines[-20:])  # últimas 20 linhas
+            error_detail = f"\n\n❌ **Erro:** `{exc}`\n\n```\n{stderr_preview}\n```"
+        else:
+            error_detail = f"\n\n❌ **Erro:** `{exc}`"
+        await response_msg.stream_token(error_detail)
         history.pop()  # reverte o push do histórico em caso de erro
         cl.user_session.set("dev_history", history)
         await response_msg.update()
