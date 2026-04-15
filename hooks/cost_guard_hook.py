@@ -47,7 +47,7 @@ async def log_cost_generating_operations(
     Registra operações de custo elevado com classificação por tier.
 
     Emite warnings para operações HIGH e alertas quando o acumulado
-    de operações HIGH ultrapassa 5 na mesma sessão.
+    de operações HIGH ultrapassa 100 na mesma sessão.
     """
     # Proteção contra eventos de teardown do SDK
     if not input_data or not isinstance(input_data, dict):
