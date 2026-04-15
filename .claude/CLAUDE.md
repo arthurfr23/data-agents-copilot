@@ -226,7 +226,7 @@ Use estes aliases no frontmatter `tools:` dos agentes em vez de listar cada tool
 | pipeline-architect | databricks, databricks_genie, fabric, fabric_community, fabric_sql, fabric_rti, context7, github, firecrawl, memory_mcp |
 | data-quality-steward | databricks, fabric, fabric_community, fabric_rti, postgres |
 | governance-auditor | databricks, fabric, fabric_community, tavily, postgres, memory_mcp |
-| semantic-modeler | databricks, databricks_genie, fabric, fabric_community, context7 |
+| semantic-modeler | databricks, databricks_genie, fabric, fabric_community, fabric_semantic, fabric_sql, context7 |
 | dbt-expert | context7, postgres |
 
 > MCPs sem credenciais (context7, memory_mcp) são ativados automaticamente.

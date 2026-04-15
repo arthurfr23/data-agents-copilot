@@ -68,6 +68,18 @@ class TestToolResolver:
         assert "Read" in tools
         assert any("databricks" in t for t in tools)
 
+    def test_fabric_semantic_all_alias_expands(self):
+        tools = _resolve_tools(["fabric_semantic_all"])
+        assert len(tools) > 0
+        assert all("fabric_semantic" in t for t in tools)
+
+    def test_fabric_semantic_readonly_is_subset_of_all(self):
+        all_tools = set(_resolve_tools(["fabric_semantic_all"]))
+        readonly_tools = set(_resolve_tools(["fabric_semantic_readonly"]))
+        assert readonly_tools.issubset(all_tools)
+        # execute_dax não deve estar no readonly
+        assert not any("execute_dax" in t for t in readonly_tools)
+
 
 class TestLoadAllAgents:
     """Testes para o carregamento completo do registry."""

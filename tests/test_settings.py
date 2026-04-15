@@ -108,6 +108,21 @@ class TestPlatformCredentials:
         status = s.validate_platform_credentials()
         assert status["fabric"]["ready"]
 
+    def test_fabric_semantic_ready_with_azure_credentials(self):
+        """fabric_semantic pronto quando tenant_id e workspace_id configurados."""
+        s = Settings(
+            azure_tenant_id="tenant-123",
+            fabric_workspace_id="ws-456",
+        )
+        status = s.validate_platform_credentials()
+        assert status["fabric_semantic"]["ready"]
+
+    def test_fabric_semantic_shares_fabric_credentials(self):
+        """fabric_semantic not ready quando credenciais Azure ausentes."""
+        s = Settings(azure_tenant_id="", fabric_workspace_id="")
+        status = s.validate_platform_credentials()
+        assert not status["fabric_semantic"]["ready"]
+
     def test_get_available_platforms_filters_correctly(self):
         """Apenas plataformas com credenciais devem aparecer."""
         # Passa explicitamente credenciais de Fabric/RTI como vazias para isolar

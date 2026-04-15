@@ -61,6 +61,7 @@ ui = [
 [project.scripts]
 data-agents = "main:main"
 fabric-sql-mcp = "mcp_servers.fabric_sql.server:main"
+fabric-semantic-mcp = "mcp_servers.fabric_semantic.server:main"
 databricks-genie-mcp = "mcp_servers.databricks_genie.server:main"
 
 [build-system]

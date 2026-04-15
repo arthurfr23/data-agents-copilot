@@ -49,6 +49,10 @@ from mcp_servers.fabric_rti.server_config import (
     FABRIC_RTI_MCP_TOOLS,
     FABRIC_RTI_READONLY_TOOLS,
 )
+from mcp_servers.fabric_semantic.server_config import (
+    FABRIC_SEMANTIC_MCP_TOOLS,
+    FABRIC_SEMANTIC_MCP_READONLY_TOOLS,
+)
 from mcp_servers.fabric_sql.server_config import FABRIC_SQL_MCP_TOOLS
 from mcp_servers.firecrawl.server_config import FIRECRAWL_MCP_TOOLS
 from mcp_servers.github.server_config import (
@@ -104,6 +108,9 @@ MCP_TOOL_SETS: dict[str, list[str]] = {
         for t in FABRIC_SQL_MCP_TOOLS
         if any(kw in t for kw in ["list_", "describe_", "sample_", "count_", "diagnostics"])
     ],
+    # fabric_semantic: introspecção profunda de Semantic Models (TMDL + DAX INFO functions)
+    "fabric_semantic_all": FABRIC_SEMANTIC_MCP_TOOLS,
+    "fabric_semantic_readonly": FABRIC_SEMANTIC_MCP_READONLY_TOOLS,
     # ── MCPs externos ─────────────────────────────────────────────────────────
     # context7: documentação atualizada de bibliotecas (resolve-library-id + get-library-docs)
     "context7_all": CONTEXT7_MCP_TOOLS,

@@ -8,8 +8,8 @@
     <strong>Sistema Multi-Agentes para Engenharia de Dados, Qualidade, Governanca e Analise Corporativa</strong>
   </p>
   <p align="center">
-    <img src="https://img.shields.io/badge/Version-5.0.0-brightgreen.svg" alt="Version 5.0.0">
-    <img src="https://img.shields.io/badge/Python-3.11+-blue.svg" alt="Python Version">
+    <img src="https://img.shields.io/badge/Version-6.0.0-brightgreen.svg" alt="Version 6.0.0">
+    <img src="https://img.shields.io/badge/Python-3.12+-blue.svg" alt="Python Version">
     <img src="https://img.shields.io/badge/Databricks-MCP-FF3621.svg" alt="Databricks MCP">
     <img src="https://img.shields.io/badge/Microsoft%20Fabric-MCP-0078D4.svg" alt="Fabric MCP">
     <img src="https://img.shields.io/badge/Anthropic-Claude%20SDK-D97757.svg" alt="Claude SDK">
@@ -19,7 +19,7 @@
 
 Sistema multi-agente construido sobre o **Claude Agent SDK** da Anthropic com integracao nativa via **Model Context Protocol (MCP)** ao **Databricks** e **Microsoft Fabric**. Transforma um assistente de IA em uma equipe autonoma de dados que opera diretamente nas suas plataformas de nuvem, seguindo regras corporativas declarativas.
 
-A versao 5.0 adiciona **Memory System com staleness detection** (Ch.11), **Session Lifecycle hooks** com flush automatico (Ch.12), **Config Snapshot com drift detection** (Ch.12), **Two-Phase Agent Loading** com `AgentMeta` + `preload_registry()` (Ch.12), **comando `/geral`** para respostas diretas sem Supervisor, e **refatoracao do modulo compartilhado** `commands/geral.py` eliminando duplicacao entre CLI e UI.
+A versao 6.0 adiciona **6 novos MCP Servers externos** (context7, tavily, github, firecrawl, postgres, memory_mcp), o **agente dbt-expert** (Tier T2) com slash command `/dbt`, a **interface Chainlit** com dois modos de operacao (Data Agents + Dev Assistant), e **feedback em tempo real** via `cl.Step()` para cada delegacao e tool call.
 
 ---
 
@@ -48,10 +48,10 @@ A versao 5.0 adiciona **Memory System com staleness detection** (Ch.11), **Sessi
 ## Arquitetura
 
 <p align="center">
-  <img src="img/readme/architecture_v6.svg" alt="Arquitetura Multi-Agent System v5.0" width="100%">
+  <img src="img/readme/architecture_v7.svg" alt="Arquitetura Multi-Agent System v6.0" width="100%">
 </p>
 
-O sistema opera com dois pontos de entrada — **Web UI** (`ui/chat.py`) e **CLI** (`main.py`) — que compartilham a mesma logica via modulos centralizados. Para perguntas simples, o comando `/geral` aciona `commands/geral.py` diretamente (zero agentes, zero MCP, ~95% mais barato). Para tarefas de engenharia, o **Supervisor** (Sonnet via LiteLLM Proxy) orquestra **8 agentes especialistas** definidos declarativamente em Markdown com frontmatter YAML. Cada agente declara seus dominios de conhecimento (`kb_domains`), ferramentas, tier e modelo. O Supervisor segue o **Protocolo KB-First + BMAD** com validacao constitucional.
+O sistema opera com tres pontos de entrada — **Web UI Chainlit** (`ui/chainlit_app.py`), **Web UI Streamlit** (`ui/chat.py`) e **CLI** (`main.py`) — que compartilham a mesma logica via modulos centralizados. Para perguntas simples, o comando `/geral` aciona `commands/geral.py` diretamente (zero agentes, zero MCP, ~95% mais barato). Para tarefas de engenharia, o **Supervisor** (Opus via Claude API) orquestra **9 agentes especialistas** definidos declarativamente em Markdown com frontmatter YAML. Cada agente declara seus dominios de conhecimento (`kb_domains`), ferramentas, tier e modelo. O Supervisor segue o **Protocolo KB-First + BMAD** com validacao constitucional.
 
 ### Fluxo Completo do Supervisor
 
@@ -83,6 +83,7 @@ O sistema opera com dois pontos de entrada — **Web UI** (`ui/chat.py`) e **CLI
 | **Data Quality Steward** | `/quality`    | T2   | Profiling, expectations, alertas, SLAs                            |
 | **Governance Auditor**   | `/governance` | T2   | Auditoria, linhagem, PII, LGPD/GDPR                               |
 | **Semantic Modeler**     | `/semantic`   | T2   | DAX, Direct Lake, Genie Spaces, AI/BI Dashboards, Model Serving   |
+| **dbt Expert** *(novo)*  | `/dbt`        | T2   | dbt Core: models, testes, snapshots, seeds, docs, dbt-databricks, dbt-fabric |
 
 ---
 
@@ -101,10 +102,13 @@ pip install -e ".[dev,ui,monitoring]"
 # 4. Configure credenciais
 cp .env.example .env   # edite com suas chaves
 
-# 5a. Inicie com Web UI (recomendado)
+# 5a. Inicie com Web UI Chainlit (recomendado — mais rica)
+./start_chainlit.sh    # abre http://localhost:8503 (Chainlit: Data Agents + Dev Assistant)
+
+# 5b. OU Web UI Streamlit
 ./start.sh             # abre http://localhost:8502 (Chat) + http://localhost:8501 (Monitoring)
 
-# 5b. OU inicie pelo terminal
+# 5c. OU inicie pelo terminal
 python main.py
 ```
 
@@ -119,8 +123,13 @@ python main.py
 | `AZURE_TENANT_ID`, `FABRIC_WORKSPACE_ID`           | Nao         | Fabric               |
 | `FABRIC_SQL_LAKEHOUSES`, `FABRIC_SQL_DEFAULT_LAKEHOUSE` | Nao    | Fabric SQL Analytics |
 | `KUSTO_SERVICE_URI`, `KUSTO_SERVICE_DEFAULT_DB`    | Nao         | Fabric RTI           |
+| `TAVILY_API_KEY`                                     | Nao         | Tavily (busca web)   |
+| `GITHUB_PERSONAL_ACCESS_TOKEN`                       | Nao         | GitHub MCP           |
+| `FIRECRAWL_API_KEY`                                  | Nao         | Firecrawl (scraping) |
+| `POSTGRES_URL`                                       | Nao         | PostgreSQL MCP       |
 
 O sistema ativa automaticamente apenas as plataformas com credenciais validas.
+`context7` e `memory_mcp` sao ativados automaticamente (sem credenciais).
 
 ---
 
@@ -179,7 +188,21 @@ O conhecimento e organizado em 3 camadas:
 
 ## Interfaces do Usuario
 
-### Web UI (Chat)
+### Web UI Chainlit (nova — recomendada)
+
+```bash
+./start_chainlit.sh
+# chainlit run ui/chainlit_app.py --port 8503
+```
+
+Interface Chainlit com dois modos de operacao selecionaveis ao iniciar:
+
+- **Data Agents** — Supervisor completo com 9 agentes especialistas, todos os slash commands e MCPs de plataforma. Exibe `cl.Step()` em tempo real para cada delegacao e tool call, mostrando qual agente esta ativo e qual ferramenta esta sendo chamada.
+- **Dev Assistant** — Claude direto (sem Supervisor), ferramentas `Read`, `Write`, `Bash`, `Grep`, `Glob` habilitadas, historico de conversa para follow-ups. Usa `settings.default_model` (Bedrock) — custo zero pelo acordo da empresa.
+
+Troque de modo a qualquer momento com `/modo`.
+
+### Web UI Streamlit (Chat)
 
 ```bash
 ./start.sh             # abre http://localhost:8502 (Chat) + http://localhost:8501 (Monitoring)

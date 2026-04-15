@@ -80,6 +80,16 @@ class Settings(BaseSettings):
     # Exemplo conda: /opt/anaconda3/envs/multi_agents/bin/databricks-genie-mcp
     databricks_genie_command: str = "databricks-genie-mcp"
 
+    # --- Fabric Semantic MCP (MCP Customizado — introspecção de Semantic Models) ---
+    # Resolve o gap do fabric_community que não expõe TMDL, medidas DAX, relacionamentos e RLS.
+    # Usa Power BI REST API (getDefinition + executeQueries) e Fabric REST API v1.
+    # Reutiliza as credenciais Azure (AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET).
+    # Requer permissão no Power BI Admin Portal:
+    #   Tenant Settings → Developer Settings → "Allow service principals to use Power BI APIs"
+    # Comando: fabric-semantic-mcp (entry point em pyproject.toml)
+    # Exemplo conda: /opt/anaconda3/envs/multi_agents/bin/fabric-semantic-mcp
+    fabric_semantic_command: str = "fabric-semantic-mcp"
+
     # --- Fabric RTI ---
     kusto_service_uri: str = ""
     kusto_service_default_db: str = ""
@@ -278,6 +288,14 @@ class Settings(BaseSettings):
                     "DATABRICKS_TOKEN",
                     "DATABRICKS_GENIE_SPACES_OR_DEFAULT",
                 ],
+            },
+            "fabric_semantic": {
+                # Reutiliza credenciais Azure do fabric — considera pronto quando fabric está pronto
+                "fields": {
+                    "AZURE_TENANT_ID": self.azure_tenant_id,
+                    "FABRIC_WORKSPACE_ID": self.fabric_workspace_id,
+                },
+                "required": ["AZURE_TENANT_ID", "FABRIC_WORKSPACE_ID"],
             },
             "fabric_rti": {
                 "fields": {

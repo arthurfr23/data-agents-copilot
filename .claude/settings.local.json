@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "Bash(python3 -c \"import claude_agent_sdk; print\\(f'Version: {claude_agent_sdk.__version__}'\\)\")",
+      "Bash(find /Users/thomaz_rossito/Projects/data-agents/mcp_servers/fabric* -name \"server_config.py\" -o -name \"tool_config.py\" -o -name \"config.py\")",
+      "Bash(cat)",
+      "Read(//tmp/**)"
     ]
   }
 }

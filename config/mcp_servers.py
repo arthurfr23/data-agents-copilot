@@ -23,6 +23,7 @@ from mcp_servers.databricks.server_config import get_databricks_mcp_config
 from mcp_servers.databricks_genie.server_config import get_databricks_genie_mcp_config
 from mcp_servers.fabric.server_config import get_fabric_mcp_config
 from mcp_servers.fabric_rti.server_config import get_fabric_rti_mcp_config
+from mcp_servers.fabric_semantic.server_config import get_fabric_semantic_mcp_config
 from mcp_servers.fabric_sql.server_config import get_fabric_sql_mcp_config
 from mcp_servers.firecrawl.server_config import get_firecrawl_mcp_config
 from mcp_servers.github.server_config import get_github_mcp_config
@@ -47,6 +48,10 @@ ALL_MCP_CONFIGS: dict = {
     # Requer: FABRIC_SQL_ENDPOINT + FABRIC_LAKEHOUSE_NAME no .env
     "fabric_sql": get_fabric_sql_mcp_config,
     "fabric_rti": get_fabric_rti_mcp_config,
+    # fabric_semantic: MCP customizado para introspecção profunda de Semantic Models
+    # Expõe TMDL (tabelas, colunas, medidas DAX, relacionamentos, RLS) e execução DAX.
+    # Reutiliza credenciais Azure (AZURE_TENANT_ID + AZURE_CLIENT_ID + AZURE_CLIENT_SECRET).
+    "fabric_semantic": get_fabric_semantic_mcp_config,
     # ── MCPs externos ─────────────────────────────────────────────────────────
     # context7: documentação atualizada de bibliotecas (free até 1k req/mês, sem credenciais)
     "context7": get_context7_mcp_config,
@@ -119,6 +124,7 @@ def build_mcp_registry(platforms: list[str] | None = None) -> dict:
     PLATFORM_TO_SERVER_ALIASES: dict[str, str] = {
         "fabric": "fabric_community",
         "fabric_rti": "fabric_rti",
+        "fabric_semantic": "fabric_semantic",
     }
     for alias, server_name in PLATFORM_TO_SERVER_ALIASES.items():
         if server_name in registry and alias not in registry:
