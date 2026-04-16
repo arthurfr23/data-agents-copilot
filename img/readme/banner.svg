@@ -61,7 +61,7 @@
 
   <!-- Version badge -->
   <rect x="60" y="174" width="80" height="24" rx="12" fill="#238636"/>
-  <text x="100" y="191" font-size="12" font-weight="600" fill="#FFFFFF" text-anchor="middle">v8.0.0</text>
+  <text x="100" y="191" font-size="12" font-weight="600" fill="#FFFFFF" text-anchor="middle">v1.0.0</text>
 
   <rect x="152" y="174" width="90" height="24" rx="12" fill="#1F6FEB"/>
   <text x="197" y="191" font-size="12" font-weight="600" fill="#FFFFFF" text-anchor="middle">CI/CD ✓</text>

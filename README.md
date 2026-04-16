@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-8.0.0-brightgreen" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.0.0-brightgreen" alt="Version">
   <img src="https://img.shields.io/badge/Python-3.12+-blue" alt="Python">
   <img src="https://img.shields.io/badge/Databricks-MCP-FF3621" alt="Databricks">
   <img src="https://img.shields.io/badge/Microsoft%20Fabric-MCP-0078D4" alt="Fabric">
@@ -20,7 +20,7 @@
 > **Thomaz Antonio Rossito Neto**
 > Specialist Data & AI Solutions Architect | Center of Excellence CoE @CI&T
 
-**LinkedIn:** [thomaz-antonio-rossito-neto](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/) &nbsp;·&nbsp; **GitHub:** [ThomazRossito](https://github.com/ThomazRossito/)
+**LinkedIn:** [thomaz-antonio-rossito-neto](https://www.linkedin.com/in/thomaz-antonio-rossito-neto/)        **GitHub:** [ThomazRossito](https://github.com/ThomazRossito/)
 
 ### Certificações Databricks
 
@@ -35,7 +35,7 @@
 ## Como Funciona
 
 <p align="center">
-  <img src="img/readme/architecture_v8.svg" alt="Arquitetura Data Agents v8" width="100%">
+  <img src="img/readme/architecture_v1.svg" alt="Arquitetura Data Agents v1" width="100%">
 </p>
 
 Você envia uma mensagem — seja pelo terminal, pela interface web ou com um comando slash. O **Supervisor** lê a solicitação, consulta as bases de conhecimento do projeto, planeja a solução e delega para os agentes especialistas certos. Cada agente usa as ferramentas MCP para operar diretamente no Databricks ou no Microsoft Fabric e devolve o resultado para o Supervisor consolidar.

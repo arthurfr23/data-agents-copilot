@@ -1,4 +1,4 @@
-# Manual e Relatorio Tecnico: Projeto Data Agents v7.0
+# Manual e Relatório Técnico: Projeto Data Agents v1.0
 
 ---
 
@@ -28,36 +28,37 @@ Repositorio: [github.com/ThomazRossito/data-agents](https://github.com/ThomazRos
 
 ---
 
-## Sumario
+## Sumário
 
-- [Prefacio](#prefacio)
-- [1. O que e este projeto?](#1-o-que-e-este-projeto)
-- [2. Conceitos Fundamentais (Glossario)](#2-conceitos-fundamentais-glossario)
+- [Prefácio](#prefacio)
+- [1. O que é este projeto?](#1-o-que-e-este-projeto)
+- [2. Conceitos Fundamentais (Glossário)](#2-conceitos-fundamentais-glossario)
 - [3. Arquitetura Geral do Sistema](#3-arquitetura-geral-do-sistema)
 - [4. Os Agentes: A Equipe Virtual](#4-os-agentes-a-equipe-virtual)
-- [5. O Metodo BMAD, KB-First e Constituicao](#5-o-metodo-bmad-kb-first-e-constituicao)
-- [6. Estrutura de Arquivos e Pastas](#6-estrutura-de-arquivos-e-pastas)
-- [7. Analise Detalhada de Cada Componente](#7-analise-detalhada-de-cada-componente)
-- [8. Seguranca e Controle de Custos (Hooks)](#8-seguranca-e-controle-de-custos-hooks)
-- [9. O Hub de Conhecimento (KBs, Skills e Constituicao)](#9-o-hub-de-conhecimento-kbs-skills-e-constituicao)
-- [10. Workflows Colaborativos e Spec-First](#10-workflows-colaborativos-e-spec-first)
-- [11. Conexoes com a Nuvem (MCP Servers)](#11-conexoes-com-a-nuvem-mcp-servers)
-- [12. Sistema de Memoria Persistente](#12-sistema-de-memoria-persistente)
-- [13. Ciclo de Vida da Sessao e Config Snapshot](#13-ciclo-de-vida-da-sessao-e-config-snapshot)
-- [14. O Comando /geral — Bypass Inteligente](#14-o-comando-geral--bypass-inteligente)
-- [15. Comandos Disponiveis (Slash Commands)](#15-comandos-disponiveis-slash-commands)
-- [16. Configuracao e Credenciais](#16-configuracao-e-credenciais)
-- [17. Checkpoint de Sessao (Recuperacao Automatica)](#17-checkpoint-de-sessao-recuperacao-automatica)
-- [18. Deploy com MLflow (Model Serving)](#18-deploy-com-mlflow-model-serving)
-- [19. Qualidade de Codigo e Testes](#19-qualidade-de-codigo-e-testes)
-- [20. Deploy e CI/CD (Publicacao Automatica)](#20-deploy-e-cicd-publicacao-automatica)
-- [21. Interfaces do Usuario (Terminal e Web UI)](#21-interfaces-do-usuario-terminal-e-web-ui)
-- [22. Dashboard de Monitoramento](#22-dashboard-de-monitoramento)
-- [23. Por Que Esta Arquitetura? (Decisoes de Design)](#23-por-que-esta-arquitetura-decisoes-de-design)
-- [24. Como Comecar a Usar](#24-como-comecar-a-usar)
-- [25. Historico de Melhorias](#25-historico-de-melhorias)
-- [26. Metricas do Projeto](#26-metricas-do-projeto)
-- [27. Conclusao](#27-conclusao)
+- [5. O Método DOMA, KB-First e Constituição](#5-o-metodo-doma-kb-first-e-constituicao)
+- [6. Party Mode — Múltiplos Agentes em Paralelo](#6-party-mode--multiplos-agentes-em-paralelo)
+- [7. Estrutura de Arquivos e Pastas](#7-estrutura-de-arquivos-e-pastas)
+- [8. Análise Detalhada de Cada Componente](#8-analise-detalhada-de-cada-componente)
+- [9. Segurança e Controle de Custos (Hooks)](#9-seguranca-e-controle-de-custos-hooks)
+- [10. O Hub de Conhecimento (KBs, Skills e Constituição)](#10-o-hub-de-conhecimento-kbs-skills-e-constituicao)
+- [11. Workflows Colaborativos e Spec-First](#11-workflows-colaborativos-e-spec-first)
+- [12. Conexões com a Nuvem (MCP Servers)](#12-conexoes-com-a-nuvem-mcp-servers)
+- [13. Sistema de Memória Persistente](#13-sistema-de-memoria-persistente)
+- [14. Ciclo de Vida da Sessão e Config Snapshot](#14-ciclo-de-vida-da-sessao-e-config-snapshot)
+- [15. O Comando /geral — Bypass Inteligente](#15-o-comando-geral--bypass-inteligente)
+- [16. Comandos Disponíveis (Slash Commands)](#16-comandos-disponiveis-slash-commands)
+- [17. Configuração e Credenciais](#17-configuracao-e-credenciais)
+- [18. Checkpoint de Sessão (Recuperação Automática)](#18-checkpoint-de-sessao-recuperacao-automatica)
+- [19. Deploy com MLflow (Model Serving)](#19-deploy-com-mlflow-model-serving)
+- [20. Qualidade de Código e Testes](#20-qualidade-de-codigo-e-testes)
+- [21. Deploy e CI/CD (Publicação Automática)](#21-deploy-e-cicd-publicacao-automatica)
+- [22. Interfaces do Usuário (Terminal e Web UI)](#22-interfaces-do-usuario-terminal-e-web-ui)
+- [23. Dashboard de Monitoramento](#23-dashboard-de-monitoramento)
+- [24. Por Que Esta Arquitetura? (Decisões de Design)](#24-por-que-esta-arquitetura-decisoes-de-design)
+- [25. Como Começar a Usar](#25-como-comecar-a-usar)
+- [26. Histórico de Melhorias](#26-historico-de-melhorias)
+- [27. Métricas do Projeto](#27-metricas-do-projeto)
+- [28. Conclusão](#28-conclusao)
 
 ---
 
@@ -69,7 +70,7 @@ O projeto Data Agents nasceu de uma frustracao real: ferramentas de IA generativ
 
 A solucao foi construir um sistema que nao apenas conversa, mas age: uma plataforma de multiplos agentes especializados, cada um com o conjunto certo de ferramentas, o conhecimento correto (via Knowledge Bases e Skills), e um conjunto de restricoes inviolaveis (a Constituicao) que garante que o comportamento seja sempre seguro, auditavel e alinhado com as melhores praticas de engenharia de dados.
 
-A versao 7.0 e a versao mais completa do projeto. Ela expande o ecossistema com 10 agentes especialistas, 13 MCP servers, sistema de refresh automatico de Skills, 7 tipos de memoria com decay configuravel, e melhorias de seguranca, UX e roteamento de agentes.
+Esta é a versão 1.0 — a primeira release pública do projeto. Ela consolida um ecossistema com 10 agentes especialistas, 12 MCP servers, Party Mode para consultas paralelas, sistema de refresh automático de Skills, 7 tipos de memória com decay configurável, e o protocolo DOMA completo para orquestração disciplinada de tarefas complexas.
 
 Este manual foi escrito pensando em quatro perfis de leitores simultaneamente:
 
@@ -144,41 +145,25 @@ A camada de governanca embutida (Constituicao + Hooks de seguranca) significa qu
 
 O modelo de custo e controlado: cada sessao tem um limite de budget em dolares (padrao: $5.00) e um limite de turns (padrao: 50). Quando o limite e atingido, o sistema salva um checkpoint e para graciosamente. O custo de cada operacao e rastreado e visivel em tempo real no Dashboard de Monitoramento.
 
-### 1.5 Versao 7.0: O que Ha de Novo
+### 1.5 O que está incluído na v1.0
 
-A versao 7.0 e a versao mais completa do projeto, acumulando os avancos das versoes anteriores:
+Esta é a primeira release pública do Data Agents. O ecossistema entrega, de forma integrada:
 
-**v5.0 — Memoria Persistente:** 4 tipos de memoria armazenados como Markdown, decay temporal, retrieval semantico, hooks de captura e ciclo de vida da sessao.
+**10 Agentes Especialistas** com tiers diferenciados (Opus para planejamento e intake, Sonnet para execução técnica), triggers precisos de roteamento e `output_budget` declarativo no frontmatter para controle de verbosidade.
 
-**v6.0 — Ecossistema Expandido:** 6 novos MCP servers externos (context7, tavily, github, firecrawl, postgres, memory_mcp), agente dbt Expert, Web UI Chainlit com dois modos de operacao, feedback em tempo real com cl.Step().
+**Protocolo DOMA** (Data Orchestration Method for Agents) com 7 passos — KB-First, Clarity Checkpoint, Spec-First, Planejamento, Aprovação, Delegação e Validação Constitucional. Três modos de velocidade: Full (`/plan`), Express (comandos diretos) e Internal (diagnóstico do sistema).
 
-**v7.0 — Qualidade e Autonomia:**
+**Party Mode (`/party`)** — múltiplos agentes especialistas respondem em paralelo via `asyncio.gather`. Quatro grupos temáticos pré-definidos (default, quality, arch, full) e suporte a seleção explícita de agentes.
 
-**Skill Updater e Refresh Automatico:** Novo agente que mantém as Skills atualizadas automaticamente. `make refresh-skills` invoca o agente para buscar documentacao atualizada via context7/tavily/firecrawl. Skills desatualizadas geram codigo desatualizado — agora o sistema cuida disso.
+**Knowledge Bases modulares** em 8 domínios, com separação `concepts/` (teoria) e `patterns/` (implementação com código). Biblioteca centralizada de anti-padrões com 29 entradas catalogadas por severidade.
 
-**7 Tipos de Memoria com Decay Configuravel:** Tres novos tipos de dominio de dados: `data_asset` (schemas, tabelas), `platform_decision` (escolhas de tecnologia), `pipeline_status` (estado de execucao). Cada tipo tem decay configuravel individualmente via `.env`.
+**12 MCP Servers** — incluindo servidores customizados para Fabric SQL Analytics, Fabric RTI, Genie Conversations e Fabric Semantic Models, que resolvem limitações dos servidores oficiais.
 
-**Roteamento Preciso de Agentes:** Todos os 10 agentes agora tem triggers "Invoque quando:" no description, garantindo que o Supervisor direcione cada tarefa ao especialista correto sem ambiguidade.
+**Memória persistente em dois layers** — episódica com 7 tipos e decay configurável, e knowledge graph via `memory_mcp` para entidades e relações permanentes.
 
-**Seguranca Git:** 5 novos padroes destrutivos: git force-push, reset --hard, branch -D (force delete, case-sensitive para nao bloquear -d seguro).
+**Workflow Context Cache** (Regra W8) — antes do primeiro agente de qualquer workflow WF-01 a WF-04, o Supervisor compila um arquivo de contexto unificado, eliminando releituras redundantes de spec e KBs.
 
-**Melhorias de UX:** Budget resetado automaticamente em novo chat, indicador visual de processamento no Chainlit, checkpoint com instrucao de retomada direta.
-
-### 1.6 Versao 8.0: A Grande Reestruturacao do Conhecimento
-
-A versao 8.0 representa o maior salto na organizacao interna do conhecimento desde a criacao do sistema. As principais mudancas sao:
-
-**KB Modular (concepts/ + patterns/):** Todos os 8 dominios de Knowledge Base foram reestruturados. Os arquivos monoliticos foram divididos em dois tipos claros: `concepts/` para definicoes e teoria (<=150 linhas), e `patterns/` para padroes de implementacao com codigo (<=200 linhas). Isso elimina confusao entre "o que e X" e "como implementar X", e permite que os agentes leiam apenas o arquivo relevante para sua tarefa.
-
-**Biblioteca de Anti-Padroes Centralizada (`kb/shared/anti-patterns.md`):** Substitui definicoes espalhadas por multiplos arquivos. Catalogo unificado com 7 anti-padroes CRITICOS (C), 12 de severidade ALTA (H) e 10 de severidade MEDIA (M), incluindo: SELECT * sem WHERE, DROP sem backup, PII sem mascaramento, Python UDFs em producao, Direct Lake com DAX volatil sem cache, e snapshots dbt sem `unique_key`.
-
-**Protocolo KB-First v2 com Agreement Matrix:** Todos os agentes agora calculam uma pontuacao de confianca explicita antes de responder. A Agreement Matrix cruza informacao da KB com confirmacao do MCP: KB + MCP = ALTA (0.95), KB sem MCP = MEDIA (0.75), MCP sem KB = 0.85. Cada resposta tecnica inclui um bloco de proveniencia obrigatorio.
-
-**Cascade Tracking PRD->SPEC:** O `workflow_tracker.py` agora detecta modificacoes em PRDs (`output/*/prd/*.md`) e automaticamente emite eventos `spec_needs_review` para todos os SPECs no mesmo contexto, garantindo que nunca haja PRD modificado sem revisao dos SPECs dependentes.
-
-**`output_budget` por Agente:** Todos os 10 agentes declaram no frontmatter um orcamento de linhas de saida (`output_budget`). Tier 1: 150-400 linhas; Tier 2: 80-250 linhas; Tier 3: 30-100 linhas. Isso controla verbosidade sem modificar o runtime.
-
-**Chainlit Tool Result Display:** O `ui/chainlit_app.py` agora exibe o conteudo real retornado por cada tool call nos steps expansiveis. Anteriormente mostrava apenas "Concluido em X.Xs". A implementacao captura `UserMessage` com `ToolResultBlock` do SDK e fecha o step com o output real (truncado em 3.000 chars se necessario).
+**9 Hooks de segurança e controle** — 33 padrões destrutivos cobertos, auditoria JSONL completa, compressão de outputs, rastreamento de custo e ciclo de vida de sessão.
 
 ---
 
@@ -208,7 +193,7 @@ Protocolo de codigo aberto criado pela Anthropic que permite que agentes de IA s
 
 **Thinking Avancado**
 
-Capacidade do modelo Claude de "pensar em voz alta" antes de responder — executar uma cadeia de raciocinio interna mais profunda antes de chegar a conclusao. E habilitado apenas no modo BMAD Full (comando `/plan` e `/brief`) porque aumenta o custo e o tempo de resposta, mas produz planos de arquitetura significativamente melhores para tarefas complexas.
+Capacidade do modelo Claude de "pensar em voz alta" antes de responder — executar uma cadeia de raciocinio interna mais profunda antes de chegar a conclusao. E habilitado apenas no modo DOMA Full (comando `/plan` e `/brief`) porque aumenta o custo e o tempo de resposta, mas produz planos de arquitetura significativamente melhores para tarefas complexas.
 
 ### 2.2 Conceitos de Engenharia de Dados
 
@@ -269,9 +254,9 @@ Documento de arquitetura criado pelo Supervisor antes de comecar a delegar. Deta
 
 Mecanismo de resiliencia que salva o estado atual da sessao (ultimo prompt, custo acumulado, arquivos gerados) sempre que ha uma interrupcao — budget estourado, idle timeout ou reset manual. Permite retomar exatamente de onde parou na proxima sessao.
 
-**BMAD (Build, Measure, Approve, Delegate)**
+**DOMA (Data Orchestration Method for Agents)**
 
-Metodo estruturado de orquestracao que define os 7 passos do Supervisor: KB-First (ler Knowledge Bases) → Clarity Checkpoint → Spec-First (selecionar template) → Planejamento (PRD) → Aprovacao → Delegacao → Sintese e Validacao. E o protocolo que garante que toda tarefa complexa siga um processo disciplinado antes da execucao.
+Método estruturado de orquestração desenvolvido para este projeto que define os 7 passos do Supervisor: KB-First (ler Knowledge Bases) → Clarity Checkpoint → Spec-First (selecionar template) → Planejamento (PRD) → Aprovação → Delegação → Síntese e Validação. É o protocolo que garante que toda tarefa complexa siga um processo disciplinado antes da execução. O método inclui três modos de velocidade: **DOMA Full** (planejamento completo com thinking, para `/plan`), **DOMA Express** (delegação direta, para comandos como `/sql`, `/spark`) e **DOMA Internal** (comandos do sistema como `/health`, `/status`).
 
 **MLflow**
 
@@ -297,7 +282,7 @@ Sistema que permite ao agente lembrar informacoes relevantes entre sessoes difer
 | Workflow Colaborativo           | Cadeia sequencial de agentes                                           | Linha de montagem especializada                               |
 | PRD                             | Documento de arquitetura pre-execucao                                  | O briefing tecnico antes do projeto                           |
 | Checkpoint de Sessao            | Save state automatico para recuperacao                                 | O save point de um jogo                                       |
-| BMAD                            | Protocolo de orquestracao em 7 passos                                  | A metodologia agil do sistema                                 |
+| DOMA                            | Protocolo de orquestracao em 7 passos                                  | A metodologia agil do sistema                                 |
 | Memoria Persistente             | Aprendizado que sobrevive entre sessoes                                | A memoria de longo prazo do sistema                           |
 
 ---
@@ -305,7 +290,7 @@ Sistema que permite ao agente lembrar informacoes relevantes entre sessoes difer
 ## 3. Arquitetura Geral do Sistema
 
 <p align="center">
-  <img src="./img/readme/architecture_v7.png" alt="Arquitetura Multi-Agent System Data Agents v8.0" width="100%">
+  <img src="./img/readme/architecture_v1.svg" alt="Arquitetura Data Agents v1.0" width="100%">
 </p>
 
 ### 3.1 A Visao Geral: Uma Empresa em Miniatura
@@ -314,7 +299,7 @@ A melhor forma de entender a arquitetura do Data Agents e pensar nela como uma e
 
 O Data Agents tem exatamente isso. A **Constituicao** e o estatuto da empresa. O **Supervisor** e o gerente geral. Os **agentes especialistas** sao os tecnicos de cada area. Os **MCP Servers** sao as ferramentas conectadas ao ambiente de producao. Os **Hooks** sao a auditoria interna. As **Knowledge Bases** e **Skills** sao os manuais de procedimentos. O **Sistema de Memoria** e a memoria institucional — o conhecimento acumulado que a empresa nao perde quando o funcionario vai embora.
 
-Nesta empresa, quando um cliente (voce) chega com um pedido, o gerente nao simplesmente terceiriza sem verificar. Ele primeiro ve se o pedido esta claro o suficiente, cria um plano formal, pede aprovacao, e so entao aciona os especialistas certos. E ao final, valida se o que foi entregue esta de acordo com os padroes da empresa. Esse e o protocolo BMAD.
+Nesta empresa, quando um cliente (voce) chega com um pedido, o gerente nao simplesmente terceiriza sem verificar. Ele primeiro ve se o pedido esta claro o suficiente, cria um plano formal, pede aprovacao, e so entao aciona os especialistas certos. E ao final, valida se o que foi entregue esta de acordo com os padroes da empresa. Esse e o protocolo DOMA.
 
 ### 3.2 O Fluxo de Trabalho Detalhado
 
@@ -326,11 +311,11 @@ O pedido chega ao sistema pela interface escolhida pelo usuario: o terminal via 
 
 **Passo 2: O Roteamento (commands/parser.py)**
 
-O parser identifica que `/plan` corresponde ao modo BMAD Full com o Supervisor. Ele monta o contexto da sessao (incluindo memorias relevantes recuperadas do sistema de memoria persistente) e inicializa o agente Supervisor via `agents/supervisor.py`.
+O parser identifica que `/plan` corresponde ao modo DOMA Full com o Supervisor. Ele monta o contexto da sessao (incluindo memorias relevantes recuperadas do sistema de memoria persistente) e inicializa o agente Supervisor via `agents/supervisor.py`.
 
 **Passo 3: O Gerente Entra em Acao (supervisor.py + supervisor_prompt.py)**
 
-O Supervisor e instanciado com seu system prompt completo (223 linhas), que inclui: identidade, equipe disponivel, protocolo BMAD detalhado, regras inviolaveis (S1-S7), tabela de roteamento de KB, suporte a workflows colaborativos (WF-01 a WF-04), validacao Star Schema e formato de resposta.
+O Supervisor e instanciado com seu system prompt completo (223 linhas), que inclui: identidade, equipe disponivel, protocolo DOMA detalhado, regras inviolaveis (S1-S7), tabela de roteamento de KB, suporte a workflows colaborativos (WF-01 a WF-04), validacao Star Schema e formato de resposta.
 
 Com o **thinking avancado** habilitado em modo Full, o Supervisor comeca seu processo interno:
 
@@ -358,11 +343,11 @@ Ao final da sessao, o `memory_hook.py` e o `session_lifecycle_hook.py` trabalham
 
 O sistema oferece quatro modos de velocidade para diferentes necessidades, equilibrando profundidade de raciocinio com custo e tempo de resposta:
 
-**BMAD Full (/plan, /brief)**
+**DOMA Full (/plan, /brief)**
 
-O modo mais completo. Ativa o thinking avancado do modelo, executa todos os 7 passos do protocolo BMAD, gera PRD e SPEC, aguarda aprovacao antes de delegar. Ideal para pipelines novos, refatoracoes de arquitetura ou qualquer tarefa que envolva 3 ou mais agentes. Mais lento e mais caro, mas produz os resultados mais seguros e bem documentados.
+O modo mais completo. Ativa o thinking avancado do modelo, executa todos os 7 passos do protocolo DOMA, gera PRD e SPEC, aguarda aprovacao antes de delegar. Ideal para pipelines novos, refatoracoes de arquitetura ou qualquer tarefa que envolva 3 ou mais agentes. Mais lento e mais caro, mas produz os resultados mais seguros e bem documentados.
 
-**BMAD Express (/sql, /spark, /pipeline, /fabric, /quality, /governance, /semantic)**
+**DOMA Express (/sql, /spark, /pipeline, /fabric, /quality, /governance, /semantic)**
 
 Modo de velocidade. Pula o planejamento e vai direto ao especialista correto. Sem thinking avancado. Sem PRD. Sem aprovacao. Ideal para tarefas pontuais e bem definidas — "escreva esta query", "crie este job", "faca profiling desta tabela". Muito mais rapido e economico que o modo Full.
 
@@ -381,7 +366,7 @@ Comandos de diagnostico e controle do proprio sistema. Nao delegam para agentes.
 | Entrada Principal    | main.py                            | Banner, loop interativo, sessao, idle timeout, checkpoint  |
 | Supervisor           | agents/supervisor.py + prompts/    | Orquestracao, PRD, delegacao, Clarity Checkpoint           |
 | Motor de Agentes     | agents/loader.py                   | Carrega agentes de Markdown, KB injection, model routing   |
-| Comandos             | commands/parser.py                 | Roteamento de slash commands para modos BMAD               |
+| Comandos             | commands/parser.py                 | Roteamento de slash commands para modos DOMA               |
 | Configuracao         | config/settings.py                 | Pydantic BaseSettings com validacao de credenciais         |
 | Hooks (9 total)      | hooks/                             | Auditoria, seguranca, custo, compressao, workflows, mem    |
 | MCP Servers (6)      | mcp_servers/                       | Conexoes com Databricks, Fabric e Fabric RTI               |
@@ -516,7 +501,7 @@ O Pipeline Architect e o agente com as permissoes mais amplas do sistema, e por 
 
 **Roteamento inteligente do /fabric:** O comando `/fabric` tem logica de roteamento interno. Se o prompt mencionar "semantic model", "DAX", "Power BI", "Direct Lake" ou "Metric Views", o comando redireciona automaticamente para o Semantic Modeler em vez do Pipeline Architect. Isso garante que tarefas de modelagem semantica sempre cheguem ao especialista correto, mesmo que o usuario use o comando generico `/fabric`.
 
-**output_budget (v8.0):** Todos os agentes declaram no frontmatter YAML um campo `output_budget` que expressa o orcamento de linhas de resposta esperado. Exemplos: `"150-400 linhas"` (T1), `"80-250 linhas"` (T2), `"30-100 linhas"` (T3). O agente usa isso como orientacao interna para calibrar verbosidade — respostas longas para tarefas tecnicas complexas, curtas para perguntas conceituais.
+**output_budget:** Todos os agentes declaram no frontmatter YAML um campo `output_budget` que expressa o orcamento de linhas de resposta esperado. Exemplos: `"150-400 linhas"` (T1), `"80-250 linhas"` (T2), `"30-100 linhas"` (T3). O agente usa isso como orientacao interna para calibrar verbosidade — respostas longas para tarefas tecnicas complexas, curtas para perguntas conceituais.
 
 ### 4.4 Tier 2 — Qualidade, Governanca e Analise
 
@@ -586,15 +571,15 @@ O Skill Updater e o unico agente sem exposicao direta ao usuario via slash comma
 
 ---
 
-## 5. O Metodo BMAD, KB-First e Constituicao
+## 5. O Método DOMA, KB-First e Constituição
 
 ### 5.1 Por Que um Metodo?
 
 A primeira versao do projeto era simples: o usuario digitava um pedido, o modelo respondia com codigo. Funcionava para tarefas triviais. Mas quando as tarefas ficavam complexas — pipelines com multiplas camadas, integracao entre plataformas, decisoes que afetavam arquitetura — o comportamento sem estrutura produzia resultados inconsistentes e, as vezes, perigosos.
 
-O BMAD nasceu da necessidade de impor disciplina sem eliminar flexibilidade. A ideia central e: **toda tarefa complexa de engenharia de dados segue o mesmo processo logico**, independentemente dos detalhes especificos. Primeiro voce entende o problema. Depois voce define o que sera construido. Depois voce pede aprovacao. Depois voce executa. Depois voce valida.
+O método DOMA nasceu da necessidade de impor disciplina sem eliminar flexibilidade. A ideia central e: **toda tarefa complexa de engenharia de dados segue o mesmo processo logico**, independentemente dos detalhes especificos. Primeiro voce entende o problema. Depois voce define o que sera construido. Depois voce pede aprovacao. Depois voce executa. Depois voce valida.
 
-O metodo BMAD codifica esse processo natural de engenharia em 7 passos executados automaticamente pelo Supervisor toda vez que voce usa o comando `/plan`.
+O método DOMA codifica esse processo natural de engenharia em 7 passos executados automaticamente pelo Supervisor toda vez que voce usa o comando `/plan`.
 
 ### 5.2 A Constituicao — A Lei Suprema do Sistema
 
@@ -642,7 +627,7 @@ Essa e uma decisao de design deliberada com tres beneficios. Primeiro, qualquer 
 
 ### 5.3 A Filosofia KB-First e o Protocolo v2
 
-O principio KB-First e simples: **nenhum agente age sem primeiro consultar suas Knowledge Bases**. Mas a v8.0 vai alem — introduz o **Protocolo KB-First v2** com Agreement Matrix e pontuacao explicita de confianca.
+O principio KB-First e simples: **nenhum agente age sem primeiro consultar suas Knowledge Bases**. Nesta versão, o protocolo evolui para o **KB-First v2** com Agreement Matrix e pontuacao explicita de confianca.
 
 A regra de ouro permanece: a IA nunca adivinha, ela le o manual. Antes de comecar a trabalhar, cada agente e forcado a ler as Knowledge Bases de seus dominios declarados. O campo `kb_domains` no frontmatter YAML de cada agente define quais KBs ele precisa. O `loader.py` carrega automaticamente apenas as KBs relevantes — lazy loading para nao sobrecarregar o contexto do modelo.
 
@@ -673,7 +658,7 @@ KB: kb/{dominio}/concepts/{arquivo}.md | Confianca: ALTA (0.92) | MCP: confirmad
 
 ### 5.4 O Clarity Checkpoint em Detalhe
 
-O Clarity Checkpoint e o passo 0.5 do protocolo BMAD — acontece antes do planejamento, depois da leitura das KBs.
+O Clarity Checkpoint e o passo 0.5 do protocolo DOMA — acontece antes do planejamento, depois da leitura das KBs.
 
 O Supervisor avalia a requisicao em 5 dimensoes e atribui uma nota de 0 a 1 para cada:
 
@@ -689,7 +674,7 @@ O Supervisor avalia a requisicao em 5 dimensoes e atribui uma nota de 0 a 1 para
 
 Isso parece uma friccao adicional no fluxo, mas na pratica poupa tempo. Executar um plano baseado em suposicoes erradas — "achei que era a tabela X no schema Y" — e muito mais caro do que fazer uma pergunta de esclarecimento antes de comecar.
 
-### 5.5 Os 7 Passos do Protocolo BMAD
+### 5.5 Os 7 Passos do Protocolo DOMA
 
 | **Passo** | **Nome**             | **O que acontece**                                                      | **Artefato gerado**         |
 | --------- | -------------------- | ----------------------------------------------------------------------- | --------------------------- |
@@ -701,12 +686,63 @@ Isso parece uma friccao adicional no fluxo, mas na pratica poupa tempo. Executar
 | 3         | Delegacao            | Aciona agentes em sequencia (simples ou via Workflows Colaborativos)   | Artefatos por agente        |
 | 4         | Sintese e Validacao  | Verifica aderencia de todos os artefatos a kb/constitution.md          | —                           |
 
-O protocolo completo e executado apenas no modo BMAD Full (`/plan`). No modo Express (comandos diretos como `/sql`, `/spark`), o agente e acionado diretamente a partir do Passo 3, sem planejamento.
+O protocolo completo e executado apenas no modo DOMA Full (`/plan`). No modo Express (comandos diretos como `/sql`, `/spark`), o agente e acionado diretamente a partir do Passo 3, sem planejamento.
 
 
 ---
 
-## 6. Estrutura de Arquivos e Pastas
+## 6. Party Mode — Múltiplos Agentes em Paralelo
+
+### 6.1 O Problema que o Party Mode Resolve
+
+O protocolo DOMA Express é eficiente para tarefas single-domain: você quer um SQL, vai para o SQL Expert; quer um pipeline, vai para o Spark Expert. Mas há uma classe de perguntas que se beneficia de múltiplas perspectivas simultâneas — *"Como devo modelar esta tabela de eventos?"* tem respostas diferentes e complementares para um SQL Expert, um Spark Expert e um Pipeline Architect. Com delegação sequencial, você teria que fazer a pergunta três vezes. Com Party Mode, você faz uma vez.
+
+### 6.2 Como Funciona
+
+O comando `/party` usa `asyncio.gather` para invocar múltiplos agentes especialistas **em paralelo real** — não é um único LLM roleplaying personagens diferentes, são chamadas independentes ao SDK, cada uma com seu próprio system prompt (persona) e sem acesso ao que os outros agentes estão respondendo.
+
+```
+/party <query>                         → grupo padrão: sql-expert + spark-expert + pipeline-architect
+/party --quality <query>               → data-quality-steward + governance-auditor + semantic-modeler
+/party --arch <query>                  → pipeline-architect + spark-expert + sql-expert
+/party --full <query>                  → todos os 6 agentes especialistas
+/party sql-expert spark-expert <query> → agentes explícitos (qualquer combinação)
+```
+
+### 6.3 Grupos Disponíveis
+
+| Grupo | Flag | Agentes | Quando usar |
+|-------|------|---------|-------------|
+| **default** | *(sem flag)* | sql-expert, spark-expert, pipeline-architect | Design técnico, arquitetura de dados, comparações de tecnologia |
+| **quality** | `--quality` | data-quality-steward, governance-auditor, semantic-modeler | Qualidade, compliance, modelagem analítica |
+| **arch** | `--arch` | pipeline-architect, spark-expert, sql-expert | Arquitetura de pipelines, decisões de design |
+| **full** | `--full` | Todos os 6 acima | Análise completa, revisão de arquitetura end-to-end |
+
+### 6.4 Implementação
+
+**`commands/party.py`** — módulo central com:
+- `PARTY_GROUPS` — dicionário de grupos temáticos
+- `AGENT_PERSONAS` — system prompts especializados por agente (em português, diretos e técnicos)
+- `parse_party_args()` — extrai grupo/agentes explícitos e query limpa do input
+- `run_party_query()` — spawna todas as chamadas com `asyncio.gather`, retorna lista de `(agente, resposta, custo)`
+
+Cada agente no Party Mode roda com:
+- `allowed_tools=[]` — sem acesso a MCP (resposta conceitual, sem execução real)
+- `max_turns=1` — uma única resposta por agente
+- `permission_mode="bypassPermissions"` — sem prompts de aprovação
+
+### 6.5 Quando Usar vs. Quando Não Usar
+
+| Use `/party` quando... | Use DOMA Express quando... |
+|------------------------|---------------------------|
+| Precisa de perspectivas independentes sobre uma decisão de design | Tem uma tarefa específica para executar em uma plataforma |
+| Quer comparar abordagens entre domínios | A tarefa requer acesso ao MCP (criar tabelas, executar SQL) |
+| Está explorando uma nova tecnologia ou padrão | O agente correto é óbvio e único |
+| Quer revisar uma arquitetura sob múltiplos ângulos | Precisa de uma resposta mais profunda com KB injection |
+
+---
+
+## 7. Estrutura de Arquivos e Pastas
 
 O projeto segue uma organizacao modular e declarativa. Cada pasta tem uma responsabilidade unica e bem definida. A estrutura foi projetada para que qualquer pessoa que entenda o dominio (engenharia de dados) consiga navegar e encontrar o que precisa sem precisar ler codigo Python.
 
@@ -731,7 +767,7 @@ data-agents/
 │   └── mlflow_wrapper.py      # Wrapper PyFunc para Databricks Model Serving
 │
 ├── commands/
-│   └── parser.py              # Slash commands com roteamento BMAD
+│   └── parser.py              # Slash commands com roteamento DOMA
 │
 ├── config/
 │   ├── settings.py            # Pydantic BaseSettings com validacao de credenciais
@@ -993,7 +1029,7 @@ O `supervisor_prompt.py` contem o system prompt mais longo do projeto (223 linha
 
 - **Identidade e missao:** Quem e o Supervisor e qual e sua responsabilidade central
 - **Equipe disponivel:** Lista dinamica dos agentes carregados, com capacidades de cada um
-- **Protocolo BMAD (7 passos):** Descricao detalhada de cada passo, incluindo criterios de decisao
+- **Protocolo DOMA (7 passos):** Descricao detalhada de cada passo, incluindo criterios de decisao
 - **Regras inviolaveis (S1-S7):** As restricoes absolutas que o Supervisor nunca pode violar
 - **Tabela de roteamento de KB:** Mapa de qual agente deve receber qual KB para qual tipo de tarefa
 - **Suporte a Workflows Colaborativos:** Descricao dos 4 workflows pre-definidos e quando aciona-los
@@ -1026,9 +1062,9 @@ O `settings.py` tambem inclui dois metodos de deteccao automatica de plataformas
 - `validate_platform_credentials()`: Verifica quais plataformas tem todas as credenciais necessarias
 - `get_available_platforms()`: Retorna lista de plataformas disponíveis para exibicao no banner
 
-### 7.5 commands/parser.py — O Sistema de Roteamento BMAD
+### 7.5 commands/parser.py — O Sistema de Roteamento DOMA
 
-O `parser.py` e o ponto central de decisao de roteamento. Para cada slash command recebido, ele determina: qual agente acionar, qual modo BMAD usar, e como montar o contexto inicial.
+O `parser.py` e o ponto central de decisao de roteamento. Para cada slash command recebido, ele determina: qual agente acionar, qual modo DOMA usar, e como montar o contexto inicial.
 
 A implementacao usa um dicionario de roteamento que mapeia cada comando para uma tupla `(agent_name, bmad_mode, thinking_enabled)`:
 
@@ -1245,7 +1281,7 @@ Eventos rastreados:
 
 Esses dados alimentam a pagina "Workflows" do Dashboard com KPIs de pass rate do Clarity Checkpoint, frequencia de uso de cada workflow, e distribuicao de delegacoes por agente.
 
-**Cascade Tracking PRD->SPEC (v8.0):** Alem de rastrear delegacoes, o workflow_tracker agora detecta modificacoes em PRDs. Quando um arquivo correspondendo ao padrao `output/*/prd/*.md` e modificado, o hook emite automaticamente eventos `prd_modified` e `spec_needs_review` para todos os SPECs do mesmo contexto (`output/*/specs/*.md`). Isso garante que nenhuma modificacao de PRD passe despercebida — o `get_workflow_summary()` retorna listas `prd_modifications`, `specs_needing_review` e `cascade_events`.
+**Cascade Tracking PRD→SPEC:** Alem de rastrear delegacoes, o workflow_tracker agora detecta modificacoes em PRDs. Quando um arquivo correspondendo ao padrao `output/*/prd/*.md` e modificado, o hook emite automaticamente eventos `prd_modified` e `spec_needs_review` para todos os SPECs do mesmo contexto (`output/*/specs/*.md`). Isso garante que nenhuma modificacao de PRD passe despercebida — o `get_workflow_summary()` retorna listas `prd_modifications`, `specs_needing_review` e `cascade_events`.
 
 #### cost_guard_hook.py — O Vigilante de Custos
 
@@ -1376,7 +1412,7 @@ Cobre as convencoes especificas do workspace Fabric: nomenclatura de Lakehouses,
 
 #### 9.3.1 Estrutura Interna: concepts/ + patterns/
 
-A partir da v8.0, cada dominio de KB foi reestruturado internamente. Os arquivos monoliticos foram substituidos por dois subdiretórios:
+Cada domínio de KB é organizado internamente em dois subdiretórios: Os arquivos monoliticos foram substituidos por dois subdiretórios:
 
 ```
 kb/{dominio}/
@@ -1913,7 +1949,7 @@ O config snapshot e um registro imutavel do estado da configuracao em um momento
 
 ### 14.1 Por Que um Bypass do Supervisor?
 
-O protocolo BMAD e poderoso, mas tem um custo: tempo e tokens. Um fluxo completo com `/plan` — KB-First, Clarity Checkpoint, Spec-First, PRD, aprovacao — pode consumir varios minutos e alguns dolares antes mesmo de comecar a executar a tarefa real. Isso e completamente justificado para construir um pipeline de producao que vai rodar por anos.
+O protocolo DOMA e poderoso, mas tem um custo: tempo e tokens. Um fluxo completo com `/plan` — KB-First, Clarity Checkpoint, Spec-First, PRD, aprovacao — pode consumir varios minutos e alguns dolares antes mesmo de comecar a executar a tarefa real. Isso e completamente justificado para construir um pipeline de producao que vai rodar por anos.
 
 Mas e se voce so quer uma resposta rapida? "Explique o que e Delta Lake em termos simples." "Revise este codigo Python e diga se tem algum problema." "Me de ideias para modelar estes dados em Star Schema." "Qual a diferenca entre `MERGE INTO` e `INSERT OVERWRITE`?"
 
@@ -2025,7 +2061,7 @@ O Business Analyst le o arquivo, extrai requisitos, prioriza em P0/P1/P2, e gera
 ```
 /plan Crie um pipeline de ingestao de dados do sistema ERP para o Databricks, Bronze a Gold, com validacoes de qualidade e modelo semantico para Power BI
 ```
-O Supervisor executa o protocolo BMAD completo: valida a clareza, cria o PRD, aguarda sua aprovacao, e delega para Spark Expert → Data Quality Steward → Semantic Modeler.
+O Supervisor executa o protocolo DOMA completo: valida a clareza, cria o PRD, aguarda sua aprovacao, e delega para Spark Expert → Data Quality Steward → Semantic Modeler.
 
 **"Preciso de uma query especifica rapidamente"**
 ```
@@ -2051,7 +2087,7 @@ Testa conectividade com todos os MCP servers configurados e retorna status de ca
 ```
 Lista os arquivos mais recentes em `output/prd/`, `output/specs/` e `output/backlog/`.
 
-### 15.3 O Fluxo BMAD Recomendado
+### 15.3 O Fluxo DOMA Recomendado
 
 Para projetos maiores, o fluxo de trabalho otimo combina os comandos em sequencia:
 
@@ -2439,7 +2475,7 @@ make all-checks
 | `test_agents.py`          | Parser YAML do loader, resolucao de aliases de tools, model routing por Tier, injecao de KBs |
 | `test_hooks.py`           | Bloqueio de comandos destrutivos (17 padroes), check_sql_cost, cost_guard    |
 | `test_output_compressor.py` | Truncamento correto por tipo de ferramenta (SQL 50 linhas, listagens 30 itens, etc.) |
-| `test_commands.py`        | Roteamento de slash commands para agentes e modos BMAD corretos              |
+| `test_commands.py`        | Roteamento de slash commands para agentes e modos DOMA corretos              |
 | `test_mlflow_wrapper.py`  | Serializacao/deserializacao de mensagens, logging de metricas                |
 | `test_logging_config.py`  | JSONLFormatter, setup_logging, rotating handler, silenciamento de loggers    |
 | `test_supervisor.py`      | build_supervisor_options, hooks configurados, thinking avancado habilitado   |
@@ -2588,7 +2624,7 @@ O Chainlit e a interface mais rica do sistema. Ao iniciar, apresenta dois botoes
 
 **Modo Dev Assistant** — Claude direto (sem Supervisor), ferramentas `Read`, `Write`, `Bash`, `Grep`, `Glob`. Mantem historico de conversa para follow-ups. Usa `settings.default_model` (Bedrock) — custo zero pelo acordo corporativo. Ideal para desenvolvimento e debugging do proprio projeto.
 
-#### Exibicao de Tool Calls (v8.0)
+#### Exibição de Tool Calls
 
 Um dos diferenciais visuais do Chainlit e a exibicao expansivel dos resultados de tool calls. Ao clicar em "Used lendo arquivo ^", por exemplo, o conteudo real retornado pela ferramenta e exibido — nao apenas "Concluido em X.Xs".
 
@@ -2655,7 +2691,7 @@ O modo terminal e o modo original do projeto, ideal para usuarios tecnicos que p
 
 **O banner de inicializacao** e exibido com Rich ao abrir o sistema, mostrando:
 - Logo ASCII do projeto
-- Versao atual (v7.0.0)
+- Versão atual (v1.0.0)
 - Plataformas conectadas detectadas automaticamente (Databricks ✓, Fabric ✓, RTI ✓)
 - Budget configurado e modelo padrao
 - Lista de comandos disponiveis
@@ -2804,7 +2840,7 @@ Informacoes do projeto:
 - Informacoes do autor
 - Licenca
 - Link para o repositorio GitHub
-- Diagrama de arquitetura (a imagem `architecture_v7.png`)
+- Diagrama de arquitetura (a imagem `architecture_v1.svg`)
 
 ### 22.4 Funcionalidades Transversais
 
@@ -2982,7 +3018,7 @@ O SQL Expert usa `list_schemas` e `list_tables` para responder.
 ```
 /plan Preciso de um pipeline basico para ingerir um arquivo CSV do Volume do Databricks para uma tabela Delta Bronze
 ```
-Inicia o protocolo BMAD completo. O Supervisor vai validar clareza, criar o PRD, aguardar sua aprovacao, e delegar para o Spark Expert.
+Inicia o protocolo DOMA completo. O Supervisor vai validar clareza, criar o PRD, aguardar sua aprovacao, e delegar para o Spark Expert.
 
 **Processar um documento:**
 ```
@@ -3021,7 +3057,7 @@ A versao 3.0 estabeleceu as fundacoes de governanca e eficiencia do sistema.
 
 ### 25.2 Melhorias da v3.1
 
-A versao 3.1 introduziu o protocolo BMAD completo e a Constituicao.
+A versao 3.1 introduziu o protocolo DOMA completo e a Constituicao.
 
 | **Melhoria**              | **Descricao**                                                           |
 | ------------------------- | ----------------------------------------------------------------------- |
@@ -3135,36 +3171,47 @@ A versao 7.0 introduz manutencao automatica de Skills, roteamento preciso de age
 | MemoryStore aceita str ou Path          | Corrige TypeError em testes com tmpdir (str) como data_dir                        |
 | 702 testes unitarios passando           | Cobertura abrangente com pytest                                                   |
 
-### 25.8 Melhorias da v8.0
+### 25.8 Melhorias incluídas na v1.0
 
 **A Grande Reestruturacao do Conhecimento**
 
 | Mudanca | Impacto |
 |---------|---------|
-| KB Modular: monolitico -> concepts/ + patterns/ (8 dominios, 69+ arquivos) | Precisao de contexto injetado nos agentes |
-| Biblioteca de Anti-Padroes Centralizada (kb/shared/anti-patterns.md) | 29 padroes catalogados: C7 CRITICO, H12 ALTA, M10 MEDIA |
-| Protocolo KB-First v2 com Agreement Matrix | Confianca calibrada e proveniencia obrigatoria em respostas tecnicas |
-| Cascade Tracking PRD->SPEC no workflow_tracker | Rastreabilidade automatica de dependencias entre artefatos |
+| KB Modular: monolítico → concepts/ + patterns/ (8 domínios, 69+ arquivos) | Precisão de contexto injetado nos agentes |
+| Biblioteca de Anti-Padrões Centralizada (kb/shared/anti-patterns.md) | 29 padrões catalogados: C7 CRÍTICO, H12 ALTA, M10 MÉDIA |
+| Protocolo KB-First v2 com Agreement Matrix | Confiança calibrada e proveniência obrigatória em respostas técnicas |
+| Cascade Tracking PRD→SPEC no workflow_tracker | Rastreabilidade automática de dependências entre artefatos |
 | `output_budget` no frontmatter dos 10 agentes | Controle declarativo de verbosidade sem modificar runtime |
-| Resolucao de 3 duplicacoes criticas (Star Schema, Direct Lake, Orchestration) | Fonte canonica unica para cada topico |
-| Chainlit Tool Result Display: output real das tools nos steps expansiveis | Visibilidade completa da execucao — igual a experiencia de apresentacoes profissionais |
-| Correcao do modelo ativo: bedrock/anthropic.claude-4-6-sonnet via LiteLLM proxy | Todos os 10 agentes usando o modelo correto do ambiente corporativo |
-| Correcao de bug: AssistantMessage intermediario fechava steps prematuramente | Ordem real do stream SDK respeitada |
+| Resolução de 3 duplicações críticas (Star Schema, Direct Lake, Orchestration) | Fonte canônica única para cada tópico |
+| Chainlit Tool Result Display: output real das tools nos steps expansíveis | Visibilidade completa da execução |
+| Correção do modelo ativo: bedrock/anthropic.claude-4-6-sonnet via LiteLLM proxy | Todos os 10 agentes usando o modelo correto |
+| Correção de bug: AssistantMessage intermediário fechava steps prematuramente | Ordem real do stream SDK respeitada |
+
+### 26.9 O que chegou na v1.0 — DOMA + Party Mode + Workflow Context Cache
+
+| Mudança | Impacto |
+|---------|---------|
+| **Renaming BMAD → DOMA** (Data Orchestration Method for Agents) | Identidade própria do protocolo de orquestração — sem dependência de nomenclatura externa |
+| **Party Mode (`/party`)** — `commands/party.py` + handler em `main.py` | Múltiplos agentes especialistas em paralelo via `asyncio.gather` — perspectivas independentes e simultâneas |
+| 4 grupos temáticos: default, quality, arch, full | Invocação por domínio sem necessidade de nomear agentes individualmente |
+| Personas por agente em `AGENT_PERSONAS` | Cada agente responde com sua perspectiva de domínio específica, não como LLM genérico |
+| **Workflow Context Cache** (Regra W8) | Supervisor compila `output/workflow-context/{wf_id}-context.md` antes do primeiro agente de qualquer WF-01 a WF-04 — elimina releituras redundantes de spec + KB |
+| Bateria de testes funcionais (`tests/test_functional.py`) | 75 testes cobrindo renaming, parsing do Party Mode, integridade do registry, consistência de UI e tiers de agentes |
 
 ---
 
-## 26. Metricas do Projeto
+## 27. Métricas do Projeto
 
-Um resumo numerico do ecossistema Data Agents v8.0:
+Um resumo numérico do ecossistema Data Agents v1.0:
 
-| **Metrica**                      | **Valor**                                                                        |
+| **Métrica**                      | **Valor**                                                                        |
 | -------------------------------- | -------------------------------------------------------------------------------- |
-| Versao atual                     | 8.0.0                                                                            |
+| Versão atual                     | 1.0.0                                                                            |
 | Agentes especialistas            | 10 (1 Supervisor + 1 Tier 3 + 3 Tier 1 + 5 Tier 2)                             |
-| Slash commands                   | 15 (/brief, /plan, /geral, /sql, /spark, /pipeline, /dbt, /fabric, /quality, /governance, /semantic, /health, /status, /review, /help) |
-| Interfaces de usuario            | 3 (Terminal + Web UI Streamlit + Web UI Chainlit)                                |
-| Hooks de seguranca e controle    | 9 (audit, cost, security/SQL, compression, workflow, session, memory, lifecycle, checkpoint) |
-| Padroes destrutivos no hook      | 22 diretos + 11 de evasao (total: 33 padroes)                                   |
+| Slash commands                   | 16 (/brief, /plan, /geral, /sql, /spark, /pipeline, /dbt, /fabric, /quality, /governance, /semantic, /party, /health, /status, /review, /memory) |
+| Interfaces de usuário            | 3 (Terminal + Web UI Streamlit + Web UI Chainlit)                                |
+| Hooks de segurança e controle    | 9 (audit, cost, security/SQL, compression, workflow, session, memory, lifecycle, checkpoint) |
+| Padrões destrutivos no hook      | 22 diretos + 11 de evasão (total: 33 padrões)                                   |
 | Tipos de log                     | 5 (audit, app, sessions, workflows, compression) + config_snapshots             |
 | Tipos de memoria                 | 7 (user, feedback, architecture, progress, data_asset, platform_decision, pipeline_status) |
 | Dominios de Knowledge Base       | 8 dominios · 69+ arquivos (concepts/ + patterns/)                               |
@@ -3194,44 +3241,43 @@ Um resumo numerico do ecossistema Data Agents v8.0:
 
 ---
 
-## 27. Conclusao
+## 28. Conclusão
 
-O projeto **Data Agents v7.0** representa o ponto de maior maturidade de uma jornada que comeou com uma pergunta simples: e possivel construir um sistema de IA que atue como uma equipe completa de engenharia de dados, respeitando as regras corporativas, conectado diretamente ao ambiente de producao, e que aprenda com cada interacao?
+O projeto **Data Agents v1.0** representa o resultado de uma jornada de engenharia que começou com uma pergunta simples: *é possível construir um sistema de IA que atue como uma equipe completa de engenharia de dados, respeitando as regras corporativas, conectado diretamente ao ambiente de produção, e que aprenda com cada interação?*
 
-A resposta, depois de sete versoes iterativas, e um sim definitivo — e cada versao adicionou uma camada de confiabilidade que a anterior nao tinha.
+A resposta, depois de oito versões iterativas, é um sim definitivo — e cada versão adicionou uma camada de confiabilidade, profundidade técnica e identidade própria que a anterior não tinha.
 
-### 27.1 O que Foi Construido
+### 28.1 O que Foi Construído
 
-O ecossistema completo inclui **dez agentes especialistas**, cada um com o perfil tecnico, ferramentas e base de conhecimento corretos para sua funcao — e agora com triggers precisos de roteamento que garantem que o Supervisor direcione cada tarefa ao especialista certo. O Supervisor orquestra toda a equipe com um protocolo rigoroso de sete passos que garante planejamento antes de execucao, validacao antes de entrega, e conformidade com as regras da empresa em todo momento.
+O ecossistema completo inclui **dez agentes especialistas**, cada um com o perfil técnico, ferramentas e base de conhecimento corretos para sua função. O Supervisor orquestra toda a equipe com o **protocolo DOMA** — sete passos que garantem planejamento antes de execução, validação antes de entrega, e conformidade com as regras da empresa em todo momento.
 
-Nove camadas de seguranca e auditoria — agora com 33 padroes destrutivos cobertos, incluindo operacoes git de alto risco — protegem o ambiente de producao. Cada acao e registrada, categorizada e visivel no Dashboard de Monitoramento. Nenhuma operacao e invisivel.
+O **Party Mode** (`/party`) adiciona uma dimensão nova ao sistema: em vez de perspectivas sequenciais, agentes especialistas respondem em paralelo real via `asyncio.gather`, cada um com sua visão de domínio independente. Para decisões de arquitetura, comparações de tecnologia e revisões end-to-end, isso transforma o sistema de um oráculo serial em uma mesa redonda de especialistas.
 
-Treze servidores MCP — incluindo varios customizados desenvolvidos para resolver limitacoes dos servidores oficiais — conectam o sistema diretamente ao Databricks e ao Microsoft Fabric com profundidade genuina. O sistema nao e um wrapper superficial: ele cria tabelas Delta, executa pipelines DLT, configura Genie Spaces, constroi modelos DAX e audita conformidade PII de verdade.
+O **Workflow Context Cache** (Regra W8) elimina a ineficiência de releituras redundantes em workflows multi-agente. Antes do primeiro agente de qualquer WF-01 a WF-04, o Supervisor compila tudo que a equipe precisa saber em um único arquivo de contexto. Cada agente lê uma vez — o contexto certo, no momento certo.
 
-O sistema de **memoria em dois layers** fecha o ciclo: Layer 1 (memoria episodica com 7 tipos e decay configuravel) captura o contexto de sessoes, e Layer 2 (knowledge graph via memory_mcp) persiste entidades e relacoes entre sessoes. O sistema nao começa do zero — e cada vez mais preciso no ambiente especifico em que opera.
+Doze servidores MCP — incluindo vários customizados desenvolvidos para resolver limitações dos servidores oficiais — conectam o sistema ao Databricks e ao Microsoft Fabric com profundidade genuína. O sistema não é um wrapper superficial: ele cria tabelas Delta, executa pipelines DLT, configura Genie Spaces, constrói modelos DAX e audita conformidade PII de verdade.
 
-O **sistema de refresh de Skills** garante que os manuais operacionais se mantenham atualizados conforme as plataformas evoluem. Skills desatualizadas geram codigo desatualizado — agora o proprio sistema cuida disso autonomamente.
+### 28.2 O Valor Real
 
-### 27.2 O Valor Real
+Para **equipes de dados**, o benefício concreto é liberação de tempo para trabalho de maior valor. Tarefas que consumiam horas de engenheiros experientes — profiling de datasets, escrita de DDLs, configuração de jobs, criação de expectations de qualidade, atualização de documentação técnica — podem ser delegadas ao sistema. Isso não significa substituir engenheiros, mas amplificar o que eles conseguem fazer.
 
-Para equipes de dados, o beneficio concreto e liberacao de tempo para trabalho de maior valor. Tarefas que consumiam horas de engenheiros experientes — profiling de datasets, escrita de DDLs, configuracao de jobs, criacao de expectations de qualidade, atualizacao de documentacao tecnica — podem ser delegadas ao sistema. Isso nao significa substituir engenheiros, mas amplificar o que eles conseguem fazer.
+Para **organizações**, a camada de governança embutida significa que a velocidade não vem ao custo da segurança. O sistema nunca executa operações destrutivas sem confirmação, nunca processa PII sem mascaramento, nunca viola os padrões arquiteturais definidos pela empresa. A autonomia dos agentes é real, mas é uma autonomia com freios.
 
-Para organizacoes, a camada de governanca embutida significa que a velocidade nao vem ao custo da seguranca. O sistema nunca executa operacoes destrutivas sem confirmacao, nunca processa PII sem mascaramento, nunca viola os padroes arquiteturais definidos pela empresa. A autonomia dos agentes e real, mas e uma autonomia com freios.
+Para **arquitetos**, a extensibilidade do sistema é o benefício mais duradouro. A base está construída — declarativa, versionada e auditável. Adicionar um novo agente é criar um arquivo Markdown. Adicionar uma nova regra é editar a Constituição. Adicionar um novo servidor MCP é configurar o `mcp_servers.py`. Nenhuma mudança de arquitetura é necessária para crescer.
 
-Para arquitetos, a extensibilidade do sistema e o beneficio mais duradouro. A base esta construida — e declarativa, versionada e auditavel. Adicionar um novo agente e criar um arquivo Markdown. Adicionar uma nova regra e editar a Constituicao. Adicionar um novo servidor MCP e configurar o `mcp_servers.py`. Nenhuma mudanca de arquitetura e necessaria para crescer.
+### 28.3 O Próximo Passo
 
-### 27.3 O Proximo Passo
+A arquitetura atual abre caminho natural para:
 
-A arquitetura da v7.0 abre caminho para evolucoes naturais. Com memoria colaborativa entre agentes — o Governance Auditor lembra os achados de uma auditoria e o Data Quality Steward os usa automaticamente para configurar alertas mais precisos.
+- **Memória colaborativa entre agentes** — o Governance Auditor persiste achados de auditoria que o Data Quality Steward usa automaticamente para configurar alertas mais precisos
+- **Integração bidirecional com sistemas externos** — notificações via Slack/Teams quando pipelines críticos completam ou falham, via endpoint MLflow em produção
+- **Refresh automático de Skills via scheduler** — Skills sempre atualizadas sem intervenção manual, via `CronCreate` integrado ao sistema
+- **Party Mode com MCP habilitado** — agentes do party com acesso seletivo a ferramentas para produzir análises que combinam perspectiva de domínio com dados reais das plataformas
 
-Com o endpoint MLflow em producao, o proximo passo e integracao bidirecional — o sistema nao apenas e chamado por aplicacoes externas, mas tambem notifica sistemas externos (Slack, Teams, email) quando pipelines criticos completam ou falham.
-
-O sistema de refresh de Skills abre caminho para agendar refreshes automaticos via cron — Skills sempre atualizadas sem intervencao manual.
-
-A fundacao ja esta construida. O que vem a seguir depende das necessidades que surgirem no uso real — e a arquitetura declarativa do projeto foi projetada exatamente para isso: crescer sem reescrever.
+A fundação já está construída. O que vem a seguir depende das necessidades que surgirem no uso real — e a arquitetura declarativa do projeto foi projetada exatamente para isso: crescer sem reescrever.
 
 ---
 
-*Manual e Relatorio Tecnico — Data Agents v7.0*
+*Manual e Relatório Técnico — Data Agents v1.0*
 *Thomaz Antonio Rossito Neto — Specialist Data & AI Solutions Architect*
 *[github.com/ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents)*
