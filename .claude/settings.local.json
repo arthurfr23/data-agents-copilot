@@ -9,7 +9,28 @@
       "Read(//tmp/**)",
       "Bash(ls -la /Users/thomaz_rossito/Projects/data-agents/skills/*.md)",
       "Bash(xargs ls *)",
-      "Bash(grep -v '^$')"
+      "Bash(grep -v '^$')",
+      "Bash(wc -l /Users/thomaz_rossito/Projects/data-agents/tests/test_*.py)",
+      "Bash(wc -l /Users/thomaz_rossito/Projects/agentspec-main/.claude/agents/architect/*.md /Users/thomaz_rossito/Projects/agentspec-main/.claude/agents/cloud/*.md /Users/thomaz_rossito/Projects/agentspec-main/.claude/agents/data-engineering/*.md)",
+      "Bash(cat /Users/thomaz_rossito/Projects/data-agents/hooks/*.py)",
+      "Bash(grep -l \"def\\\\|class\" /Users/thomaz_rossito/Projects/data-agents/hooks/*.py)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(wc -l /Users/thomaz_rossito/Projects/data-agents/kb/sql-patterns/*.md)",
+      "Bash(find /Users/thomaz_rossito/Projects/data-agents/kb -type f -name \"*.md\" -exec wc -l {} +)",
+      "Bash(wc -l /Users/thomaz_rossito/Projects/data-agents/kb/spark-patterns/*.md)",
+      "Bash(wc -l /Users/thomaz_rossito/Projects/data-agents/kb/pipeline-design/*.md)",
+      "Bash(wc -l /Users/thomaz_rossito/Projects/data-agents/kb/semantic-modeling/*.md)",
+      "Bash(wc *)",
+      "Bash(ls *)",
+      "Bash(find /Users/thomaz_rossito/Projects/data-agents/kb -type f \\\\\\( ! -name '.DS_Store' \\\\\\) -exec wc -l {} +)",
+      "Bash(sort -k2)",
+      "Bash(find /Users/thomaz_rossito/Projects/data-agents/agents/registry -type f -exec wc -l {} +)",
+      "Bash(grep \"output_budget:\" /Users/thomaz_rossito/Projects/data-agents/agents/registry/*.md)",
+      "Bash(grep -l \"mcp_validated\" kb/*/index.md)",
+      "Bash(grep -l \"output_budget\" agents/registry/*.md)",
+      "Bash(grep -l \"Agreement Matrix\" agents/registry/*.md)",
+      "Bash(grep -l \"KB-First — 4 Etapas \\(v2\\)\" agents/registry/*.md)",
+      "Bash(grep -r \"kb/\" /Users/thomaz_rossito/Projects/data-agents/agents/registry/*.md)"
     ]
   }
 }

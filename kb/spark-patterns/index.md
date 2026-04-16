@@ -1,3 +1,7 @@
+---
+mcp_validated: "2026-04-15"
+---
+
 # KB: Padrões Spark — Índice
 
 **Domínio:** Geração e otimização de código PySpark para Databricks e Fabric.
@@ -7,12 +11,23 @@
 
 ## Conteúdo Disponível
 
-| Arquivo                        | Conteúdo                                                                  |
-|--------------------------------|---------------------------------------------------------------------------|
-| `sdp-lakeflow-rules.md`        | Regras mandatórias para Spark Declarative Pipelines (SDP/LakeFlow)        |
-| `streaming-patterns.md`        | Padrões de Spark Structured Streaming e Auto Loader                       |
-| `delta-lake-operations.md`     | MERGE, OPTIMIZE, VACUUM, Time Travel, SCD1/SCD2                           |
-| `performance-best-practices.md`| Broadcast joins, repartition, cache/persist, UDF avoidance                |
+### Conceitos (`concepts/`)
+
+| Arquivo                              | Conteúdo                                                              |
+|--------------------------------------|-----------------------------------------------------------------------|
+| `concepts/sdp-rules.md`              | Regras mandatórias SDP/LakeFlow: API moderna, expectations, camadas  |
+| `concepts/streaming-concepts.md`     | Structured Streaming: triggers, checkpoints, watermark — conceitos   |
+| `concepts/delta-lake-concepts.md`    | Delta: ACID, Time Travel, SCD1/SCD2, liquid clustering               |
+| `concepts/performance-concepts.md`   | Broadcast, repartition, cache, UDF avoidance — quando e por quê      |
+
+### Padrões (`patterns/`)
+
+| Arquivo                              | Conteúdo                                                              |
+|--------------------------------------|-----------------------------------------------------------------------|
+| `patterns/lakeflow-patterns.md`      | Python SDP completo: Bronze/Silver/Gold, expectations, CDC           |
+| `patterns/streaming-patterns.md`     | Auto Loader Python/SQL, Structured Streaming, Delta Live Tables      |
+| `patterns/delta-lake-patterns.md`    | MERGE SQL, OPTIMIZE+VACUUM, Time Travel queries, SCD2 completo       |
+| `patterns/performance-patterns.md`   | Broadcast SQL, repartition Python, AQE config, UDF → built-in       |
 
 ---
 

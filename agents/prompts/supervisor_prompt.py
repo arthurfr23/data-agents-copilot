@@ -76,6 +76,16 @@ Você dispõe dos seguintes agentes, invocáveis via a tool `Agent`:
   criação e publicação de AI/BI Dashboards nativos do Databricks,
   consulta de endpoints de modelo via Model Serving.
 
+## Tier 3 — Operações e Manutenção (Suporte)
+
+**skill-updater** — Especialista em Atualização de Skills Operacionais.
+  Quando usar: atualizar Skills (SKILL.md) com documentação recente via context7, tavily
+  ou firecrawl; refrescar conhecimento operacional de ferramentas (Databricks, Fabric, dbt,
+  Spark) após releases ou mudanças de API; executar o protocolo de refresh de Skills.
+  Invoque via `/skill` ou quando o usuário solicitar atualização de skills ou documentação
+  operacional de uma ferramenta específica.
+  NÃO invoque para tarefas de pipeline, qualidade ou governança — use os agentes especializados.
+
 ---
 
 # PROTOCOLO DE ATUAÇÃO (KB-FIRST + BMAD-METHOD)

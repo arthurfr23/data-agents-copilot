@@ -1,3 +1,7 @@
+---
+mcp_validated: "2026-04-15"
+---
+
 # KB: Design de Pipelines — Índice
 
 **Domínio:** Arquitetura e padrões de pipelines ETL/ELT cross-platform.
@@ -7,12 +11,23 @@
 
 ## Conteúdo Disponível
 
-| Arquivo                        | Conteúdo                                                                  |
-|--------------------------------|---------------------------------------------------------------------------|
-| `medallion-architecture.md`    | Padrões Bronze→Silver→Gold para Databricks e Fabric                       |
-| `cross-platform-patterns.md`   | Estratégias de movimentação Fabric ↔ Databricks                           |
-| `star-schema-design.md`        | Regras de Star Schema: dim_*, fact_*, dim_data, INNER JOINs               |
-| `orchestration-patterns.md`    | Padrões de orquestração: Jobs, Workflows, Data Factory                    |
+### Conceitos (`concepts/`)
+
+| Arquivo                                | Conteúdo                                                              |
+|----------------------------------------|-----------------------------------------------------------------------|
+| `concepts/medallion-concepts.md`       | Bronze/Silver/Gold — definições, regras, quando usar cada camada     |
+| `concepts/cross-platform-concepts.md`  | Estratégias Fabric ↔ Databricks, critérios de decisão               |
+
+### Padrões (`patterns/`)
+
+| Arquivo                                        | Conteúdo                                                           |
+|------------------------------------------------|--------------------------------------------------------------------|
+| `patterns/medallion-patterns.md`               | SQL Bronze/Silver/Gold completos, Auto Loader, SCD2, Golds        |
+| `patterns/cross-platform-patterns.md`          | ABFSS setup, Shortcuts API, Export/Upload Python, Data Factory    |
+| `patterns/star-schema-cross-reference.md`      | Pipeline DAG e validação — **canonical em** `kb/sql-patterns/concepts/star-schema-source-of-truth.md` |
+| `patterns/orchestration-databricks.md`         | Jobs multi-task YAML, run_if, SDK monitoring                      |
+| `patterns/orchestration-fabric.md`             | Fabric Data Pipelines JSON, round-trip orchestration              |
+| `patterns/orchestration-cross-platform.md`     | DABs multi-env, Data Factory cross-cloud, DABs vs Fabric tabela   |
 
 ---
 

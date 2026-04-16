@@ -1,3 +1,7 @@
+---
+mcp_validated: "2026-04-15"
+---
+
 # KB: Qualidade de Dados — Índice
 
 **Domínio:** Monitoramento, validação e garantia de qualidade de dados.
@@ -7,13 +11,25 @@
 
 ## Conteúdo Disponível
 
-| Arquivo                        | Conteúdo                                                                  |
-|--------------------------------|---------------------------------------------------------------------------|
-| `expectations-patterns.md`     | Padrões de Data Quality Expectations no Spark e Databricks                |
-| `profiling-rules.md`           | Regras de data profiling: completude, unicidade, validade, consistência   |
-| `monitoring-alerts.md`         | Configuração de alertas no Fabric Activator e Databricks                  |
-| `drift-detection.md`           | Detecção de schema drift e data drift em pipelines de streaming           |
-| `sla-contracts.md`             | Contratos de SLA de dados: freshness, completude, latência                |
+### Conceitos (`concepts/`)
+
+| Arquivo                              | Conteúdo                                                              |
+|--------------------------------------|-----------------------------------------------------------------------|
+| `concepts/drift-detection.md`        | Tipos de schema drift e data drift, thresholds e protocolo de resposta |
+| `concepts/expectations-concepts.md`  | Framework DAMA, expectativas no SDP, categorias de qualidade          |
+| `concepts/monitoring-concepts.md`    | Arquitetura de monitoramento, Activator, System Tables                |
+| `concepts/profiling-rules.md`        | Regras de data profiling: completude, unicidade, validade, consistência |
+| `concepts/sla-concepts.md`           | Contratos de SLA: freshness, completude, latência — definições        |
+
+### Padrões (`patterns/`)
+
+| Arquivo                                 | Conteúdo                                                           |
+|-----------------------------------------|--------------------------------------------------------------------|
+| `patterns/drift-detection-patterns.md`  | SQL de detecção comparativa, DABs de drift, checklist             |
+| `patterns/expectations-patterns.md`     | Código SDP `@dp.expect_*`, Great Expectations, SQL Alert Tasks    |
+| `patterns/alert-patterns.md`            | KQL para Activator, webhooks, SQL alert jobs                      |
+| `patterns/profiling-patterns.md`        | SQL de profiling completo, tabelas de resultado, automação        |
+| `patterns/sla-patterns.md`              | Contratos YAML, SQL de verificação de SLA, dashboards             |
 
 ---
 

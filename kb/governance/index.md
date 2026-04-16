@@ -1,3 +1,7 @@
+---
+mcp_validated: "2026-04-15"
+---
+
 # KB: Governança de Dados — Índice
 
 **Domínio:** Auditoria, linhagem, controle de acesso e conformidade de dados.
@@ -7,13 +11,25 @@
 
 ## Conteúdo Disponível
 
-| Arquivo                        | Conteúdo                                                                  |
-|--------------------------------|---------------------------------------------------------------------------|
-| `access-control-patterns.md`   | Padrões de RBAC no Unity Catalog e Fabric Workspace Roles                 |
-| `lineage-documentation.md`     | Como documentar e consultar linhagem de dados cross-platform              |
-| `pii-classification.md`        | Classificação de dados PII, sensíveis e confidenciais                     |
-| `audit-procedures.md`          | Procedimentos de auditoria usando System Tables e OneLake Catalog         |
-| `compliance-checklist.md`      | Checklist de conformidade LGPD/GDPR para pipelines de dados               |
+### Conceitos (`concepts/`)
+
+| Arquivo                                  | Conteúdo                                                              |
+|------------------------------------------|-----------------------------------------------------------------------|
+| `concepts/access-control-concepts.md`    | RBAC, Unity Catalog grants, Fabric Workspace Roles — conceitos       |
+| `concepts/lineage-concepts.md`           | Tipos de linhagem, ferramentas, cross-platform — conceitos           |
+| `concepts/pii-concepts.md`               | Classificação PII, níveis de sensibilidade, LGPD/GDPR               |
+| `concepts/audit-concepts.md`             | System Tables Databricks, OneLake Catalog, audit trails              |
+| `concepts/compliance-concepts.md`        | LGPD/GDPR: princípios, papéis, obrigações, ciclo de vida             |
+
+### Padrões (`patterns/`)
+
+| Arquivo                                  | Conteúdo                                                              |
+|------------------------------------------|-----------------------------------------------------------------------|
+| `patterns/access-control-patterns.md`    | SQL GRANT/REVOKE, Fabric REST API roles, auditoria de acesso         |
+| `patterns/lineage-patterns.md`           | MCP lineage queries, System Tables SQL, documentação cross-platform  |
+| `patterns/pii-patterns.md`               | SQL de mascaramento, hashing, classificação automatizada             |
+| `patterns/audit-procedures.md`           | Queries system.access.audit, relatórios de auditoria, automação     |
+| `patterns/compliance-patterns.md`        | Checklists LGPD, TTL configs, right-to-erasure SQL                  |
 
 ---
 

@@ -1,3 +1,7 @@
+---
+mcp_validated: "2026-04-15"
+---
+
 # KB: Modelagem Semântica — Índice
 
 **Domínio:** Modelos semânticos, métricas DAX, Direct Lake e consumo analítico.
@@ -7,13 +11,23 @@
 
 ## Conteúdo Disponível
 
-| Arquivo                        | Conteúdo                                                                  |
-|--------------------------------|---------------------------------------------------------------------------|
-| `semantic-model-patterns.md`   | Padrões de modelos semânticos no Power BI e Fabric                        |
-| `dax-best-practices.md`        | Boas práticas de DAX: medidas, colunas calculadas, tabelas de data        |
-| `direct-lake-optimization.md`  | Otimização de tabelas Delta para consumo via Direct Lake                  |
-| `metric-views-databricks.md`   | Metric Views no Databricks: camada semântica sobre tabelas Gold           |
-| `reporting-patterns.md`        | Padrões de relatórios e dashboards para dados de engenharia               |
+### Conceitos (`concepts/`)
+
+| Arquivo                                  | Conteúdo                                                              |
+|------------------------------------------|-----------------------------------------------------------------------|
+| `concepts/semantic-model-concepts.md`    | Estrutura de modelos semânticos, relacionamentos, boas práticas       |
+| `concepts/dax-concepts.md`               | DAX: medidas vs colunas calculadas, contextos, funções essenciais    |
+| `concepts/direct-lake-canonical.md`      | **CANONICAL** Direct Lake: otimização Delta, V-Order, regras Fabric+Databricks |
+| `concepts/metric-views-concepts.md`      | Metric Views Databricks: conceitos, Genie, camada semântica          |
+
+### Padrões (`patterns/`)
+
+| Arquivo                                  | Conteúdo                                                              |
+|------------------------------------------|-----------------------------------------------------------------------|
+| `patterns/semantic-model-patterns.md`    | Power BI modelo completo, relacionamentos, ocultação de colunas      |
+| `patterns/dax-patterns.md`               | Medidas DAX completas: YTD, LY, rankings, tabelas de data            |
+| `patterns/metric-views-patterns.md`      | SQL Metric Views, CLUSTER BY semântico, integração Genie            |
+| `patterns/reporting-patterns.md`         | Dashboards de engenharia, pipeline health, qualidade KPIs            |
 
 ---
 

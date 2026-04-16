@@ -1,3 +1,7 @@
+---
+mcp_validated: "2026-04-15"
+---
+
 # KB: Databricks — Índice
 
 **Domínio:** Arquitetura, padrões e boas práticas da plataforma Databricks.
@@ -7,13 +11,25 @@
 
 ## Conteúdo Disponível
 
-| Arquivo                        | Conteúdo                                                                  |
-|--------------------------------|---------------------------------------------------------------------------|
-| `unity-catalog-rules.md`       | Hierarquia Catalog→Schema→Table, grants, volumes e lineage                |
-| `compute-patterns.md`          | Clusters, SQL Warehouses, Serverless e seleção de compute                 |
-| `jobs-workflows-patterns.md`   | Jobs multi-task, Workflows, dependências e retry policies                 |
-| `bundles-cicd.md`              | Asset Bundles, CI/CD e deployment patterns                                |
-| `ai-ml-patterns.md`            | MLflow, Model Serving, Vector Search, AI Functions                        |
+### Conceitos (`concepts/`)
+
+| Arquivo                              | Conteúdo                                                              |
+|--------------------------------------|-----------------------------------------------------------------------|
+| `concepts/unity-catalog-concepts.md` | Hierarquia Catalog→Schema→Table, grants, volumes e lineage            |
+| `concepts/compute-concepts.md`       | Tipos de cluster, SQL Warehouses, Serverless — quando usar cada um   |
+| `concepts/jobs-concepts.md`          | Jobs multi-task, Workflows, dependências e retry policies             |
+| `concepts/bundles-concepts.md`       | DABs: estrutura, targets, variáveis, engine nativo                   |
+| `concepts/ai-ml-concepts.md`         | MLflow, Model Serving, Vector Search, AI Functions — conceitos       |
+
+### Padrões (`patterns/`)
+
+| Arquivo                              | Conteúdo                                                              |
+|--------------------------------------|-----------------------------------------------------------------------|
+| `patterns/unity-catalog-patterns.md` | SQL de GRANT/REVOKE, Volumes, lineage queries                        |
+| `patterns/compute-patterns.md`       | YAML de cluster, seleção por carga, auto-termination                 |
+| `patterns/workflow-patterns.md`      | YAML de Jobs multi-task, retry, idempotency_token                   |
+| `patterns/cicd-patterns.md`          | databricks.yml completo, CI/CD pipelines, `bundle deploy`           |
+| `patterns/ai-ml-patterns.md`         | mlflow.log_*, Model Serving YAML, Vector Search Python              |
 
 ---
 
