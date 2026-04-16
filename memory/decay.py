@@ -22,9 +22,33 @@ import math
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from memory.types import Memory, DECAY_CONFIG
+from memory.types import Memory, MemoryType
 
 logger = logging.getLogger("data_agents.memory.decay")
+
+
+def _get_decay_days(memory_type: MemoryType) -> float | None:
+    """
+    Retorna o número de dias para atingir confidence 0.1 para um tipo de memória.
+
+    Lê de settings para permitir override via .env sem alterar código.
+    USER e ARCHITECTURE nunca decaem (retorna None).
+    """
+    from config.settings import settings  # importação local — evita circular import
+
+    if memory_type == MemoryType.USER:
+        return None
+    if memory_type == MemoryType.ARCHITECTURE:
+        return None
+    if memory_type == MemoryType.FEEDBACK:
+        return settings.memory_decay_feedback_days
+    if memory_type == MemoryType.PROGRESS:
+        return settings.memory_decay_progress_days
+    # Novos tipos com decay (DATA_ASSET, PLATFORM_DECISION, PIPELINE_STATUS)
+    if memory_type == MemoryType.PIPELINE_STATUS:
+        return settings.memory_decay_pipeline_status_days
+    # DATA_ASSET e PLATFORM_DECISION nunca decaem (decisões e ativos são duradouros)
+    return None
 
 
 def _compute_decay_rate(days_to_threshold: float, threshold: float = 0.1) -> float:
@@ -52,7 +76,7 @@ def compute_decayed_confidence(
     Returns:
         Novo valor de confidence (0.0 a 1.0).
     """
-    decay_days = DECAY_CONFIG.get(memory.type)
+    decay_days = _get_decay_days(memory.type)
 
     # Tipos sem decay mantêm confidence original
     if decay_days is None:

@@ -5,9 +5,10 @@ Executa 7 verificações sem custo (nenhuma chamada LLM):
   1. Orphan references: memórias que referenciam IDs inexistentes
   2. Broken supersedes: cadeias de supersede que apontam para memórias deletadas
   3. Stale memories: memórias com confidence decaída abaixo do limiar (Ch. 11)
-     - PROGRESS  → warning a <0.30  (decay rápido: 7 dias)
-     - FEEDBACK  → info    a <0.20  (decay lento: 90 dias)
-     - USER / ARCHITECTURE: nunca decaem — ignoradas
+     - PROGRESS        → warning a <0.30  (decay rápido: 7 dias por padrão)
+     - PIPELINE_STATUS → warning a <0.30  (decay médio: 14 dias por padrão)
+     - FEEDBACK        → info    a <0.20  (decay lento: 90 dias por padrão)
+     - USER / ARCHITECTURE / DATA_ASSET / PLATFORM_DECISION: nunca decaem — ignoradas
   4. Empty content: memórias sem conteúdo significativo
   5. Duplicate summaries: memórias com resumos idênticos ou quase
   6. Missing index: index.md desatualizado ou ausente
@@ -28,15 +29,18 @@ logger = logging.getLogger("data_agents.memory.lint")
 
 # ─── Staleness thresholds (Ch. 11) ───────────────────────────────────────────
 # Limiar de confidence decaída abaixo do qual uma memória é considerada stale.
-# Apenas tipos com decay são verificados (USER e ARCHITECTURE nunca decaem).
+# Apenas tipos com decay são verificados.
+# USER, ARCHITECTURE, DATA_ASSET, PLATFORM_DECISION nunca decaem — ignorados.
 _STALE_THRESHOLDS: dict[MemoryType, float] = {
-    MemoryType.PROGRESS: 0.30,  # warning cedo — decay rápido (7 dias)
-    MemoryType.FEEDBACK: 0.20,  # info depois  — decay lento (90 dias)
+    MemoryType.PROGRESS: 0.30,  # warning cedo — decay rápido (7 dias padrão)
+    MemoryType.PIPELINE_STATUS: 0.30,  # warning cedo — decay médio (14 dias padrão)
+    MemoryType.FEEDBACK: 0.20,  # info depois  — decay lento (90 dias padrão)
 }
 
 # Severidade associada a cada tipo stale
 _STALE_SEVERITY: dict[MemoryType, str] = {
     MemoryType.PROGRESS: "warning",
+    MemoryType.PIPELINE_STATUS: "warning",
     MemoryType.FEEDBACK: "info",
 }
 
@@ -187,9 +191,10 @@ def _check_stale_memories(memories: list[Memory], report: LintReport) -> None:
     Verifica memórias com confidence decaída abaixo do limiar de alerta (Ch. 11).
 
     Cobre todos os tipos que têm decay:
-      - PROGRESS  → warning a <0.30 (~3-4 dias de idade)
-      - FEEDBACK  → info    a <0.20 (~70+ dias de idade)
-      - USER / ARCHITECTURE: ignorados — confidence fixa, nunca decaem.
+      - PROGRESS        → warning a <0.30 (~3-4 dias de idade)
+      - PIPELINE_STATUS → warning a <0.30 (~7 dias de idade)
+      - FEEDBACK        → info    a <0.20 (~70+ dias de idade)
+      - USER / ARCHITECTURE / DATA_ASSET / PLATFORM_DECISION: ignorados — nunca decaem.
     """
     now = datetime.now(timezone.utc)
     for mem in memories:

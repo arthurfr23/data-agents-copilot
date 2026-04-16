@@ -40,8 +40,8 @@ class MemoryStore:
     O store é thread-safe para operações de leitura (escrita é sequencial).
     """
 
-    def __init__(self, data_dir: Path | None = None) -> None:
-        self.data_dir = data_dir or _DEFAULT_DATA_DIR
+    def __init__(self, data_dir: Path | str | None = None) -> None:
+        self.data_dir = Path(data_dir) if data_dir is not None else _DEFAULT_DATA_DIR
         self._ensure_dirs()
 
     def _ensure_dirs(self) -> None:

@@ -149,9 +149,13 @@ def build_resume_prompt(checkpoint: dict[str, Any]) -> str:
             parts.append(f"  - `{f_path}`")
 
     parts.append(
-        "\n**Instrução**: Leia os arquivos listados acima (especialmente os de `output/`) "
-        "para entender o progresso. Identifique o que já foi concluído e o que falta. "
-        "Apresente um resumo ao usuário e pergunte se deseja continuar de onde parou."
+        "\n**Instrução**: "
+        "1. Leia AGORA os arquivos listados acima (especialmente os de `output/`) usando a tool Read. "
+        "2. Com base no conteúdo lido, determine objetivamente: o trabalho estava CONCLUÍDO ou INCOMPLETO? "
+        "3. Responda ao usuário em UMA mensagem direta: "
+        "'✅ Trabalho concluído: <o que foi entregue>' OU "
+        "'🔄 Trabalho incompleto: <o que foi feito> / <o que falta>'. "
+        "Não faça perguntas. Não liste opções genéricas. Vá direto ao ponto."
     )
 
     return "\n".join(p for p in parts if p)

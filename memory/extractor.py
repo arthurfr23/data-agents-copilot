@@ -46,14 +46,30 @@ Categorias de extração (taxonomia fechada — use EXATAMENTE estes tipos):
 2. **feedback** — Correções e orientações dadas pelo usuário ao sistema.
    Exemplos: "usuário pediu para não usar SELECT *", "prefere Delta Lake sobre Parquet"
 
-3. **architecture** — Decisões arquiteturais, padrões, gotchas, regras de negócio.
+3. **architecture** — Decisões arquiteturais, padrões, gotchas, regras de negócio gerais.
    Exemplos: "pipeline usa Medallion com 3 camadas", "tabela X tem schema drift frequente"
 
-4. **progress** — Estado atual de tarefas, milestones atingidos.
+4. **progress** — Estado atual de tarefas, milestones atingidos, contexto de sessão.
    Exemplos: "pipeline de ingestão Bronze está pronto", "falta criar tabela Gold"
 
+5. **data_asset** — Ativos de dados: tabelas, views, schemas, pipelines, datasets e suas características.
+   Use quando há informações específicas sobre estrutura ou conteúdo de dados.
+   Exemplos: "tabela silver_vendas tem colunas [id, data, valor, cliente_id]",
+   "lakehouse TARN_LH_DEV contém schemas bronze, silver e gold",
+   "coluna cpf na tabela clientes é dado PII"
+
+6. **platform_decision** — Decisões sobre plataformas e tecnologias de dados.
+   Use quando o usuário escolhe entre opções de tecnologia para um caso de uso específico.
+   Exemplos: "Auto Loader escolhido para ingestão incremental (melhor que COPY INTO para streaming)",
+   "Fabric escolhido para relatórios Power BI (Databricks para processamento Spark)"
+
+7. **pipeline_status** — Estado atual de execução de pipelines, jobs e workflows de dados.
+   Use para status operacional que muda com frequência (decai em 14 dias).
+   Exemplos: "job de sync Fabric falhando há 2 dias (erro de permissão)",
+   "backfill da camada Silver em andamento, 60% concluído"
+
 Para cada extração, retorne:
-- type: um dos 4 tipos acima
+- type: um dos 7 tipos acima
 - summary: resumo de 1 linha (para o index)
 - content: descrição completa (2-5 linhas)
 - tags: 2-5 tags relevantes
@@ -63,6 +79,12 @@ Se não houver nada para extrair, retorne [].
 
 Exemplo:
 [
+  {
+    "type": "data_asset",
+    "summary": "Tabela silver_vendas com schema definido no projeto HERON",
+    "content": "A tabela silver_vendas contém as colunas: id (bigint), data_venda (date), valor (decimal), cliente_id (bigint), produto_id (bigint). Particionada por data_venda. Localizada no lakehouse TARN_LH_DEV, schema silver.",
+    "tags": ["silver", "vendas", "lakehouse", "schema"]
+  },
   {
     "type": "architecture",
     "summary": "Pipeline Medallion usa Auto Loader na camada Bronze",

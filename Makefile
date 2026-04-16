@@ -3,7 +3,7 @@
 # Automação de tarefas comuns de desenvolvimento e deploy
 # ═══════════════════════════════════════════════════════════════════
 
-.PHONY: help install dev test lint format type-check security clean run health-databricks health-fabric fabric-env deploy-staging deploy-prod
+.PHONY: help install dev test lint format type-check security clean run health-databricks health-fabric fabric-env deploy-staging deploy-prod refresh-skills refresh-skills-dry refresh-skills-force
 
 # Cores para output
 CYAN := \033[36m
@@ -78,6 +78,23 @@ deploy-staging: ## Deploy para Databricks Staging
 
 deploy-prod: ## Deploy para Databricks Production
 	databricks bundle deploy --target production
+
+# ─── Skill Refresh ────────────────────────────────────────────────
+
+refresh-skills: ## Atualiza Skills desatualizadas (respeita SKILL_REFRESH_INTERVAL_DAYS)
+	python scripts/refresh_skills.py
+
+refresh-skills-dry: ## Lista Skills que seriam atualizadas (sem modificar)
+	python scripts/refresh_skills.py --dry-run
+
+refresh-skills-force: ## Força atualização de TODAS as Skills (ignora intervalo)
+	python scripts/refresh_skills.py --force
+
+skill-stats: ## Relatório de uso de Skills (últimos 7 dias)
+	python scripts/skill_stats.py
+
+skill-stats-full: ## Relatório completo: skills usadas + não usadas (30 dias)
+	python scripts/skill_stats.py --days 30 --not-used
 
 # ─── Limpeza ──────────────────────────────────────────────────────
 

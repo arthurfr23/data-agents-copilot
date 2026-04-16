@@ -6,6 +6,7 @@ model: claude-sonnet-4-6
 tools: [Read, Write, Grep, Glob, context7_all, postgres_all]
 mcp_servers: [context7, postgres]
 kb_domains: [sql-patterns]
+skill_domains: [root]
 tier: T2
 ---
 # dbt Expert

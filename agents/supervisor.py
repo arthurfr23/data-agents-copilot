@@ -22,6 +22,7 @@ Modos de thinking:
   - Demais modos: thinking disabled — economiza custo/latência em tarefas pontuais
 """
 
+from pathlib import Path
 from typing import Any
 
 from claude_agent_sdk import ClaudeAgentOptions, HookMatcher
@@ -92,7 +93,13 @@ def build_supervisor_options(
         inject_cache_prefix=True,
     )
 
+    # Raiz do projeto — garante que agentes resolvam caminhos relativos
+    # corretamente independente do cwd do processo (ex: Chainlit vs main.py).
+    project_root = Path(__file__).parent.parent
+
     return ClaudeAgentOptions(
+        # --- Working Directory: âncora todos os agentes na raiz do projeto ---
+        cwd=project_root,
         # --- Modelo e System Prompt ---
         model=settings.default_model,
         system_prompt=SUPERVISOR_SYSTEM_PROMPT,

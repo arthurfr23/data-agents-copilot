@@ -20,13 +20,20 @@ from memory.types import Memory, MemoryType, DECAY_CONFIG
 class TestMemoryType:
     def test_four_types_exist(self):
         types = list(MemoryType)
-        assert len(types) == 4
+        # 4 tipos originais + 3 tipos de domínio de dados = 7
+        assert len(types) == 7
 
     def test_type_values(self):
         assert MemoryType.USER.value == "user"
         assert MemoryType.FEEDBACK.value == "feedback"
         assert MemoryType.ARCHITECTURE.value == "architecture"
         assert MemoryType.PROGRESS.value == "progress"
+
+    def test_data_domain_types_exist(self):
+        """Tipos de domínio de dados adicionados para data-agents."""
+        assert MemoryType.DATA_ASSET.value == "data_asset"
+        assert MemoryType.PLATFORM_DECISION.value == "platform_decision"
+        assert MemoryType.PIPELINE_STATUS.value == "pipeline_status"
 
     def test_from_string(self):
         assert MemoryType("user") == MemoryType.USER

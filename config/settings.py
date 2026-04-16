@@ -177,6 +177,39 @@ class Settings(BaseSettings):
     # Se True, captura automaticamente contexto da sessão via hook PostToolUse.
     memory_capture_enabled: bool = True
 
+    # --- Memory Decay (dias para atingir confidence 0.1) ---
+    # Controla a velocidade de obsolescência de cada tipo de memória.
+    # None = nunca decai (USER e ARCHITECTURE por padrão).
+    # PROGRESS: tarefas em andamento ficam obsoletas rapidamente (padrão 7 dias).
+    # FEEDBACK: orientações do usuário persistem mais (padrão 90 dias).
+    # PIPELINE_STATUS: status de pipelines de dados (padrão 14 dias).
+    # Override via .env: MEMORY_DECAY_PROGRESS_DAYS=14
+    memory_decay_progress_days: float = 7.0
+    memory_decay_feedback_days: float = 90.0
+    memory_decay_pipeline_status_days: float = 14.0
+
+    # --- Skill Auto-Refresh ---
+    # Se True, habilita a atualização automática das Skills via skill-updater agent.
+    # O refresh usa context7 + firecrawl para buscar docs atualizadas das plataformas.
+    # Execute manualmente: make refresh-skills
+    # Agendamento automático: configurado via SKILL_REFRESH_INTERVAL_DAYS.
+    skill_refresh_enabled: bool = True
+    # Intervalo em dias entre refreshes. Padrão: 3 dias.
+    # Override via .env: SKILL_REFRESH_INTERVAL_DAYS=5
+    skill_refresh_interval_days: int = 3
+    # Domínios de skill a atualizar no refresh automático.
+    # Override via .env: SKILL_REFRESH_DOMAINS=databricks,fabric
+    skill_refresh_domains: str = "databricks,fabric"
+
+    # --- Memory Daily Log Cleanup ---
+    # Se True, apaga daily logs compilados após N dias (reduz acúmulo de arquivos).
+    # Logs compilados já tiveram seu conteúdo extraído para o store — são redundantes.
+    # Override via .env: MEMORY_AUTO_CLEAN_DAILY_LOGS=true
+    memory_auto_clean_daily_logs: bool = True
+    # Quantos dias manter logs compilados antes de apagar. Padrão: 30 dias.
+    # Override via .env: MEMORY_KEEP_COMPILED_DAYS=30
+    memory_keep_compiled_days: int = 30
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     # --- Campos internos (não carregados do .env) ---

@@ -24,6 +24,7 @@ Iniciar:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 import time
@@ -129,6 +130,7 @@ _AGENT_AUTHORS: dict[str, str] = {
     "semantic-modeler": "Semantic Modeler",
     "business-analyst": "Business Analyst",
     "dbt-expert": "dbt Expert",
+    "skill-updater": "Skill Updater",
     "geral": "Geral",
 }
 
@@ -200,6 +202,7 @@ def _build_dev_options(stderr_lines: list[str] | None = None) -> ClaudeAgentOpti
     from config.settings import settings  # importação local — evita circular import
 
     opts = ClaudeAgentOptions(
+        cwd=ROOT,
         model=settings.default_model,
         system_prompt=_DEV_SYSTEM_PROMPT,
         allowed_tools=["Read", "Write", "Bash", "Grep", "Glob"],
@@ -273,6 +276,68 @@ class _StepManager:
         self._step = None
 
 
+# ── Cache de módulo do Supervisor ────────────────────────────────────────────
+# O ClaudeSDKClient e os MCP servers são processos pesados (~3-5s de cold start).
+# Mantê-los em um cache de módulo evita reconectar a cada refresh do browser —
+# o cl.user_session é destruído no refresh, mas este cache persiste enquanto o
+# processo Chainlit estiver vivo.
+#
+# Acesso protegido por asyncio.Lock: garante que apenas uma sessão conecta de
+# cada vez (evita race condition se dois tabs abrirem ao mesmo tempo).
+
+_supervisor_cache: dict = {}
+# Campos do cache:
+#   "client"          → ClaudeSDKClient conectado
+#   "options"         → ClaudeAgentOptions (mutável por query)
+#   "needs_reconnect" → True quando budget foi excedido — força reconexão na próxima ativação
+_supervisor_lock = asyncio.Lock()
+
+
+async def _get_or_create_supervisor() -> dict:
+    """
+    Retorna o cliente do Supervisor do cache, criando-o na primeira chamada.
+
+    Thread-safe via asyncio.Lock. Se o cliente existir e não precisar de
+    reconexão, retorna imediatamente (zero cold start). Se `needs_reconnect`
+    estiver marcado (budget excedido na sessão anterior), invalida e reconecta
+    antes de retornar — garantindo budget zerado.
+    """
+    from agents.supervisor import build_supervisor_options
+    from claude_agent_sdk import ClaudeSDKClient
+
+    async with _supervisor_lock:
+        # Reconecta se o budget foi excedido na sessão anterior
+        if _supervisor_cache.get("needs_reconnect") and _supervisor_cache.get("client"):
+            try:
+                await _supervisor_cache["client"].disconnect()
+            except Exception:
+                pass
+            _supervisor_cache.clear()
+
+        if _supervisor_cache.get("client") is None:
+            options = build_supervisor_options(enable_thinking=False)
+            options.include_partial_messages = True
+            client = ClaudeSDKClient(options=options)
+            await client.connect()
+            _supervisor_cache["client"] = client
+            _supervisor_cache["options"] = options
+            _supervisor_cache["needs_reconnect"] = False
+
+    return _supervisor_cache
+
+
+async def _invalidate_supervisor_cache() -> None:
+    """Desconecta e remove o cliente do cache (ex: ao trocar de modo)."""
+    async with _supervisor_lock:
+        client = _supervisor_cache.pop("client", None)
+        _supervisor_cache.pop("options", None)
+        if client is not None:
+            try:
+                await client.disconnect()
+            except Exception:
+                pass
+
+
 # ── Activação dos modos ───────────────────────────────────────────────────────
 
 
@@ -305,37 +370,79 @@ async def _show_mode_selection() -> None:
 
 
 async def _activate_supervisor() -> None:
-    """Inicializa e conecta o ClaudeSDKClient do Supervisor para esta sessão."""
-    from agents.supervisor import build_supervisor_options
-    from claude_agent_sdk import ClaudeSDKClient
+    """
+    Ativa o modo Supervisor para esta sessão do Chainlit.
 
-    loading_msg = await cl.Message(content="⏳ Inicializando Supervisor e MCP servers...").send()
+    Usa o cache de módulo (_get_or_create_supervisor) — na primeira ativação
+    conecta os MCP servers (~3-5s); nas seguintes reutiliza o cliente existente
+    (~0s, mesmo após refresh do browser).
+    """
+    # Só exibe spinner se for a primeira conexão (cache vazio)
+    is_cold_start = _supervisor_cache.get("client") is None
+    loading_msg = None
+    if is_cold_start:
+        loading_msg = await cl.Message(
+            content="⏳ Inicializando Supervisor e MCP servers (primeira vez)..."
+        ).send()
 
     try:
-        options = build_supervisor_options(enable_thinking=False)
-        options.include_partial_messages = True
-
-        client = ClaudeSDKClient(options=options)
-        await client.connect()
+        cached = await _get_or_create_supervisor()
+        client = cached["client"]
+        options = cached["options"]
 
         cl.user_session.set("mode", MODE_SUPERVISOR)
         cl.user_session.set("supervisor_client", client)
         cl.user_session.set("supervisor_options", options)
 
-        await loading_msg.remove()
+        if loading_msg:
+            await loading_msg.remove()
 
+        warm_note = (
+            "" if is_cold_start else "\n\n*(MCP servers reutilizados do cache — sem cold start)*"
+        )
         await cl.Message(
             content=(
                 "✅ **Modo: Data Agents** ativado.\n\n"
                 f"{_commands_help_text()}\n\n"
                 "---\n"
                 "💡 **Dica:** Use `/plan <objetivo>` para o fluxo completo BMAD com PRD e aprovação.\n"
-                "Digite `/modo` a qualquer momento para trocar de modo."
+                f"Digite `/modo` a qualquer momento para trocar de modo.{warm_note}"
             )
         ).send()
 
+        # ── Checkpoint: notifica se há sessão anterior interrompida ──────────
+        from hooks.checkpoint import load_checkpoint
+
+        checkpoint = load_checkpoint()
+        if checkpoint:
+            reason = checkpoint.get("reason", "unknown")
+            cost = checkpoint.get("cost_usd", 0)
+            last = checkpoint.get("last_prompt", "")[:80]
+            files = checkpoint.get("output_files", [])
+
+            reason_labels = {
+                "budget_exceeded": "orçamento excedido",
+                "user_reset": "reset manual",
+                "idle_timeout": "timeout de inatividade",
+            }
+            reason_text = reason_labels.get(reason, reason)
+
+            files_note = f"\n- **Arquivos gerados:** {len(files)}" if files else ""
+            await cl.Message(
+                content=(
+                    f"🔄 **Sessão anterior interrompida** ({reason_text})\n\n"
+                    f"- **Custo acumulado:** `${cost:.4f}`\n"
+                    f"- **Último prompt:** _{last}{'...' if len(checkpoint.get('last_prompt', '')) > 80 else ''}_"
+                    f"{files_note}\n\n"
+                    "Digite **`continuar`** para retomar ou ignore para nova sessão."
+                ),
+                author="Sistema",
+            ).send()
+            cl.user_session.set("_pending_checkpoint", checkpoint)
+
     except Exception as exc:
-        await loading_msg.remove()
+        if loading_msg:
+            await loading_msg.remove()
         await cl.Message(
             content=f"❌ Erro ao inicializar Supervisor: `{exc}`\n\nVerifique as credenciais no `.env`."
         ).send()
@@ -412,15 +519,40 @@ async def _handle_supervisor(user_input: str) -> None:
     tool_names: list[str] = []
     streamed_text = ""
     final_text = ""
+    _result_cost: float = 0.0  # preenchido no ResultMessage; acessível no except
+    _result_turns: int = 0
+    _thinking_msg: cl.Message | None = None  # indicador "processando" temporário
 
     # Mensagem de resposta principal (recebe o texto gerado pelo modelo)
     response_msg = cl.Message(content="", author="Supervisor")
     await response_msg.send()
 
+    # Timeout por mensagem: se o SDK ficar mais de 3 min sem emitir nenhuma
+    # mensagem (StreamEvent, AssistantMessage ou ResultMessage), cancela e
+    # reporta o erro. Evita que a UI trave indefinidamente em hangs do SDK.
+    _MSG_TIMEOUT = 180  # segundos
+
+    async def _next_with_timeout(gen):
+        """Retorna o próximo item do generator com timeout."""
+        return await asyncio.wait_for(gen.__anext__(), timeout=_MSG_TIMEOUT)
+
     try:
         await client.query(prompt)
 
-        async for message in client.receive_response():
+        _gen = client.receive_response().__aiter__()
+        while True:
+            try:
+                message = await _next_with_timeout(_gen)
+            except StopAsyncIteration:
+                break
+            except asyncio.TimeoutError:
+                await steps.close_error(f"⏱️ Timeout: nenhuma resposta em {_MSG_TIMEOUT}s")
+                await response_msg.stream_token(
+                    f"\n\n⏱️ **Timeout** — o agente não respondeu em {_MSG_TIMEOUT // 60} minutos. "
+                    "Tente novamente ou use `/modo` para reiniciar a sessão."
+                )
+                break
+
             # ── StreamEvent ───────────────────────────────────────────────────
             if isinstance(message, StreamEvent):
                 ev = message.event
@@ -470,6 +602,10 @@ async def _handle_supervisor(user_input: str) -> None:
                     elif delta_type == "text_delta":
                         token = delta.get("text", "")
                         if token:
+                            # Remove indicador "processando" ao receber o primeiro token real
+                            if _thinking_msg is not None:
+                                await _thinking_msg.remove()
+                                _thinking_msg = None
                             streamed_text += token
                             await response_msg.stream_token(token)
 
@@ -478,6 +614,14 @@ async def _handle_supervisor(user_input: str) -> None:
                     if current_tool == "Agent" and current_agent:
                         display = _agent_author(current_agent)
                         await steps.close(f"✅ {display} concluído")
+                        # Após retorno de sub-agente, Supervisor pode demorar para processar
+                        # o resultado e gerar sua resposta — exibe mensagem temporária para
+                        # evitar que o chat pareça travado durante esse período silencioso.
+                        _thinking_msg = cl.Message(
+                            content="⏳ *Supervisor analisando resultado...*",
+                            author="Sistema",
+                        )
+                        await _thinking_msg.send()
                     elif current_tool:
                         label = _tool_label(current_tool)
                         await steps.close(f"✅ {label}")
@@ -491,6 +635,9 @@ async def _handle_supervisor(user_input: str) -> None:
             # ── AssistantMessage: fallback se não houve streaming ────────────
             elif isinstance(message, AssistantMessage):
                 await steps.close()  # garante que não ficou nenhum step aberto
+                if _thinking_msg is not None:
+                    await _thinking_msg.remove()
+                    _thinking_msg = None
                 for blk in message.content:
                     if isinstance(blk, TextBlock) and blk.text.strip():
                         final_text += blk.text
@@ -498,13 +645,16 @@ async def _handle_supervisor(user_input: str) -> None:
             # ── ResultMessage: métricas finais ────────────────────────────────
             elif isinstance(message, ResultMessage):
                 await steps.close()
+                if _thinking_msg is not None:
+                    await _thinking_msg.remove()
+                    _thinking_msg = None
 
                 # Usa texto final como fallback se não houve streaming
                 if not streamed_text and final_text:
                     await response_msg.stream_token(final_text)
 
-                cost = float(message.total_cost_usd or 0)
-                turns = int(message.num_turns or 0)
+                _result_cost = float(message.total_cost_usd or 0)
+                _result_turns = int(message.num_turns or 0)
                 duration = float(message.duration_ms or 0) / 1000
 
                 # Atualiza author da resposta para o último agente que respondeu
@@ -512,14 +662,37 @@ async def _handle_supervisor(user_input: str) -> None:
                     response_msg.author = _agent_author(last_agent)
 
                 # Rodapé com métricas
-                metrics_str = (
-                    f"\n\n---\n*💰 `${cost:.4f}` · 🔄 `{turns} turns` · ⏱️ `{duration:.1f}s`*"
-                )
+                metrics_str = f"\n\n---\n*💰 `${_result_cost:.4f}` · 🔄 `{_result_turns} turns` · ⏱️ `{duration:.1f}s`*"
                 await response_msg.stream_token(metrics_str)
 
     except Exception as exc:
+        from config.exceptions import BudgetExceededError
+        from config.settings import settings as _settings
+        from hooks.checkpoint import save_checkpoint
+
         await steps.close_error(str(exc))
-        await response_msg.stream_token(f"\n\n❌ **Erro:** `{exc}`")
+
+        if isinstance(exc, BudgetExceededError):
+            # Marca o cache para reconexão na próxima sessão — reseta o budget
+            _supervisor_cache["needs_reconnect"] = True
+
+            # Salva checkpoint para retomada na próxima sessão
+            cost_val = getattr(exc, "current_cost", _result_cost)
+            turns_val = _result_turns
+            save_checkpoint(
+                last_prompt=prompt[:500],
+                reason="budget_exceeded",
+                cost_usd=cost_val,
+                turns=turns_val,
+            )
+
+            await response_msg.stream_token(
+                f"\n\n💰 **Orçamento excedido** — `${cost_val:.4f}` / `${_settings.max_budget_usd:.2f}`\n\n"
+                "O contexto desta sessão foi salvo automaticamente.\n"
+                "Abra um **Novo Chat**, selecione **Data Agents** e digite **`continuar`** para retomar."
+            )
+        else:
+            await response_msg.stream_token(f"\n\n❌ **Erro:** `{exc}`")
 
     await response_msg.update()
 
@@ -659,7 +832,12 @@ async def _handle_dev(user_input: str) -> None:
 
 @cl.on_chat_start
 async def on_chat_start() -> None:
-    """Apresenta seleção de modo ao iniciar o chat."""
+    """Apresenta seleção de modo ao iniciar o chat.
+
+    Marca o supervisor para reconexão — cada novo chat recebe um budget zerado,
+    evitando que o custo acumulado da sessão anterior bloqueie o novo chat.
+    """
+    _supervisor_cache["needs_reconnect"] = True
     await _show_mode_selection()
 
 
@@ -683,14 +861,10 @@ async def on_message(message: cl.Message) -> None:
 
     # Comando global /modo — funciona em qualquer estado
     if user_input.lower() in ("/modo", "/mode"):
-        client = cl.user_session.get("supervisor_client")
-        if client is not None:
-            try:
-                await client.disconnect()
-            except Exception:
-                pass
-            cl.user_session.set("supervisor_client", None)
-
+        # Limpa apenas a sessão local — o cliente do Supervisor fica no cache
+        # de módulo para ser reutilizado por esta ou outras sessões.
+        cl.user_session.set("supervisor_client", None)
+        cl.user_session.set("supervisor_options", None)
         cl.user_session.set("mode", None)
         cl.user_session.set("dev_history", [])
         await _show_mode_selection()
@@ -705,6 +879,20 @@ async def on_message(message: cl.Message) -> None:
         ).send()
         return
 
+    # ── Checkpoint: "continuar" retoma sessão anterior ────────────────────────
+    if mode == MODE_SUPERVISOR and user_input.lower() in ("continuar", "continue", "retomar"):
+        checkpoint = cl.user_session.get("_pending_checkpoint")
+        if checkpoint:
+            from hooks.checkpoint import build_resume_prompt, clear_checkpoint
+
+            resume_prompt = build_resume_prompt(checkpoint)
+            clear_checkpoint()
+            cl.user_session.set("_pending_checkpoint", None)
+            await cl.Message(content="🔄 **Retomando sessão anterior...**", author="Sistema").send()
+            await _handle_supervisor(resume_prompt)
+            return
+        # Nenhum checkpoint pendente — trata como mensagem normal
+
     if mode == MODE_SUPERVISOR:
         await _handle_supervisor(user_input)
     elif mode == MODE_DEV:
@@ -713,10 +901,12 @@ async def on_message(message: cl.Message) -> None:
 
 @cl.on_chat_end
 async def on_chat_end() -> None:
-    """Desconecta o cliente do Supervisor ao encerrar a sessão."""
-    client = cl.user_session.get("supervisor_client")
-    if client is not None:
-        try:
-            await client.disconnect()
-        except Exception:
-            pass
+    """
+    Limpa referências da sessão ao encerrar.
+
+    O ClaudeSDKClient do Supervisor NÃO é desconectado aqui — ele vive no
+    cache de módulo (_supervisor_cache) e será reutilizado pela próxima sessão.
+    Apenas removemos a referência local para não manter ponteiros desnecessários.
+    """
+    cl.user_session.set("supervisor_client", None)
+    cl.user_session.set("supervisor_options", None)
