@@ -1,4 +1,4 @@
-# Manual e Relatorio Tecnico: Projeto Data Agents v5.0
+# Manual e Relatorio Tecnico: Projeto Data Agents v7.0
 
 ---
 
@@ -69,7 +69,7 @@ O projeto Data Agents nasceu de uma frustracao real: ferramentas de IA generativ
 
 A solucao foi construir um sistema que nao apenas conversa, mas age: uma plataforma de multiplos agentes especializados, cada um com o conjunto certo de ferramentas, o conhecimento correto (via Knowledge Bases e Skills), e um conjunto de restricoes inviolaveis (a Constituicao) que garante que o comportamento seja sempre seguro, auditavel e alinhado com as melhores praticas de engenharia de dados.
 
-A versao 5.0 e o ponto de maior maturidade do sistema. Ela adiciona um recurso fundamental que as versoes anteriores nao tinham: **memoria persistente entre sessoes**. Agora o sistema aprende com cada interacao. Ele lembra que voce preferiu Delta Lake a Parquet na ultima semana. Ele lembra que o pipeline de vendas usa o warehouse `wh_production` e nao o `wh_dev`. Ele lembra as decisoes de arquitetura que voce tomou e as aplica automaticamente na proxima sessao.
+A versao 7.0 e a versao mais completa do projeto. Ela expande o ecossistema com 10 agentes especialistas, 13 MCP servers, sistema de refresh automatico de Skills, 7 tipos de memoria com decay configuravel, e melhorias de seguranca, UX e roteamento de agentes.
 
 Este manual foi escrito pensando em quatro perfis de leitores simultaneamente:
 
@@ -144,17 +144,25 @@ A camada de governanca embutida (Constituicao + Hooks de seguranca) significa qu
 
 O modelo de custo e controlado: cada sessao tem um limite de budget em dolares (padrao: $5.00) e um limite de turns (padrao: 50). Quando o limite e atingido, o sistema salva um checkpoint e para graciosamente. O custo de cada operacao e rastreado e visivel em tempo real no Dashboard de Monitoramento.
 
-### 1.5 Versao 5.0: O que Ha de Novo
+### 1.5 Versao 7.0: O que Ha de Novo
 
-A versao 5.0 e a versao mais completa e madura do projeto. As principais novidades em relacao a v4.0 sao:
+A versao 7.0 e a versao mais completa do projeto, acumulando os avancos das versoes anteriores:
 
-**Sistema de Memoria Persistente:** O maior avanco da versao. O sistema agora aprende com cada interacao e mantem memoria entre sessoes. Ha quatro tipos de memoria — Episodica (fatos especificos de sessoes passadas), Semantica (padroes e preferencias aprendidas), Procedimental (como o usuario prefere que tarefas sejam executadas) e Arquitetural (decisoes de design do ambiente do usuario). Cada memoria tem nivel de confianca, timestamp de criacao e atualizacao, e e automaticamente purgada quando se torna obsoleta ou foi substituida.
+**v5.0 — Memoria Persistente:** 4 tipos de memoria armazenados como Markdown, decay temporal, retrieval semantico, hooks de captura e ciclo de vida da sessao.
 
-**Comando /geral:** Um novo modo de execucao que bypassa o Supervisor e vai direto ao modelo base para tarefas que nao precisam de orquestracao, planejamento ou acesso a cloud. Ideal para perguntas rapidas, revisoes de codigo, analise de documentos e brainstorming.
+**v6.0 — Ecossistema Expandido:** 6 novos MCP servers externos (context7, tavily, github, firecrawl, postgres, memory_mcp), agente dbt Expert, Web UI Chainlit com dois modos de operacao, feedback em tempo real com cl.Step().
 
-**Hook de Ciclo de Vida de Sessao:** Um novo hook que gerencia eventos do ciclo completo da sessao — inicio, encerramento, idle timeout — e persiste um snapshot de configuracao ao final de cada sessao para auditoria e recuperacao.
+**v7.0 — Qualidade e Autonomia:**
 
-**Dois novos agentes:** O ecossistema agora conta com 8 agentes especialistas, incluindo um novo agente de Memoria para gerenciar o sistema de memoria persistente.
+**Skill Updater e Refresh Automatico:** Novo agente que mantém as Skills atualizadas automaticamente. `make refresh-skills` invoca o agente para buscar documentacao atualizada via context7/tavily/firecrawl. Skills desatualizadas geram codigo desatualizado — agora o sistema cuida disso.
+
+**7 Tipos de Memoria com Decay Configuravel:** Tres novos tipos de dominio de dados: `data_asset` (schemas, tabelas), `platform_decision` (escolhas de tecnologia), `pipeline_status` (estado de execucao). Cada tipo tem decay configuravel individualmente via `.env`.
+
+**Roteamento Preciso de Agentes:** Todos os 10 agentes agora tem triggers "Invoque quando:" no description, garantindo que o Supervisor direcione cada tarefa ao especialista correto sem ambiguidade.
+
+**Seguranca Git:** 5 novos padroes destrutivos: git force-push, reset --hard, branch -D (force delete, case-sensitive para nao bloquear -d seguro).
+
+**Melhorias de UX:** Budget resetado automaticamente em novo chat, indicador visual de processamento no Chainlit, checkpoint com instrucao de retomada direta.
 
 ---
 
@@ -281,7 +289,7 @@ Sistema que permite ao agente lembrar informacoes relevantes entre sessoes difer
 ## 3. Arquitetura Geral do Sistema
 
 <p align="center">
-  <img src="img/readme/architecture_v6.svg" alt="Arquitetura Multi-Agent System Data Agents v5.0" width="100%">
+  <img src="img/readme/architecture_v7.svg" alt="Arquitetura Multi-Agent System Data Agents v7.0" width="100%">
 </p>
 
 ### 3.1 A Visao Geral: Uma Empresa em Miniatura
@@ -372,7 +380,7 @@ Comandos de diagnostico e controle do proprio sistema. Nao delegam para agentes.
 
 ## 4. Os Agentes: A Equipe Virtual
 
-O projeto conta com **8 agentes especialistas** divididos em tres niveis de atuacao (Tiers), mais o Supervisor. Todos os agentes — com excecao do Supervisor — sao definidos em arquivos Markdown na pasta `agents/registry/`. Isso e uma decisao de design deliberada: para criar um novo agente, voce nao precisa escrever Python. Basta criar um arquivo `.md` com o frontmatter YAML correto e o prompt em Markdown.
+O projeto conta com **10 agentes especialistas** divididos em tres niveis de atuacao (Tiers), mais o Supervisor. Todos os agentes — com excecao do Supervisor — sao definidos em arquivos Markdown na pasta `agents/registry/`. Isso e uma decisao de design deliberada: para criar um novo agente, voce nao precisa escrever Python. Basta criar um arquivo `.md` com o frontmatter YAML correto e o prompt em Markdown.
 
 Essa abordagem declarativa tem tres vantagens cruciais. Primeiro, a barreira de entrada e baixa — qualquer pessoa que entenda o negocio pode contribuir com um novo agente sem conhecimento de programacao. Segundo, o codigo Python do `loader.py` permanece inalterado quando novos agentes sao adicionados. Terceiro, o frontmatter YAML serve como configuracao versionada — voce pode ver exatamente quais tools, KBs e MCP servers cada agente tem, em um formato legivel por humanos.
 
@@ -522,18 +530,41 @@ O Semantic Modeler e o agente mais "voltado para o negocio" do Tier 2. Ele const
 
 **O Semantic Modeler foi o agente mais expandido na v4.0:** Agora tem acesso a `create_or_update_genie` para criar Genie Spaces diretamente, `create_or_update_dashboard` para publicar AI/BI Dashboards, e `query_serving_endpoint` para consultar endpoints de Model Serving e incluir resultados de ML em modelos semanticos.
 
-### 4.5 Tabela Comparativa dos 8 Agentes
+#### dbt Expert (/dbt)
 
-| **Agente**           | **Tier** | **Modelo**   | **MCP Servers**          | **Acesso Principal**                          |
-| -------------------- | -------- | ------------ | ------------------------ | --------------------------------------------- |
-| Supervisor           | —        | opus-4-6     | Todos (via delegacao)    | Leitura KB + memoria + orquestracao           |
-| Business Analyst     | T3       | opus-4-6     | Nenhum (local)           | Read/Write local (documentos)                 |
-| SQL Expert           | T1       | sonnet-4-6   | Databricks, Fabric, RTI  | Read-only na nuvem, write em .sql             |
-| Spark Expert         | T1       | sonnet-4-6   | Databricks, Fabric       | Read/Write + filesystem local completo        |
-| Pipeline Architect   | T1       | sonnet-4-6   | Databricks, Fabric       | Execucao completa + compute/KA/MAS            |
-| Data Quality Steward | T2       | sonnet-4-6   | Databricks, Fabric       | Read/Write completo                           |
-| Governance Auditor   | T2       | sonnet-4-6   | Databricks, Fabric       | Read/Write completo                           |
-| Semantic Modeler     | T2       | sonnet-4-6   | Databricks, Fabric       | Read-only + Genie + AI/BI Dashboard + Serving |
+**Modelo:** `claude-sonnet-4-6`
+
+**Analogia:** O especialista em transformacao declarativa — a pessoa que usa dbt (data build tool) para transformar dados brutos em modelos analiticos versionados, testados e documentados.
+
+O dbt Expert cobre o ciclo completo de desenvolvimento dbt: escreve `models/` em SQL ou Python, configura `tests/` (not_null, unique, relationships), cria `snapshots/` para Slowly Changing Dimensions, seeds para dados de referencia, gera documentacao via `dbt docs generate`, e suporta os adapters `dbt-databricks` e `dbt-fabric`. Acessa as Skills de dbt via `skill_domains: [root]` para garantir uso de padroes atuais.
+
+#### Skill Updater (sem slash command dedicado)
+
+**Modelo:** `claude-sonnet-4-6`
+
+**Analogia:** O responsavel pela manutencao do acervo tecnico — a pessoa que periodicamente revisa e atualiza os manuais operacionais para refletir as versoes mais recentes das ferramentas.
+
+O Skill Updater e o unico agente sem exposicao direta ao usuario via slash command. Ele e invocado pelo sistema de refresh automatico (`make refresh-skills`) ou pelo Supervisor quando uma Skill precisa ser atualizada. Busca documentacao atualizada via context7, tavily e firecrawl, le o arquivo `SKILL.md` atual, atualiza o conteudo e o frontmatter (`updated_at`), e salva o arquivo. Suporta `--force`, `--dry-run` e execucao paralela de ate 2 skills simultaneamente.
+
+**Configuracao via `.env`:**
+- `SKILL_REFRESH_ENABLED=true` — habilita o refresh automatico
+- `SKILL_REFRESH_INTERVAL_DAYS=3` — pula skills atualizadas ha menos de N dias
+- `SKILL_REFRESH_DOMAINS=databricks,fabric` — dominios a atualizar
+
+### 4.5 Tabela Comparativa dos 10 Agentes
+
+| **Agente**           | **Tier** | **Modelo**   | **MCP Servers**                | **Acesso Principal**                            |
+| -------------------- | -------- | ------------ | ------------------------------ | ----------------------------------------------- |
+| Supervisor           | —        | opus-4-6     | Todos (via delegacao)          | Leitura KB + memoria + orquestracao             |
+| Business Analyst     | T3       | opus-4-6     | tavily, firecrawl              | Read/Write local + pesquisa web                 |
+| SQL Expert           | T1       | sonnet-4-6   | Databricks, Fabric, RTI        | Read-only na nuvem, write em .sql               |
+| Spark Expert         | T1       | sonnet-4-6   | context7                       | Read/Write + filesystem local completo          |
+| Pipeline Architect   | T1       | sonnet-4-6   | Databricks, Fabric, github     | Execucao completa + compute/KA/MAS              |
+| Data Quality Steward | T2       | sonnet-4-6   | Databricks, Fabric             | Read/Write completo                             |
+| Governance Auditor   | T2       | sonnet-4-6   | Databricks, Fabric, memory_mcp | Read/Write completo + knowledge graph           |
+| Semantic Modeler     | T2       | sonnet-4-6   | Databricks, Fabric             | Read-only + Genie + AI/BI Dashboard + Serving   |
+| dbt Expert           | T2       | sonnet-4-6   | context7, postgres             | Read/Write local + documentacao atualizada      |
+| Skill Updater        | T2       | sonnet-4-6   | context7, tavily, firecrawl    | Write em SKILL.md + busca de documentacao       |
 
 ---
 
@@ -645,7 +676,7 @@ O projeto segue uma organizacao modular e declarativa. Cada pasta tem uma respon
 ```
 data-agents/
 ├── agents/
-│   ├── registry/              # Agentes definidos em Markdown (8 agentes + template)
+│   ├── registry/              # Agentes definidos em Markdown (10 agentes + template)
 │   │   ├── _template.md       # Template para criar novos agentes
 │   │   ├── business-analyst.md
 │   │   ├── sql-expert.md
@@ -1050,7 +1081,7 @@ Isso previne que requisicoes HTTP internas do SDK Anthropic encham os logs com d
 
 Os Hooks sao o sistema de controle e auditoria do Data Agents. Sao funcoes que o Claude Agent SDK chama automaticamente em momentos especificos da execucao — antes de uma ferramenta ser chamada (PreToolUse), depois que uma ferramenta retornou (PostToolUse), no inicio da sessao (SessionStart), e no fim da sessao (SessionEnd).
 
-O Data Agents v5.0 possui **9 Hooks** especializados, organizados em tres categorias: Seguranca (prevencao), Auditoria (registro e rastreamento), e Controle (custo, compressao e ciclo de vida).
+O Data Agents v7.0 possui **9 Hooks** especializados, organizados em tres categorias: Seguranca (prevencao), Auditoria (registro e rastreamento), e Controle (custo, compressao e ciclo de vida).
 
 ### 8.1 Por Que Hooks? Uma Decisao de Arquitetura
 
@@ -1066,7 +1097,7 @@ Essa separacao entre "o que a IA quer fazer" e "o que o sistema permite" e o pri
 
 Este hook e registrado como PreToolUse especificamente para ferramentas Bash. Antes de qualquer comando Bash ser executado, o hook analisa o comando contra duas listas de padroes:
 
-**17 padroes destrutivos diretos** (bloqueados imediatamente):
+**22 padroes destrutivos diretos** (bloqueados imediatamente — inclui 5 padroes git adicionados na v7.0):
 ```python
 DESTRUCTIVE_PATTERNS = [
     r'\bDROP\s+TABLE\b',
@@ -1086,8 +1117,16 @@ DESTRUCTIVE_PATTERNS = [
     r'wipefs\b',
     r'blkdiscard\b',
     r'mv\s+.+\s+/dev/null\b',
+    # Padroes git destrutivos (adicionados v7.0):
+    r'\bgit\s+push\s+.*--force\b',     # force push (sobrescreve historico remoto)
+    r'\bgit\s+push\s+.*-f\b',          # force push forma curta
+    r'\bgit\s+reset\s+--hard\b',       # descarta commits e mudancas locais
+    r'\bgit\s+clean\s+-[a-zA-Z]*f',    # remove arquivos nao rastreados (-f)
+    r'\bgit\s+branch\s+-[a-zA-Z]*D\b', # deleta branch com forca (case-sensitive: D != d)
 ]
 ```
+
+> **Nota de seguranca:** O padrao `git branch -D` nao usa `re.IGNORECASE` deliberadamente — `-D` (forca) e distinto de `-d` (seguro, so deleta se merged). Case-sensitivity aqui e intencional.
 
 **11 padroes de evasao** (tentativas de burlar o bloqueio):
 ```python
@@ -1294,17 +1333,49 @@ Cobre as convencoes especificas do workspace Databricks da organizacao: naming c
 **fabric/**
 Cobre as convencoes especificas do workspace Fabric: nomenclatura de Lakehouses, estrutura de Workspaces, configuracoes de Data Factory pipelines, uso do RTI (Eventhouse, Eventstreams, Activator), e as convencoes de Direct Lake. Agentes que recebem esta KB: todos os agentes Fabric.
 
-### 9.4 Camada 3: Skills Operacionais (32 Modulos)
+### 9.4 Camada 3: Skills Operacionais
 
 As Skills sao manuais tecnicos detalhados que ensinam os agentes a usar ferramentas especificas. A diferenca entre uma KB e uma Skill: a KB diz *o que* deve ser feito, a Skill ensina *como* fazer com a sintaxe correta de uma tecnologia.
 
+**Injecao automatica via `skill_domains`:** Cada agente declara no frontmatter quais dominios de Skills deve receber. O loader injeta automaticamente o indice das SKILL.md relevantes antes de qualquer tarefa — o agente le a SKILL.md correta antes de gerar codigo. Exemplo:
+
+```yaml
+skill_domains: [databricks, fabric]  # injeta indice com 27 + 9 Skills
+```
+
 **Por que Skills em vez de incluir tudo na KB?**
 
-As Skills sao muitas vezes baseadas na documentacao oficial das tecnologias e podem ser volumosas. Incluir todos os 27 modulos Databricks em todos os prompts seria impraticavel. Com Skills, cada agente le o manual tecnico especifico que precisa no momento em que precisa — minimizando o uso de contexto.
+As Skills sao muitas vezes baseadas na documentacao oficial das tecnologias e podem ser volumosas. Incluir todos os modulos em todos os prompts seria impraticavel. Com Skills, cada agente le o manual tecnico especifico que precisa no momento em que precisa — minimizando o uso de contexto.
 
-**27 Skills Databricks** cobrem: Unity Catalog, Delta Lake, Delta Live Tables, Auto Loader, SQL Warehouses, Clusters, Jobs, LakeFlow Pipelines, Genie API, AI/BI Dashboards, Model Serving, Knowledge Assistants, Mosaic AI, MLflow, Streaming, Schema Evolution, Time Travel, Liquid Clustering, Row-level Security, Column-level Security, Volumes, External Locations, Service Credentials, Bundles (CI/CD), Notebooks, Repos, e Debugging.
+**Skills Databricks** cobrem: Unity Catalog, Delta Lake, Delta Live Tables, Auto Loader, SQL Warehouses, Clusters, Jobs, LakeFlow Pipelines, Genie API, AI/BI Dashboards, Model Serving, Knowledge Assistants, Mosaic AI, MLflow, Streaming, Schema Evolution, Time Travel, Liquid Clustering, Row-level Security, Column-level Security, Volumes, External Locations, Service Credentials, Bundles (CI/CD), Notebooks, Repos, e Debugging.
 
-**5 Skills Fabric** cobrem: Lakehouse e OneLake, Data Factory Pipelines, Real-Time Intelligence (KQL + Eventstreams + Activator), Direct Lake e Power BI, e SQL Analytics Endpoint.
+**Skills Fabric** cobrem: Lakehouse e OneLake, Data Factory Pipelines, Real-Time Intelligence (KQL + Eventstreams + Activator), Direct Lake e Power BI, SQL Analytics Endpoint, Workspace Manager, Git Integration, Deployment Pipelines, Notebook Manager, e Monitoring DMV.
+
+### 9.5 Sistema de Refresh Automatico de Skills (v7.0)
+
+Skills desatualizadas geram codigo desatualizado. APIs mudam, padroes evoluem, novos recursos sao lancados. O sistema de refresh automatico resolve esse problema.
+
+**Como funciona:**
+
+1. `make refresh-skills` (ou `python scripts/refresh_skills.py`) invoca o agente `skill-updater`
+2. O agente le o arquivo `SKILL.md` atual e identifica a biblioteca/ferramenta
+3. Busca documentacao atualizada via context7, tavily ou firecrawl
+4. Atualiza o conteudo e o frontmatter (`updated_at: YYYY-MM-DD`)
+5. Salva o arquivo e gera relatorio
+
+**Intervalo configuravel:** Skills atualizadas ha menos de `SKILL_REFRESH_INTERVAL_DAYS` dias (padrao: 3) sao automaticamente puladas — sem desperdicar chamadas de API.
+
+**Comandos disponíveis:**
+
+```bash
+make refresh-skills        # atualiza Skills desatualizadas (respeita intervalo)
+make refresh-skills-dry    # lista o que seria atualizado sem modificar
+make refresh-skills-force  # forca atualizacao de todas independente do intervalo
+make skill-stats           # relatorio de uso de Skills (ultimos 7 dias)
+make skill-stats-full      # relatorio completo + skills nunca acessadas (30 dias)
+```
+
+**Monitoramento de uso:** `make skill-stats` le o `logs/audit.jsonl` e mostra quais Skills foram acessadas, quantas vezes, e por qual agente — permitindo identificar Skills nunca utilizadas que podem ser removidas ou consolidadas.
 
 ---
 
@@ -1531,55 +1602,49 @@ Todo sistema de agentes de IA enfrenta o mesmo problema fundamental: perda de co
 
 Isso nao e apenas ineficiente — e um problema de qualidade. Um assistente que esquecetem tudo toda vez nao pode aprender com os seus erros. Nao pode adaptar seu estilo ao usuario. Nao pode lembrar que voce prefere DLT a notebooks de ETL, ou que o ambiente de producao usa um naming convention diferente do de desenvolvimento.
 
-O Sistema de Memoria Persistente da v5.0 resolve esse problema. Ele permite que o Data Agents acumule conhecimento sobre o seu ambiente, suas preferencias e suas decisoes de arquitetura ao longo de multiplas sessoes.
+O Sistema de Memoria Persistente (introduzido na v5.0 e expandido na v7.0) resolve esse problema. Ele permite que o Data Agents acumule conhecimento sobre o seu ambiente, suas preferencias e suas decisoes de arquitetura ao longo de multiplas sessoes, com 7 tipos de memoria e decay configuravel por tipo.
 
-### 12.2 Os Quatro Tipos de Memoria
+### 12.2 Os Sete Tipos de Memoria (v7.0)
 
-A memoria e categorizada em quatro tipos, cada um com proposito, duracao e comportamento de poda diferentes:
+A partir da v7.0, a memoria e categorizada em **7 tipos** com decay individuais configurados via `.env`. Os 4 tipos originais foram mantidos e 3 novos tipos de dominio de dados foram adicionados:
 
-**EPISODIC (Episodica)**
+| Tipo | Decay Padrao | Configuravel via | Proposito |
+|------|-------------|-----------------|-----------|
+| `USER` | Nunca | — | Preferencias, papel e expertise do usuario |
+| `FEEDBACK` | 90 dias | `MEMORY_DECAY_FEEDBACK_DAYS` | Correcoes e orientacoes ao sistema |
+| `ARCHITECTURE` | Nunca | — | Decisoes arquiteturais e padroes descobertos |
+| `PROGRESS` | 7 dias | `MEMORY_DECAY_PROGRESS_DAYS` | Estado atual de tarefas e workflows |
+| `DATA_ASSET` | Nunca | — | Tabelas, schemas, datasets e suas caracteristicas |
+| `PLATFORM_DECISION` | Nunca | — | Decisoes sobre tecnologias e integracoes de plataforma |
+| `PIPELINE_STATUS` | 14 dias | `MEMORY_DECAY_PIPELINE_STATUS_DAYS` | Estado de execucao de pipelines e jobs |
 
-Memorias de eventos especificos de sessoes passadas. Sao os "fatos" mais concretos — o que aconteceu, quando, em que contexto.
+**USER** — Informacoes sobre o usuario que tornam as respostas mais personalizadas:
+- "O usuario e Specialist Data Architect com 10 anos de experiencia em Databricks"
+- "O usuario prefere respostas tecnicas diretas, sem explicacoes basicas"
 
-Exemplos:
-- "Na sessao de 2025-06-10, o usuario criou a tabela `silver.pedidos_limpos` no schema `silver` do Lakehouse `lh_vendas`"
-- "Na sessao de 2025-06-12, o pipeline de ingestao falhou com erro de schema mismatch na coluna `data_pedido` (esperava DATE, recebeu STRING)"
-- "Na sessao de 2025-06-15, o usuario aprovou o PRD do pipeline de vendas e delegou para execucao"
+**FEEDBACK** — Correcoes e orientacoes dadas pelo usuario ao sistema. Envelhece em 90 dias pois preferencias podem mudar:
+- "Usar DLT com expectations ao inves de notebooks PySpark para pipelines de producao"
+- "Nunca usar tabelas nao-gerenciadas no Unity Catalog deste ambiente"
 
-**Retencao:** 90 dias por padrao (configuravel via `MEMORY_RETENTION_DAYS`)
+**ARCHITECTURE** — Decisoes de design do ambiente — o mapa do territorio. Nunca expira pois representa o estado do ambiente:
+- "O workspace Databricks tem 3 catalogos: prod, dev, sandbox"
+- "A arquitetura Medallion usa os schemas bronze, silver, gold dentro do catalog prod"
 
-**SEMANTIC (Semantica)**
+**PROGRESS** — Estado efemero de tarefas em andamento. Expira em 7 dias pois o status muda rapidamente:
+- "Pipeline Bronze concluido, aguardando aprovacao para iniciar Silver"
+- "Checkpoint de sessao 2026-04-14: PRD gerado, delegacao para Spark Expert pendente"
 
-Padroes e preferencias aprendidas ao longo do tempo — o conhecimento abstrato derivado de multiplas experiencias episodicas.
+**DATA_ASSET** *(novo v7.0)* — Ativos de dados com suas caracteristicas estruturais. Nunca expira pois schemas sao estaveis:
+- "Tabela `silver.vendas_limpos`: schema com 42 colunas, particao por `data_pedido`, 3 colunas PII identificadas"
+- "Lakehouse TARN_LH_DEV: contém dados de monitoramento de maquinas com frequencia 5 min"
 
-Exemplos:
-- "O usuario prefere implementacoes PySpark a SQL puro para transformacoes complexas"
-- "O ambiente de producao usa o SQL Warehouse `wh_production_m` (medium), nao o `wh_dev`"
-- "As tabelas deste workspace seguem o naming convention `<dominio>_<entidade>_<granularidade>` (ex: `vendas_pedidos_diario`)"
+**PLATFORM_DECISION** *(novo v7.0)* — Decisoes sobre tecnologias que moldam o desenvolvimento futuro. Nunca expira pois sao escolhas estrategicas:
+- "Decidido usar Fabric SQL Analytics Endpoint em vez de API REST para queries no Fabric"
+- "DAX via Semantic Model bloqueado por restricao de tenant — usar Metric Views no Databricks"
 
-**Retencao:** 365 dias por padrao — memoria semantica e mais valiosa e envelhece mais devagar
-
-**PROCEDURAL (Procedimental)**
-
-Como o usuario prefere que tarefas especificas sejam executadas — o "jeito certo" de fazer as coisas neste ambiente especifico.
-
-Exemplos:
-- "Para criar tabelas novas, sempre usar `CREATE TABLE ... USING DELTA LOCATION '...'` em vez de tabelas gerenciadas"
-- "Ao fazer profiling, sempre executar `ANALYZE TABLE` antes de reportar estatisticas"
-- "Jobs de producao devem sempre ter retry=3 e on_failure=STOP_AND_NOTIFY"
-
-**Retencao:** 180 dias por padrao
-
-**ARCHITECTURAL (Arquitetural)**
-
-Decisoes de design de longa duracao sobre o ambiente — o mapa do territorio.
-
-Exemplos:
-- "O workspace Databricks tem 3 catalogos: `prod` (producao), `dev` (desenvolvimento), `sandbox` (experimentacao)"
-- "A arquitetura Medallion usa os schemas `bronze`, `silver`, `gold` dentro do catalog `prod`"
-- "O pipeline de vendas depende das tabelas `bronze.pedidos_raw`, `bronze.produtos_raw` e `bronze.clientes_raw`"
-
-**Retencao:** Indefinida — memorias arquiteturais representam o ambiente e so sao atualizadas, nunca expiram
+**PIPELINE_STATUS** *(novo v7.0)* — Estado operacional de pipelines. Expira em 14 dias pois status muda com frequencia:
+- "Pipeline Bronze concluido em 2026-04-14, Silver em andamento ate dia 20"
+- "Job de sync Fabric falhando ha 2 dias — aguardando credencial renovada"
 
 ### 12.3 Estrutura de uma Memoria — O Formato em Disco
 
@@ -2492,7 +2557,7 @@ O modo terminal e o modo original do projeto, ideal para usuarios tecnicos que p
 
 **O banner de inicializacao** e exibido com Rich ao abrir o sistema, mostrando:
 - Logo ASCII do projeto
-- Versao atual (v5.0.0)
+- Versao atual (v7.0.0)
 - Plataformas conectadas detectadas automaticamente (Databricks ✓, Fabric ✓, RTI ✓)
 - Budget configurado e modelo padrao
 - Lista de comandos disponiveis
@@ -2581,7 +2646,7 @@ A pagina inicial com os KPIs mais importantes de um unico olhar:
 **Pagina 2: Agentes**
 
 Detalhe de performance por agente:
-- Cards individuais para cada um dos 8 agentes com: numero de delegacoes recebidas, taxa de erro, custo medio por uso
+- Cards individuais para cada um dos 10 agentes com: numero de delegacoes recebidas, taxa de erro, custo medio por uso
 - Grafico de delegacoes por agente ao longo do tempo
 - Tabela de erros por categoria (auth, timeout, rate_limit, etc.) por agente
 - Histograma de duracao de execucao por agente
@@ -2936,64 +3001,105 @@ A versao 5.0 e a versao da maturidade — o sistema aprende, lembra e se adapta.
 | 2 novos hooks                      | memory_hook e session_lifecycle_hook (total: 9 hooks)               |
 | Metricas atualizadas               | 8 agentes, 9 hooks, 14 comandos, variaveis de memoria no .env        |
 
+### 25.6 Melhorias da v6.0
+
+A versao 6.0 ampliou o ecossistema com novos MCP servers externos, o agente dbt-expert e a interface Chainlit.
+
+| **Melhoria**                       | **Descricao**                                                        |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| 6 novos MCP Servers externos       | context7, tavily, github, firecrawl, postgres, memory_mcp            |
+| Agente dbt Expert (Tier T2)        | dbt Core: models, testes, snapshots, seeds, docs, dbt-databricks, dbt-fabric |
+| Slash command /dbt                 | Acesso direto ao dbt Expert sem passar pelo Supervisor               |
+| Interface Web UI Chainlit          | ui/chainlit_app.py na porta 8503, dois modos: Data Agents + Dev Assistant |
+| cl.Step() em tempo real            | Feedback visual para cada delegacao e tool call na Web UI Chainlit   |
+| Modo Dev Assistant                 | Claude direto na Web UI com ferramentas de codigo (Bedrock, custo zero) |
+| memory_mcp (Layer 2 de memoria)    | Knowledge graph persistente de entidades e relacoes (memory.json)    |
+| MCP Fabric Semantic                | Introspeccao de Semantic Models no Fabric via API                    |
+| start_chainlit.sh                  | Script para subir a interface Chainlit                               |
+| Aliases MCP expandidos             | context7_all, tavily_all, github_all/readonly, firecrawl_all, postgres_all, memory_mcp_all/readonly |
+
+### 25.7 Melhorias da v7.0
+
+A versao 7.0 introduz manutencao automatica de Skills, roteamento preciso de agentes, expansao dos tipos de memoria e melhorias de seguranca e UX.
+
+| **Melhoria**                            | **Descricao**                                                                     |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| Agente Skill Updater (Tier T2)          | Atualiza SKILL.md com documentacao recente via context7, tavily, firecrawl        |
+| Sistema de Refresh de Skills            | scripts/refresh_skills.py + 5 targets Makefile (refresh-skills, dry, force, stats) |
+| Injecao automatica via skill_domains    | Frontmatter skill_domains injeta indice de SKILL.md por agente automaticamente    |
+| 3 novos tipos de memoria de dominio     | data_asset, platform_decision, pipeline_status com decay configuravel via .env    |
+| Decay configuravel por tipo             | MEMORY_DECAY_FEEDBACK_DAYS, PROGRESS_DAYS, PIPELINE_STATUS_DAYS no .env          |
+| Triggers de roteamento precisos         | "Invoque quando:" em todos os 10 agentes — Supervisor roteia corretamente         |
+| 5 novos padroes de seguranca git        | Bloqueia force-push, reset --hard, branch -D (case-sensitive para -D vs -d)      |
+| Checkpoint: retomada direta             | Instrucao imperativa: le arquivos, determina CONCLUIDO vs INCOMPLETO, responde    |
+| Budget reset em novo chat (Chainlit)    | on_chat_start sempre seta needs_reconnect=True para zerar custo acumulado         |
+| Indicador visual de processamento       | "⏳ Supervisor analisando resultado..." removido automaticamente no primeiro token  |
+| MemoryStore aceita str ou Path          | Corrige TypeError em testes com tmpdir (str) como data_dir                        |
+| 702 testes unitarios passando           | Cobertura abrangente com pytest                                                   |
+
 ---
 
 ## 26. Metricas do Projeto
 
-Um resumo numerico do ecossistema Data Agents v5.0:
+Um resumo numerico do ecossistema Data Agents v7.0:
 
 | **Metrica**                      | **Valor**                                                                        |
 | -------------------------------- | -------------------------------------------------------------------------------- |
-| Versao atual                     | 5.0.0                                                                            |
-| Linhas de codigo Python (core)   | Aproximadamente 5.800                                                            |
-| Agentes especialistas            | 8 (1 Supervisor + 1 Tier 3 + 3 Tier 1 + 3 Tier 2)                              |
-| Slash commands                   | 14 (/brief, /plan, /geral, /sql, /spark, /pipeline, /fabric, /quality, /governance, /semantic, /health, /status, /review, /help) |
-| Interfaces de usuario            | 2 (Terminal + Web UI Streamlit na porta 8502)                                   |
+| Versao atual                     | 7.0.0                                                                            |
+| Agentes especialistas            | 10 (1 Supervisor + 1 Tier 3 + 3 Tier 1 + 5 Tier 2)                             |
+| Slash commands                   | 15 (/brief, /plan, /geral, /sql, /spark, /pipeline, /dbt, /fabric, /quality, /governance, /semantic, /health, /status, /review, /help) |
+| Interfaces de usuario            | 3 (Terminal + Web UI Streamlit + Web UI Chainlit)                                |
 | Hooks de seguranca e controle    | 9 (audit, cost, security/SQL, compression, workflow, session, memory, lifecycle, checkpoint) |
+| Padroes destrutivos no hook      | 22 diretos + 11 de evasao (total: 33 padroes)                                   |
 | Tipos de log                     | 5 (audit, app, sessions, workflows, compression) + config_snapshots             |
-| Tipos de memoria                 | 4 (episodica, semantica, procedimental, arquitetural)                           |
+| Tipos de memoria                 | 7 (user, feedback, architecture, progress, data_asset, platform_decision, pipeline_status) |
 | Dominios de Knowledge Base       | 8 (sql, spark, pipeline, data-quality, governance, semantic, databricks, fabric) |
 | Camadas de conhecimento          | 3 (Constituicao > KBs > Skills)                                                 |
 | Regras na Constituicao           | Aproximadamente 50 em 8 secoes                                                  |
 | Tools MCP total                  | 65+ Databricks + 9 Genie + 28 Fabric Community + 8 Fabric SQL + 15+ RTI        |
-| Servidores MCP                   | 6 (2 oficiais Databricks, 2 customizados, 2 oficiais Fabric)                    |
-| Subsets MCP (aliases loader.py)  | 8 (databricks_all, readonly, aibi, serving, compute, genie_all, fabric_all, fabric_sql_all) |
-| Modulos de Skills                | 27 Databricks + 5 Fabric = 32 total                                             |
+| Servidores MCP                   | 12 (databricks, databricks_genie, fabric, fabric_community, fabric_sql, fabric_rti, fabric_semantic, context7, tavily, github, firecrawl, postgres, memory_mcp) |
+| Subsets MCP (aliases loader.py)  | 18+ (incluindo context7_all, tavily_all, github_all, firecrawl_all, postgres_all, memory_mcp_all) |
+| Skills Databricks                | 27 modulos                                                                       |
+| Skills Fabric                    | 10 modulos (SKILL.md com deployment pipelines, git integration, monitoring DMV, notebook manager, workspace manager) |
+| Skills root                      | 5 modulos (sql, spark, pipeline, data_quality, star_schema)                     |
+| Refresh automatico de Skills     | scripts/refresh_skills.py + 5 targets Makefile                                  |
 | Templates Spec-First + Intake    | 4 (pipeline, star-schema, cross-platform, backlog)                              |
 | Workflows colaborativos          | 4 pre-definidos (WF-01 a WF-04)                                                 |
-| Modulos de teste                 | 11 (cobertura minima 80%)                                                       |
+| Testes unitarios                 | 702 passando (pytest, cobertura minima 80%)                                     |
 | CI/CD workflows                  | 2 (ci.yml + cd.yml)                                                             |
 | Pre-commit hooks                 | 7 (ruff, ruff-format, trailing-whitespace, end-of-file, yaml/toml/json, large-files, bandit) |
-| Makefile targets                 | 18                                                                               |
-| Variaveis de configuracao (.env) | 22+ (incluindo 4 novas de memoria na v5.0)                                      |
+| Makefile targets                 | 23+ (incluindo 5 novos de skill refresh/stats)                                  |
+| Variaveis de configuracao (.env) | 30+ (incluindo variaveis de memoria, skill refresh e decay por tipo)            |
 | Paginas do Dashboard             | 9                                                                               |
 | Modelos Claude utilizados        | 2 (opus-4-6 para Supervisor/Business Analyst, sonnet-4-6 para especialistas)    |
 | Plataformas cloud suportadas     | 2 (Databricks e Microsoft Fabric)                                               |
 | Arquitetura de dados suportada   | Medallion (Bronze/Silver/Gold) + Star Schema                                    |
 | Formatos de tabela               | Delta Lake (padrao), Parquet, CSV (ingestao)                                    |
-| Linguagens suportadas            | Python (PySpark), SQL (Spark SQL, T-SQL, KQL), DAX                             |
+| Linguagens suportadas            | Python (PySpark, dbt-python), SQL (Spark SQL, T-SQL, KQL), DAX, Jinja2 (dbt)  |
 
 ---
 
 ## 27. Conclusao
 
-O projeto **Data Agents v5.0** representa o ponto de maior maturidade de uma jornada que comeou com uma pergunta simples: e possivel construir um sistema de IA que atue como uma equipe completa de engenharia de dados, respeitando as regras corporativas, conectado diretamente ao ambiente de producao, e que aprenda com cada interacao?
+O projeto **Data Agents v7.0** representa o ponto de maior maturidade de uma jornada que comeou com uma pergunta simples: e possivel construir um sistema de IA que atue como uma equipe completa de engenharia de dados, respeitando as regras corporativas, conectado diretamente ao ambiente de producao, e que aprenda com cada interacao?
 
-A resposta, depois de cinco versoes iterativas, e um sim definitivo.
+A resposta, depois de sete versoes iterativas, e um sim definitivo — e cada versao adicionou uma camada de confiabilidade que a anterior nao tinha.
 
 ### 27.1 O que Foi Construido
 
-O ecossistema completo inclui oito agentes especialistas, cada um com o perfil tecnico, ferramentas e base de conhecimento corretos para sua funcao. O Supervisor orquestra toda a equipe com um protocolo rigoroso de sete passos que garante planejamento antes de execucao, validacao antes de entrega, e conformidade com as regras da empresa em todo momento.
+O ecossistema completo inclui **dez agentes especialistas**, cada um com o perfil tecnico, ferramentas e base de conhecimento corretos para sua funcao — e agora com triggers precisos de roteamento que garantem que o Supervisor direcione cada tarefa ao especialista certo. O Supervisor orquestra toda a equipe com um protocolo rigoroso de sete passos que garante planejamento antes de execucao, validacao antes de entrega, e conformidade com as regras da empresa em todo momento.
 
-Nove camadas de seguranca e auditoria protegem o ambiente de producao contra acoes destrutivas, queries excessivamente custosas, e comportamentos inesperados. Cada acao e registrada, categorizada e visivel no Dashboard de Monitoramento. Nenhuma operacao e invisivel.
+Nove camadas de seguranca e auditoria — agora com 33 padroes destrutivos cobertos, incluindo operacoes git de alto risco — protegem o ambiente de producao. Cada acao e registrada, categorizada e visivel no Dashboard de Monitoramento. Nenhuma operacao e invisivel.
 
-Seis servidores MCP — incluindo dois customizados desenvolvidos para resolver limitacoes dos servidores oficiais — conectam o sistema diretamente ao Databricks e ao Microsoft Fabric com profundidade genuina. O sistema nao e um wrapper superficial: ele cria tabelas Delta, executa pipelines DLT, configura Genie Spaces, constroi modelos DAX e audita conformidade PII de verdade.
+Treze servidores MCP — incluindo varios customizados desenvolvidos para resolver limitacoes dos servidores oficiais — conectam o sistema diretamente ao Databricks e ao Microsoft Fabric com profundidade genuina. O sistema nao e um wrapper superficial: ele cria tabelas Delta, executa pipelines DLT, configura Genie Spaces, constroi modelos DAX e audita conformidade PII de verdade.
 
-O sistema de Memoria Persistente da v5.0 fecha o ciclo: o sistema nao começa do zero a cada sessao. Ele lembra as decisoes de arquitetura que foram tomadas, as preferencias demonstradas, os erros que ocorreram. Com o tempo, se torna cada vez mais preciso e eficiente para o ambiente especifico em que opera.
+O sistema de **memoria em dois layers** fecha o ciclo: Layer 1 (memoria episodica com 7 tipos e decay configuravel) captura o contexto de sessoes, e Layer 2 (knowledge graph via memory_mcp) persiste entidades e relacoes entre sessoes. O sistema nao começa do zero — e cada vez mais preciso no ambiente especifico em que opera.
+
+O **sistema de refresh de Skills** garante que os manuais operacionais se mantenham atualizados conforme as plataformas evoluem. Skills desatualizadas geram codigo desatualizado — agora o proprio sistema cuida disso autonomamente.
 
 ### 27.2 O Valor Real
 
-Para equipes de dados, o beneficio concreto e liberacao de tempo para trabalho de maior valor. Tarefas que consumiam horas de engenheiros experientes — profiling de datasets, escrita de DDLs, configuracao de jobs, criacao de expectations de qualidade — podem ser delegadas ao sistema. Isso nao significa substituir engenheiros, mas amplificar o que eles conseguem fazer.
+Para equipes de dados, o beneficio concreto e liberacao de tempo para trabalho de maior valor. Tarefas que consumiam horas de engenheiros experientes — profiling de datasets, escrita de DDLs, configuracao de jobs, criacao de expectations de qualidade, atualizacao de documentacao tecnica — podem ser delegadas ao sistema. Isso nao significa substituir engenheiros, mas amplificar o que eles conseguem fazer.
 
 Para organizacoes, a camada de governanca embutida significa que a velocidade nao vem ao custo da seguranca. O sistema nunca executa operacoes destrutivas sem confirmacao, nunca processa PII sem mascaramento, nunca viola os padroes arquiteturais definidos pela empresa. A autonomia dos agentes e real, mas e uma autonomia com freios.
 
@@ -3001,14 +3107,16 @@ Para arquitetos, a extensibilidade do sistema e o beneficio mais duradouro. A ba
 
 ### 27.3 O Proximo Passo
 
-A arquitetura da v5.0 abre caminho para evolucoes que antes nao eram possiveis. Com o sistema de memoria funcionando, o proximo passo natural e memoria colaborativa entre agentes — onde o Governance Auditor lembra os achados de uma auditoria e o Data Quality Steward os usa automaticamente para configurar alertas mais precisos.
+A arquitetura da v7.0 abre caminho para evolucoes naturais. Com memoria colaborativa entre agentes — o Governance Auditor lembra os achados de uma auditoria e o Data Quality Steward os usa automaticamente para configurar alertas mais precisos.
 
 Com o endpoint MLflow em producao, o proximo passo e integracao bidirecional — o sistema nao apenas e chamado por aplicacoes externas, mas tambem notifica sistemas externos (Slack, Teams, email) quando pipelines criticos completam ou falham.
+
+O sistema de refresh de Skills abre caminho para agendar refreshes automaticos via cron — Skills sempre atualizadas sem intervencao manual.
 
 A fundacao ja esta construida. O que vem a seguir depende das necessidades que surgirem no uso real — e a arquitetura declarativa do projeto foi projetada exatamente para isso: crescer sem reescrever.
 
 ---
 
-*Manual e Relatorio Tecnico — Data Agents v5.0*
+*Manual e Relatorio Tecnico — Data Agents v7.0*
 *Thomaz Antonio Rossito Neto — Specialist Data & AI Solutions Architect*
 *[github.com/ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents)*

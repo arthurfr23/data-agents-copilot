@@ -1,3 +1,7 @@
+---
+mcp_validated: "2026-04-15"
+---
+
 # KB: Padrões SQL — Índice
 
 **Domínio:** Geração e otimização de SQL para Databricks e Fabric.
@@ -7,12 +11,22 @@
 
 ## Conteúdo Disponível
 
+### Conceitos (`concepts/`)
+
+| Arquivo                                        | Conteúdo                                                           |
+|------------------------------------------------|--------------------------------------------------------------------|
+| `concepts/star-schema-source-of-truth.md`      | **CANONICAL** Star Schema: regras invioláveis dim_*/fact_*/dim_data |
+| `concepts/ddl-concepts.md`                     | Delta DDL: CREATE TABLE, schemas, types, constraints — conceitos  |
+| `concepts/query-concepts.md`                   | Otimização: CBO, predicate pushdown, AQE, CLUSTER BY — conceitos  |
+| `concepts/dialect-concepts.md`                 | Spark SQL vs T-SQL vs KQL — diferenças e equivalências            |
+
+### Padrões (`patterns/`)
+
 | Arquivo                    | Conteúdo                                                              |
 |----------------------------|-----------------------------------------------------------------------|
-| `ddl-patterns.md`          | Padrões de DDL para tabelas Delta, views e schemas                    |
-| `star-schema-rules.md`     | Regras críticas para Star Schema (dim_*, fact_*, dim_data)            |
-| `query-optimization.md`    | Boas práticas de otimização: CLUSTER BY, CTEs, predicate pushdown     |
-| `dialect-conversion.md`    | Guia de conversão entre Spark SQL, T-SQL e KQL                        |
+| `patterns/ddl-patterns.md`          | SQL DDL completo: tabelas Delta, views, schemas, CTAS          |
+| `patterns/query-patterns.md`        | CTEs, Window Functions, EXPLAIN, predicate pushdown SQL        |
+| `patterns/dialect-patterns.md`      | Tabela de conversão Spark↔T-SQL↔KQL com exemplos completos     |
 
 ---
 

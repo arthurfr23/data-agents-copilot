@@ -1,3 +1,7 @@
+---
+mcp_validated: "2026-04-15"
+---
+
 # KB: Microsoft Fabric — Índice
 
 **Domínio:** Arquitetura, padrões e boas práticas do Microsoft Fabric.
@@ -7,13 +11,23 @@
 
 ## Conteúdo Disponível
 
-| Arquivo                        | Conteúdo                                                                  |
-|--------------------------------|---------------------------------------------------------------------------|
-| `lakehouse-patterns.md`        | Padrões de Lakehouse, OneLake, Delta e Medallion no Fabric                |
-| `direct-lake-rules.md`         | Regras para tabelas otimizadas para Direct Lake e Power BI                |
-| `rti-eventhouse-patterns.md`   | Padrões de Real-Time Intelligence, Eventhouse e KQL                       |
-| `data-factory-patterns.md`     | Padrões de Data Factory, Dataflows Gen2 e orquestração                    |
-| `cross-platform-shortcuts.md`  | Shortcuts, Mirroring e integração Fabric ↔ Databricks                     |
+### Conceitos (`concepts/`)
+
+| Arquivo                                  | Conteúdo                                                              |
+|------------------------------------------|-----------------------------------------------------------------------|
+| `concepts/lakehouse-concepts.md`         | OneLake, Delta, Medallion no Fabric — conceitos e decisões           |
+| `concepts/direct-lake-cross-reference.md`| Direct Lake Fabric-specific — **canonical em** `kb/semantic-modeling/concepts/direct-lake-canonical.md` |
+| `concepts/rti-concepts.md`               | RTI, Eventhouse, KQL Database, Eventstreams — conceitos              |
+| `concepts/cross-platform-concepts.md`    | Shortcuts, Mirroring, integração Fabric ↔ Databricks — conceitos    |
+
+### Padrões (`patterns/`)
+
+| Arquivo                              | Conteúdo                                                              |
+|--------------------------------------|-----------------------------------------------------------------------|
+| `patterns/lakehouse-patterns.md`     | SQL de Lakehouse, V-Order, Medallion no Fabric, Delta config         |
+| `patterns/rti-patterns.md`           | KQL queries, Activator rules, Eventstream setup                     |
+| `patterns/data-factory-patterns.md`  | Data Factory JSON, Dataflows Gen2, orquestração Fabric              |
+| `patterns/shortcut-patterns.md`      | REST API shortcuts, Mirroring setup, paths ABFSS                    |
 
 ---
 

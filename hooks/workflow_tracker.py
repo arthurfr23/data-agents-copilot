@@ -109,6 +109,27 @@ SPEC_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Detecta modificações em arquivos PRD (output/*/prd/*.md)
+PRD_PATTERN = re.compile(r"output/(?:\w+/)?prd/.*\.md$", re.IGNORECASE)
+
+# Detecta arquivos de spec (output/*/specs/*.md)
+SPEC_FILE_PATTERN = re.compile(r"output/(?:(\w+)/)?specs/(.*\.md)$", re.IGNORECASE)
+
+
+def _find_related_specs(prd_path: str) -> list[str]:
+    """
+    Encontra specs no mesmo contexto de um PRD modificado.
+
+    Ex: output/feature_x/prd/requirements.md → output/feature_x/specs/*.md
+    Retorna lista de paths absolutos de specs relacionadas.
+    """
+    prd_p = Path(prd_path)
+    # Sobe dois níveis: prd/ → feature_dir; depois desce em specs/
+    specs_dir = prd_p.parent.parent / "specs"
+    if specs_dir.exists():
+        return [str(p) for p in sorted(specs_dir.rglob("*.md"))]
+    return []
+
 
 def _write_event(event: dict[str, Any]) -> None:
     """Grava um evento no workflows.jsonl com fallback silencioso."""
@@ -294,10 +315,12 @@ async def track_workflow_events(
 
         _write_event(event)
 
-    # ── Rastrear geração de specs ──
-    elif tool_name == "Write":
+    # ── Rastrear geração de specs e modificações em PRDs ──
+    elif tool_name in ("Write", "Edit"):
         file_path = tool_input.get("file_path", "") or ""
-        if "output/specs/" in file_path or "spec" in file_path.lower():
+
+        # Geração de spec
+        if file_path and ("output/specs/" in file_path or "spec" in file_path.lower()):
             spec_type = "unknown"
             spec_match = SPEC_PATTERN.search(file_path)
             if spec_match:
@@ -317,6 +340,28 @@ async def track_workflow_events(
                 "tool_use_id": tool_use_id,
             }
             _write_event(spec_event)
+
+        # Modificação em PRD → emitir cascade para specs relacionadas
+        if file_path and PRD_PATTERN.search(file_path):
+            related_specs = _find_related_specs(file_path)
+            prd_event: dict[str, Any] = {
+                "timestamp": timestamp,
+                "event": "prd_modified",
+                "prd_path": file_path,
+                "cascade_status": "specs_need_review",
+                "related_specs": related_specs,
+                "tool_use_id": tool_use_id,
+            }
+            _write_event(prd_event)
+            for spec_path in related_specs:
+                review_event: dict[str, Any] = {
+                    "timestamp": timestamp,
+                    "event": "spec_needs_review",
+                    "spec_path": spec_path,
+                    "triggered_by_prd": file_path,
+                    "tool_use_id": tool_use_id,
+                }
+                _write_event(review_event)
 
     # ── Rastrear uso de AskUserQuestion (possível Clarity Checkpoint) ──
     elif tool_name == "AskUserQuestion":
@@ -380,6 +425,9 @@ def get_workflow_summary() -> dict[str, Any]:
         "specs_generated": [],
         "clarifications_requested": 0,
         "events_by_date": {},
+        "prd_modifications": [],
+        "specs_needing_review": [],
+        "cascade_events": 0,
     }
 
     agent_counts: dict[str, int] = {}
@@ -413,6 +461,14 @@ def get_workflow_summary() -> dict[str, Any]:
 
         elif event_type == "clarity_clarification_requested":
             summary["clarifications_requested"] += 1
+
+        elif event_type == "prd_modified":
+            summary["prd_modifications"].append(event)
+            summary["cascade_events"] += 1
+
+        elif event_type == "spec_needs_review":
+            summary["specs_needing_review"].append(event)
+            summary["cascade_events"] += 1
 
     summary["delegations_by_agent"] = dict(sorted(agent_counts.items(), key=lambda x: -x[1]))
     summary["workflows_triggered"] = dict(sorted(wf_counts.items(), key=lambda x: -x[1]))

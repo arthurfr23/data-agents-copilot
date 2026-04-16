@@ -8,7 +8,7 @@
     <strong>Sistema Multi-Agentes para Engenharia de Dados, Qualidade, Governanca e Analise Corporativa</strong>
   </p>
   <p align="center">
-    <img src="https://img.shields.io/badge/Version-6.0.0-brightgreen.svg" alt="Version 6.0.0">
+    <img src="https://img.shields.io/badge/Version-7.0.0-brightgreen.svg" alt="Version 7.0.0">
     <img src="https://img.shields.io/badge/Python-3.12+-blue.svg" alt="Python Version">
     <img src="https://img.shields.io/badge/Databricks-MCP-FF3621.svg" alt="Databricks MCP">
     <img src="https://img.shields.io/badge/Microsoft%20Fabric-MCP-0078D4.svg" alt="Fabric MCP">
@@ -19,7 +19,7 @@
 
 Sistema multi-agente construido sobre o **Claude Agent SDK** da Anthropic com integracao nativa via **Model Context Protocol (MCP)** ao **Databricks** e **Microsoft Fabric**. Transforma um assistente de IA em uma equipe autonoma de dados que opera diretamente nas suas plataformas de nuvem, seguindo regras corporativas declarativas.
 
-A versao 6.0 adiciona **6 novos MCP Servers externos** (context7, tavily, github, firecrawl, postgres, memory_mcp), o **agente dbt-expert** (Tier T2) com slash command `/dbt`, a **interface Chainlit** com dois modos de operacao (Data Agents + Dev Assistant), e **feedback em tempo real** via `cl.Step()` para cada delegacao e tool call.
+A versao 7.0 adiciona o **agente skill-updater** (Tier T2) para manutencao automatica das Skills via `make refresh-skills`, **3 novos tipos de memoria de dominio** (data_asset, platform_decision, pipeline_status) com decay configuravel via `.env`, **5 novos padroes de seguranca git** no hook (force-push, reset --hard, branch -D), **roteamento preciso** com triggers "Invoque quando" em todos os 10 agentes, e **melhorias de UX** na Web UI (reset de budget em novo chat, indicador visual de processamento).
 
 ---
 
@@ -51,7 +51,7 @@ A versao 6.0 adiciona **6 novos MCP Servers externos** (context7, tavily, github
   <img src="img/readme/architecture_v7.svg" alt="Arquitetura Multi-Agent System v6.0" width="100%">
 </p>
 
-O sistema opera com tres pontos de entrada — **Web UI Chainlit** (`ui/chainlit_app.py`), **Web UI Streamlit** (`ui/chat.py`) e **CLI** (`main.py`) — que compartilham a mesma logica via modulos centralizados. Para perguntas simples, o comando `/geral` aciona `commands/geral.py` diretamente (zero agentes, zero MCP, ~95% mais barato). Para tarefas de engenharia, o **Supervisor** (Opus via Claude API) orquestra **9 agentes especialistas** definidos declarativamente em Markdown com frontmatter YAML. Cada agente declara seus dominios de conhecimento (`kb_domains`), ferramentas, tier e modelo. O Supervisor segue o **Protocolo KB-First + BMAD** com validacao constitucional.
+O sistema opera com tres pontos de entrada — **Web UI Chainlit** (`ui/chainlit_app.py`), **Web UI Streamlit** (`ui/chat.py`) e **CLI** (`main.py`) — que compartilham a mesma logica via modulos centralizados. Para perguntas simples, o comando `/geral` aciona `commands/geral.py` diretamente (zero agentes, zero MCP, ~95% mais barato). Para tarefas de engenharia, o **Supervisor** (Opus via Claude API) orquestra **10 agentes especialistas** definidos declarativamente em Markdown com frontmatter YAML. Cada agente declara seus dominios de conhecimento (`kb_domains`), skills operacionais (`skill_domains`), ferramentas, tier e modelo. O Supervisor segue o **Protocolo KB-First + BMAD** com validacao constitucional e triggers precisos de roteamento ("Invoque quando").
 
 ### Fluxo Completo do Supervisor
 
@@ -73,17 +73,18 @@ O sistema opera com tres pontos de entrada — **Web UI Chainlit** (`ui/chainlit
 
 ## Agentes Especialistas
 
-| Agente                         | Comando         | Tier | Papel                                                             |
-| ------------------------------ | --------------- | ---- | ----------------------------------------------------------------- |
-| **Supervisor**           | `/plan`       | -    | Orquestra, planeja e valida contra a Constituicao                 |
-| **Business Analyst**     | `/brief`      | T3   | Processa transcripts/briefings → backlog P0/P1/P2                 |
-| **SQL Expert**           | `/sql`        | T1   | SQL (Spark SQL, T-SQL, KQL), queries paralelas, Unity Catalog     |
-| **Spark Expert**         | `/spark`      | T1   | PySpark, Delta Lake, pipelines SDP/LakeFlow                       |
-| **Pipeline Architect**   | `/pipeline`   | T1   | ETL/ELT, DABs, DataOps, serverless, KA/MAS                        |
-| **Data Quality Steward** | `/quality`    | T2   | Profiling, expectations, alertas, SLAs                            |
-| **Governance Auditor**   | `/governance` | T2   | Auditoria, linhagem, PII, LGPD/GDPR                               |
-| **Semantic Modeler**     | `/semantic`   | T2   | DAX, Direct Lake, Genie Spaces, AI/BI Dashboards, Model Serving   |
-| **dbt Expert** *(novo)*  | `/dbt`        | T2   | dbt Core: models, testes, snapshots, seeds, docs, dbt-databricks, dbt-fabric |
+| Agente                           | Comando         | Tier | Papel                                                                         |
+| -------------------------------- | --------------- | ---- | ----------------------------------------------------------------------------- |
+| **Supervisor**             | `/plan`       | -    | Orquestra, planeja e valida contra a Constituicao                             |
+| **Business Analyst**       | `/brief`      | T3   | Processa transcripts/briefings → backlog P0/P1/P2                             |
+| **SQL Expert**             | `/sql`        | T1   | SQL (Spark SQL, T-SQL, KQL), queries paralelas, Unity Catalog                 |
+| **Spark Expert**           | `/spark`      | T1   | PySpark, Delta Lake, pipelines SDP/LakeFlow                                   |
+| **Pipeline Architect**     | `/pipeline`   | T1   | ETL/ELT, DABs, DataOps, serverless, KA/MAS                                    |
+| **Data Quality Steward**   | `/quality`    | T2   | Profiling, expectations, alertas, SLAs                                        |
+| **Governance Auditor**     | `/governance` | T2   | Auditoria, linhagem, PII, LGPD/GDPR                                           |
+| **Semantic Modeler**       | `/semantic`   | T2   | DAX, Direct Lake, Genie Spaces, AI/BI Dashboards, Model Serving               |
+| **dbt Expert**             | `/dbt`        | T2   | dbt Core: models, testes, snapshots, seeds, docs, dbt-databricks, dbt-fabric  |
+| **Skill Updater** *(novo)* | —             | T2   | Atualiza SKILL.md com documentacao recente via context7, tavily, firecrawl    |
 
 ---
 
@@ -135,18 +136,18 @@ O sistema ativa automaticamente apenas as plataformas com credenciais validas.
 
 ## Camada de Protecao (Hooks)
 
-| Hook                      | Tipo              | Protecao                                                    |
-| ------------------------- | ----------------- | ----------------------------------------------------------- |
-| `security_hook`         | PreToolUse        | 17 padroes destrutivos + 11 padroes de evasao               |
-| `check_sql_cost`        | PreToolUse        | Bloqueia `SELECT *` sem `WHERE`/`LIMIT`               |
-| `audit_hook`            | PostToolUse       | Log JSONL com categorizacao de erros (6 categorias)         |
-| `workflow_tracker`      | PostToolUse       | Rastreia delegacoes, workflows e Clarity Checkpoint         |
-| `cost_guard_hook`       | PostToolUse       | Classificacao HIGH/MEDIUM/LOW com alertas                   |
-| `output_compressor`     | PostToolUse       | Trunca outputs (SQL 50 rows, listas 30, max 8K)             |
-| `context_budget_hook`   | PostToolUse       | Ch.5: alerta a 80% e 95% do context window por tier         |
-| `memory_hook`           | PostToolUse       | Captura contexto da sessao para memoria persistente         |
-| `session_lifecycle`     | Start/End         | Ch.12: on_session_start (reset) + on_session_end (flush)    |
-| `checkpoint`            | Budget/Reset      | Salva estado da sessao para recuperacao automatica          |
+| Hook                      | Tipo              | Protecao                                                                              |
+| ------------------------- | ----------------- | ------------------------------------------------------------------------------------- |
+| `security_hook`         | PreToolUse        | 22 padroes destrutivos + 11 padroes de evasao (inclui git force-push, reset --hard, branch -D) |
+| `check_sql_cost`        | PreToolUse        | Bloqueia `SELECT *` sem `WHERE`/`LIMIT`                                         |
+| `audit_hook`            | PostToolUse       | Log JSONL com categorizacao de erros (6 categorias)                                   |
+| `workflow_tracker`      | PostToolUse       | Rastreia delegacoes, workflows e Clarity Checkpoint                                   |
+| `cost_guard_hook`       | PostToolUse       | Classificacao HIGH/MEDIUM/LOW com alertas                                             |
+| `output_compressor`     | PostToolUse       | Trunca outputs (SQL 50 rows, listas 30, max 8K)                                       |
+| `context_budget_hook`   | PostToolUse       | Ch.5: alerta a 80% e 95% do context window por tier                                   |
+| `memory_hook`           | PostToolUse       | Captura contexto da sessao para memoria persistente                                   |
+| `session_lifecycle`     | Start/End         | Ch.12: on_session_start (reset) + on_session_end (flush)                              |
+| `checkpoint`            | Budget/Reset      | Salva estado e instrui retomada direta (CONCLUIDO vs INCOMPLETO)                      |
 
 ---
 
@@ -154,9 +155,21 @@ O sistema ativa automaticamente apenas as plataformas com credenciais validas.
 
 Sistema de memoria persistente que captura contexto entre sessoes e detecta informacoes desatualizadas.
 
-`memory/store.py` — armazena memorias com `confidence` decrescente ao longo do tempo. Tipos: `USER`, `FEEDBACK`, `PROGRESS`, `ARCHITECTURE`. Metodos `get_stale_memories()` e `prune_stale_memories()` identificam e removem memorias com confianca abaixo dos limiares configurados.
+`memory/store.py` — armazena memorias com `confidence` decrescente ao longo do tempo. **7 tipos de memoria:**
 
-`memory/lint.py` — **Ch.11 Staleness Warning**: emite avisos automaticos quando `PROGRESS < 0.30` (warning) ou `FEEDBACK < 0.20` (info). Tipos `USER` e `ARCHITECTURE` sao imunes ao decay.
+| Tipo | Decay | Uso |
+|------|-------|-----|
+| `USER` | Nunca | Preferencias, papel, expertise do usuario |
+| `FEEDBACK` | 90 dias | Correcoes e orientacoes ao sistema |
+| `ARCHITECTURE` | Nunca | Decisoes arquiteturais e padroes |
+| `PROGRESS` | 7 dias | Estado de tarefas e progresso de workflows |
+| `DATA_ASSET` | Nunca | Tabelas, schemas, datasets e suas caracteristicas |
+| `PLATFORM_DECISION` | Nunca | Decisoes sobre tecnologias e integracoes de plataforma |
+| `PIPELINE_STATUS` | 14 dias | Estado de execucao de pipelines e jobs |
+
+Decays configurados individualmente via `.env`: `MEMORY_DECAY_FEEDBACK_DAYS`, `MEMORY_DECAY_PROGRESS_DAYS`, `MEMORY_DECAY_PIPELINE_STATUS_DAYS`.
+
+`memory/lint.py` — **Ch.11 Staleness Warning**: emite avisos automaticos quando `PROGRESS < 0.30` (warning) ou `FEEDBACK < 0.20` (info). Tipos `USER`, `ARCHITECTURE`, `DATA_ASSET` e `PLATFORM_DECISION` sao imunes ao decay.
 
 `memory/compiler.py` — compila logs diarios de captura em memorias consolidadas, aplicando supersessao automatica de versoes antigas.
 
@@ -172,13 +185,17 @@ Quando o budget estoura ou voce digita `limpar`, o sistema salva automaticamente
 
 ---
 
-## Knowledge Bases, Constituicao e Workflows
+## Knowledge Bases, Skills e Workflows
 
 O conhecimento e organizado em 3 camadas:
 
 - **Constituicao** (`kb/constitution.md`): documento de autoridade maxima com ~50 regras inviolaveis (Medallion, Star Schema, Seguranca, Qualidade, Plataforma)
 - **Knowledge Bases** (`kb/`): 8 dominios de regras de negocio (sql-patterns, spark-patterns, pipeline-design, data-quality, governance, semantic-modeling, databricks, fabric)
-- **Skills** (`skills/`): manuais operacionais detalhados (27 modulos Databricks + 5 Fabric)
+- **Skills** (`skills/`): manuais operacionais detalhados injetados automaticamente via `skill_domains` no frontmatter de cada agente
+
+**Injecao Automatica de Skills:** cada agente declara `skill_domains` no frontmatter e recebe automaticamente o indice das SKILL.md relevantes antes de qualquer tarefa. O agente le a SKILL.md correta antes de gerar codigo — garantindo que use as APIs e padroes mais recentes.
+
+**Skill Refresh System:** as Skills sao mantidas atualizadas pelo agente `skill-updater` acionado via `make refresh-skills`. O sistema respeita o intervalo configurado (`SKILL_REFRESH_INTERVAL_DAYS`, padrao: 3 dias) e suporta `--force`, `--dry-run` e `--concurrent`.
 
 **Workflows Colaborativos** (`kb/collaboration-workflows.md`): 4 workflows pre-definidos com handoff automatico entre agentes (WF-01 Pipeline End-to-End, WF-02 Star Schema, WF-03 Cross-Platform, WF-04 Governance Audit).
 
@@ -197,8 +214,10 @@ O conhecimento e organizado em 3 camadas:
 
 Interface Chainlit com dois modos de operacao selecionaveis ao iniciar:
 
-- **Data Agents** — Supervisor completo com 9 agentes especialistas, todos os slash commands e MCPs de plataforma. Exibe `cl.Step()` em tempo real para cada delegacao e tool call, mostrando qual agente esta ativo e qual ferramenta esta sendo chamada.
+- **Data Agents** — Supervisor completo com 10 agentes especialistas, todos os slash commands e MCPs de plataforma. Exibe `cl.Step()` em tempo real para cada delegacao e tool call, mostrando qual agente esta ativo e qual ferramenta esta sendo chamada.
 - **Dev Assistant** — Claude direto (sem Supervisor), ferramentas `Read`, `Write`, `Bash`, `Grep`, `Glob` habilitadas, historico de conversa para follow-ups. Usa `settings.default_model` (Bedrock) — custo zero pelo acordo da empresa.
+
+**Melhorias de UX v7.0:** cada novo chat (botao "New Chat") reseta automaticamente o budget acumulado. Apos um sub-agente completar, exibe indicador "⏳ Supervisor analisando resultado..." enquanto o Supervisor processa — eliminando a aparencia de congelamento na UI.
 
 Troque de modo a qualquer momento com `/modo`.
 
@@ -239,28 +258,39 @@ python -m streamlit run monitoring/app.py   # manual
 - **CD** (tags): deploy via Databricks Asset Bundles
 
 ```bash
-make lint         # ruff check + format
-make test         # pytest com cobertura
-make run          # python main.py
-make ui           # ./start.sh (Chat + Monitoring)
-make ui-chat      # apenas Web UI Chat (porta 8502)
-make ui-monitor   # apenas Dashboard (porta 8501)
+make lint                  # ruff check + format
+make test                  # pytest com cobertura
+make run                   # python main.py
+make ui                    # ./start.sh (Chat + Monitoring)
+make ui-chat               # apenas Web UI Chat (porta 8502)
+make ui-monitor            # apenas Dashboard (porta 8501)
+make refresh-skills        # atualiza Skills desatualizadas (respeita intervalo)
+make refresh-skills-dry    # lista o que seria atualizado sem modificar
+make refresh-skills-force  # forca atualizacao de todas as Skills
+make skill-stats           # relatorio de uso de Skills (ultimos 7 dias)
+make skill-stats-full      # relatorio completo + skills nunca acessadas (30 dias)
 ```
 
 ---
 
 ## Configuracoes Avancadas
 
-| Variavel                 | Default | Descricao                                                              |
-| ------------------------ | ------- | ---------------------------------------------------------------------- |
-| `MAX_BUDGET_USD`       | 5.0     | Limite de custo por sessao                                             |
-| `MAX_TURNS`            | 50      | Limite de turns por sessao                                             |
-| `CONSOLE_LOG_LEVEL`    | WARNING | Nivel de log no terminal (WARNING esconde logs operacionais)           |
-| `ANTHROPIC_BASE_URL`   | ""      | URL do proxy LiteLLM. Vazio = api.anthropic.com                        |
-| `TIER_MODEL_MAP`       | {}      | Override de modelo por tier: `'{"T1": "bedrock/claude-sonnet-4-6"}'`  |
-| `INJECT_KB_INDEX`      | true    | Injecao automatica de KBs nos agentes                                  |
-| `IDLE_TIMEOUT_MINUTES` | 30      | Reset automatico por inatividade (0 = desabilitar)                     |
-| `MEMORY_ENABLED`       | true    | Habilita sistema de memoria persistente                                |
+| Variavel                               | Default | Descricao                                                               |
+| -------------------------------------- | ------- | ----------------------------------------------------------------------- |
+| `MAX_BUDGET_USD`                     | 5.0     | Limite de custo por sessao                                              |
+| `MAX_TURNS`                          | 50      | Limite de turns por sessao                                              |
+| `CONSOLE_LOG_LEVEL`                  | WARNING | Nivel de log no terminal (WARNING esconde logs operacionais)            |
+| `ANTHROPIC_BASE_URL`                 | ""      | URL do proxy LiteLLM. Vazio = api.anthropic.com                         |
+| `TIER_MODEL_MAP`                     | {}      | Override de modelo por tier: `'{"T1": "bedrock/claude-sonnet-4-6"}'`   |
+| `INJECT_KB_INDEX`                    | true    | Injecao automatica de KBs nos agentes                                   |
+| `IDLE_TIMEOUT_MINUTES`               | 30      | Reset automatico por inatividade (0 = desabilitar)                      |
+| `MEMORY_ENABLED`                     | true    | Habilita sistema de memoria persistente                                 |
+| `SKILL_REFRESH_ENABLED`              | true    | Habilita o sistema de refresh automatico de Skills                      |
+| `SKILL_REFRESH_INTERVAL_DAYS`        | 3       | Pula Skills atualizadas ha menos de N dias                              |
+| `SKILL_REFRESH_DOMAINS`              | databricks,fabric | Dominios de Skills a atualizar no refresh                     |
+| `MEMORY_DECAY_FEEDBACK_DAYS`         | 90      | Dias para feedback chegar a confianca 0.1                               |
+| `MEMORY_DECAY_PROGRESS_DAYS`         | 7       | Dias para progress chegar a confianca 0.1                               |
+| `MEMORY_DECAY_PIPELINE_STATUS_DAYS`  | 14      | Dias para pipeline_status chegar a confianca 0.1                        |
 
 ---
 

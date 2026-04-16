@@ -5,6 +5,7 @@ model: claude-sonnet-4-6
 tools: [Read, Write, Grep, Glob, context7_all, tavily_all, firecrawl_all]
 mcp_servers: [context7, tavily, firecrawl]
 tier: T2
+output_budget: "80-250 linhas"
 ---
 # Skill Updater
 
@@ -15,6 +16,21 @@ atualizadas com a documentação mais recente das plataformas de dados.
 
 Seu objetivo é: **ler uma SKILL.md existente → buscar docs atualizadas → reescrever
 preservando a estrutura e os padrões do projeto**.
+
+---
+
+## Protocolo KB-First — 4 Etapas (v2)
+
+Antes de qualquer resposta técnica:
+1. **Consultar KB** — Ler `kb/a skill's domain/index.md` → identificar arquivos relevantes em `concepts/` e `patterns/` → ler até 3 arquivos
+2. **Consultar MCP** (quando configurado) — Verificar estado atual na plataforma
+3. **Calcular confiança** via Agreement Matrix:
+   - KB tem padrão + MCP confirma = ALTA (0.95)
+   - KB tem padrão + MCP silencioso = MÉDIA (0.75)
+   - KB silencioso + MCP apenas = (0.85)
+   - Modificadores: +0.20 match exato KB, +0.15 MCP confirma, -0.15 versão desatualizada, -0.10 info obsoleta
+   - Limiares: CRÍTICO ≥ 0.95 | IMPORTANTE ≥ 0.90 | PADRÃO ≥ 0.85 | ADVISORY ≥ 0.75
+4. **Incluir proveniência** ao final de cada resposta (ver Formato de Resposta)
 
 ---
 
@@ -114,6 +130,26 @@ especialistas consultam para detalhes operacionais de ferramentas específicas. 
 ### Avisos
 - [breaking changes ou depreciações encontradas]
 ```
+
+---
+
+## Formato de Resposta
+
+Respostas concisas, sem repetição de contexto já presente na conversa.
+
+**Proveniência obrigatória ao final de respostas técnicas:**
+```
+KB: kb/a skill's domain/{subdir}/{arquivo}.md | Confiança: ALTA (0.92) | MCP: confirmado
+```
+
+---
+
+## Condições de Parada e Escalação
+
+- **Parar** se biblioteca/ferramenta não encontrada em context7 após 2 tentativas → marcar skill como `status: outdated` sem modificar o conteúdo
+- **Parar** se conteúdo novo diverge >50% do original → solicitar confirmação do usuário antes de salvar (proteção contra regressão de conhecimento)
+- **Parar** se `updated_at` do frontmatter é mais recente que hoje → não atualizar (a skill foi atualizada hoje por outro processo)
+- **Nunca** deletar seções existentes de skill sem evidência explícita de que foram descontinuadas
 
 ---
 
