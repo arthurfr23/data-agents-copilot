@@ -17,6 +17,7 @@ Arquitetura da sessão:
 """
 
 import asyncio
+import queue
 import sys
 import threading
 from pathlib import Path
@@ -255,27 +256,31 @@ def _strip_rich(text: str) -> str:
 
 
 # ── Execução do agente (ClaudeSDKClient persistente) ─────────────────────────
+# Sentinel usado na queue para sinalizar fim do stream
+_STREAM_DONE = object()
+
+
 def _run_agent(
     prompt: str,
     enable_thinking: bool = False,
     session_type: str = "ui",
     progress_placeholder: "st.delta_generator.DeltaGenerator | None" = None,
-) -> dict:
+) -> tuple[dict, "queue.Queue[str | object]"]:
     """
-    Envia prompt para o ClaudeSDKClient persistente e aguarda a resposta.
+    Envia prompt para o ClaudeSDKClient persistente e inicia o stream.
+
+    Retorna imediatamente com (result_dict, token_queue):
+      - result_dict: preenchido progressivamente na background thread
+      - token_queue: fila de tokens de texto (str) — finalizada com _STREAM_DONE
+
+    Use _token_generator(token_queue) + st.write_stream() para exibir tokens
+    em tempo real enquanto o background thread processa.
 
     Diferença crítica em relação a query() stateless:
       - Usa client.query() + client.receive_response() (como main.py)
       - Histórico de conversa é MANTIDO entre chamadas
       - Quando o agente pede aprovação e o usuário responde "sim",
         o cliente já tem o contexto completo — PRD é lido, SPEC é gerada
-
-    O modo thinking é ajustado em options antes de cada query:
-      - /plan, /brief → enable_thinking=True  → 8000 tokens de budget
-      - demais        → enable_thinking=False → thinking disabled
-
-    progress_placeholder: se fornecido, recebe atualizações de status em tempo real
-    via `st.empty()` — exibe o agente ativo e as ferramentas enquanto executa.
     """
     from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock
     from claude_agent_sdk.types import StreamEvent
@@ -285,7 +290,7 @@ def _run_agent(
     options = session["options"]
     loop = session["loop"]
 
-    # Ajusta thinking antes de cada query (igual a main.py lines 462-465)
+    # Ajusta thinking antes de cada query
     options.thinking = (
         {"type": "enabled", "budget_tokens": 8000} if enable_thinking else {"type": "disabled"}
     )
@@ -297,9 +302,11 @@ def _run_agent(
         "turns": 0,
         "duration": 0.0,
         "error": None,
-        # Eventos de progresso capturados para exibição após conclusão
         "_progress_events": [],
     }
+
+    # Fila de tokens: a background thread empurra strings; _STREAM_DONE sinaliza fim
+    token_queue: queue.Queue[str | object] = queue.Queue()
 
     async def _async() -> None:
         current_tool: str | None = None
@@ -318,15 +325,22 @@ def _run_agent(
                             current_tool = blk.get("name", "")
                             current_agent = None
                             result["tools"].append(current_tool)
-                            # Registra evento de progresso para exibição
                             result["_progress_events"].append(
                                 {"type": "tool_start", "tool": current_tool, "agent": None}
                             )
 
                     elif ev_type == "content_block_delta":
                         delta = ev.get("delta", {})
-                        if delta.get("type") == "input_json_delta" and current_tool == "Agent":
-                            # Tenta detectar nome do agente assim que disponível no buffer
+                        delta_type = delta.get("type", "")
+
+                        if delta_type == "text_delta":
+                            # Token de texto: empurra para a fila de streaming
+                            token = delta.get("text", "")
+                            if token:
+                                result["text"] += token
+                                token_queue.put(token)
+
+                        elif delta_type == "input_json_delta" and current_tool == "Agent":
                             if current_agent is None:
                                 import json as _json
 
@@ -336,7 +350,6 @@ def _run_agent(
                                         for e in result["_progress_events"]
                                         if e.get("type") == "json_buf"
                                     ) + delta.get("partial_json", "")
-                                    # Accumulate buffer in progress_events for detection
                                     result["_progress_events"].append(
                                         {
                                             "type": "json_buf",
@@ -372,9 +385,12 @@ def _run_agent(
                         current_agent = None
 
                 elif isinstance(message, AssistantMessage):
+                    # Fallback: SDK sem streaming parcial — empurra o texto completo de uma vez
                     for blk in message.content:
                         if isinstance(blk, TextBlock) and blk.text.strip():
-                            result["text"] += blk.text
+                            text = blk.text
+                            result["text"] += text
+                            token_queue.put(text)
 
                 elif isinstance(message, ResultMessage):
                     result["cost"] = float(message.total_cost_usd or 0)
@@ -388,25 +404,33 @@ def _run_agent(
 
         except Exception as exc:
             result["error"] = str(exc)
-
-    # Submete a coroutine ao loop de background e aguarda conclusão
-    exc_holder: list[Exception] = []
+        finally:
+            # Sempre sinaliza fim do stream — garante que o generator não trave
+            token_queue.put(_STREAM_DONE)
 
     def _submit() -> None:
         future = asyncio.run_coroutine_threadsafe(_async(), loop)
         try:
             future.result()
         except Exception as e:
-            exc_holder.append(e)
+            result["error"] = str(e)
+            token_queue.put(_STREAM_DONE)
 
-    t = threading.Thread(target=_submit, daemon=True)
-    t.start()
-    t.join()
+    threading.Thread(target=_submit, daemon=True).start()
 
-    if exc_holder:
-        result["error"] = str(exc_holder[0])
+    return result, token_queue
 
-    return result
+
+def _token_generator(token_queue: "queue.Queue[str | object]"):
+    """
+    Generator que consome tokens da fila e os yield para st.write_stream().
+    Bloqueia até cada token chegar; para ao receber _STREAM_DONE.
+    """
+    while True:
+        item = token_queue.get()
+        if item is _STREAM_DONE:
+            break
+        yield item
 
 
 # ── Execução direta via SDK (sem Supervisor) ─────────────────────────────────
@@ -484,6 +508,9 @@ _MEMORY_TYPE_ICONS: dict[str, str] = {
     "feedback": "💬",
     "architecture": "🏗️",
     "progress": "📈",
+    "data_asset": "🗄️",
+    "platform_decision": "⚙️",
+    "pipeline_status": "🔄",
 }
 
 _MEMORY_TYPE_LABELS: dict[str, str] = {
@@ -491,6 +518,9 @@ _MEMORY_TYPE_LABELS: dict[str, str] = {
     "feedback": "Feedback",
     "architecture": "Arquitetura",
     "progress": "Progresso",
+    "data_asset": "Ativo de Dados",
+    "platform_decision": "Decisão de Plataforma",
+    "pipeline_status": "Status de Pipeline",
 }
 
 
@@ -540,11 +570,11 @@ def _run_memory_compile() -> str:
         if store is None:
             return "❌ Store indisponível"
         metrics = compile_daily_logs(store, apply_decay_on_compile=True)
-        created = metrics.get("created", 0)
-        updated = metrics.get("updated", 0)
-        skipped = metrics.get("skipped_dupes", 0)
+        created = metrics.get("new_memories", 0)
         superseded = metrics.get("superseded", 0)
-        return f"✅ +{created} criadas, {updated} atualizadas, {skipped} dupes, {superseded} superseded"
+        skipped = metrics.get("skipped_dupes", 0)
+        cleaned = metrics.get("cleaned_logs", 0)
+        return f"✅ +{created} criadas, {superseded} superseded, {skipped} dupes, {cleaned} logs limpos"
     except Exception as exc:
         return f"❌ {exc}"
 
@@ -906,35 +936,66 @@ with st.chat_message("assistant"):
         # Bypass do Supervisor — chama Haiku diretamente (~$0.002 vs ~$0.15 com Supervisor)
         with st.spinner("💬 Haiku pensando..."):
             result = _run_geral(bmad_prompt)
+
+        if result["error"]:
+            response_text = f"❌ **Erro:** {result['error']}"
+            text_box.error(response_text)
+        elif result["text"]:
+            response_text = result["text"]
+            text_box.markdown(response_text)
+        else:
+            response_text = "_Agente concluiu sem resposta textual._"
+            text_box.caption(response_text)
     else:
-        # st.status() mostra progresso em tempo real com passos expandíveis
+        # ── Inicia stream em background thread e exibe tokens em tempo real ──────
+        # _run_agent() retorna imediatamente; a fila de tokens é consumida enquanto
+        # o status box mostra os eventos de progresso (agentes + tools).
+        result, token_queue = _run_agent(
+            bmad_prompt, enable_thinking=enable_thinking, session_type=_session_type
+        )
+
+        # st.status() com progresso dos agentes (roda em paralelo ao stream de texto)
         with st.status("⏳ Agente processando...", expanded=True) as status_box:
-            st.write("Inicializando Supervisor e MCP servers...")
-            result = _run_agent(
-                bmad_prompt, enable_thinking=enable_thinking, session_type=_session_type
-            )
-            # Monta resumo de passos a partir dos eventos capturados
-            events = result.pop("_progress_events", [])
-            active_agents: list[str] = []
-            tools_used: list[str] = []
-            for ev in events:
-                if ev["type"] == "agent_active":
-                    agent = ev["agent"]
-                    if agent not in active_agents:
-                        active_agents.append(agent)
-                        st.write(f"💭 **{agent}** está processando...")
-                elif ev["type"] == "agent_done":
-                    st.write(f"✅ **{ev['agent']}** concluído")
-                elif ev["type"] == "tool_start" and ev["tool"] and ev["tool"] != "Agent":
-                    label = _tool_label(ev["tool"])
-                    if label not in tools_used:
-                        tools_used.append(label)
-                        st.write(f"  {label}")
+            st.write("Aguardando resposta do Supervisor...")
+
+            # Drena a fila de progresso enquanto consome tokens de texto
+            seen_agents: list[str] = []
+            seen_tools: list[str] = []
+
+            def _drain_progress() -> None:
+                """Exibe novos eventos de progresso capturados até o momento."""
+                for ev in result["_progress_events"]:
+                    if ev["type"] == "agent_active":
+                        agent = ev["agent"]
+                        if agent not in seen_agents:
+                            seen_agents.append(agent)
+                            st.write(f"💭 **{agent}** está processando...")
+                    elif ev["type"] == "agent_done":
+                        agent = ev["agent"]
+                        if agent in seen_agents:
+                            st.write(f"✅ **{agent}** concluído")
+                    elif ev["type"] == "tool_start" and ev["tool"] and ev["tool"] != "Agent":
+                        label = _tool_label(ev["tool"])
+                        if label not in seen_tools:
+                            seen_tools.append(label)
+                            st.write(f"  {label}")
+
+            # Streaming de tokens com st.write_stream() — igual ao terminal
+            streamed = text_box.write_stream(_token_generator(token_queue))
+            response_text = streamed if isinstance(streamed, str) else result["text"]
+
+            # Exibe eventos de progresso acumulados durante o stream
+            _drain_progress()
 
             if result["error"]:
                 status_box.update(label="❌ Erro durante processamento", state="error")
+                response_text = f"❌ **Erro:** {result['error']}"
+                text_box.error(response_text)
+            elif not response_text:
+                response_text = "_Agente concluiu sem resposta textual._"
+                text_box.caption(response_text)
             else:
-                agent_summary = ", ".join(active_agents) if active_agents else "Supervisor"
+                agent_summary = ", ".join(seen_agents) if seen_agents else "Supervisor"
                 status_box.update(
                     label=f"✅ Concluído — {agent_summary}",
                     state="complete",
@@ -948,17 +1009,6 @@ with st.chat_message("assistant"):
         ):
             for t in result["tools"]:
                 st.caption(f"• {_tool_label(t)}")
-
-    # Resposta ou erro
-    if result["error"]:
-        response_text = f"❌ **Erro:** {result['error']}"
-        text_box.error(response_text)
-    elif result["text"]:
-        response_text = result["text"]
-        text_box.markdown(response_text)
-    else:
-        response_text = "_Agente concluiu sem resposta textual._"
-        text_box.caption(response_text)
 
     # Métricas
     parts = []

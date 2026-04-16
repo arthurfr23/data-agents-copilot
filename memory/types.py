@@ -1,11 +1,17 @@
 """
 Memory Types — Definição dos tipos de memória e dataclass Memory.
 
-Taxonomia fechada com 4 tipos, cada um com regras de decay diferentes:
-  - USER: nunca decai (confidence fixa em 1.0)
-  - FEEDBACK: decay lento (90 dias para chegar a 0.1)
-  - ARCHITECTURE: nunca decai (confidence fixa em 1.0)
-  - PROGRESS: decay rápido (7 dias para chegar a 0.1)
+Taxonomia fechada com 7 tipos, cada um com regras de decay diferentes:
+  Tipos genéricos (originais):
+    - USER: nunca decai (confidence fixa em 1.0)
+    - FEEDBACK: decay lento (90 dias para chegar a 0.1)
+    - ARCHITECTURE: nunca decai (confidence fixa em 1.0)
+    - PROGRESS: decay rápido (7 dias para chegar a 0.1)
+
+  Tipos de domínio de dados (adicionados para data-agents):
+    - DATA_ASSET: nunca decai — tabelas, schemas, datasets e suas características
+    - PLATFORM_DECISION: nunca decai — decisões sobre tecnologias, plataformas, integrações
+    - PIPELINE_STATUS: decay médio (14 dias) — estado de execução de pipelines e jobs
 """
 
 from __future__ import annotations
@@ -39,13 +45,45 @@ class MemoryType(str, Enum):
     PROGRESS = "progress"
     """Estado atual de tarefas, contexto de sessão, progresso de workflows."""
 
+    # ── Tipos de domínio de dados ──────────────────────────────────────────────
 
-# Configuração de decay por tipo (em dias para atingir confidence 0.1)
+    DATA_ASSET = "data_asset"
+    """
+    Ativos de dados: tabelas, views, schemas, pipelines, datasets.
+    Exemplos: schema da tabela silver_vendas, particionamento de fact_orders,
+    colunas PII identificadas no lakehouse.
+    Nunca decai — estrutura de dados é estável e valiosa a longo prazo.
+    """
+
+    PLATFORM_DECISION = "platform_decision"
+    """
+    Decisões sobre plataformas e tecnologias de dados.
+    Exemplos: escolha entre Auto Loader vs COPY INTO, uso de Fabric vs Databricks
+    para determinado caso de uso, estratégia de particionamento adotada.
+    Nunca decai — decisões arquiteturais são duradouras.
+    """
+
+    PIPELINE_STATUS = "pipeline_status"
+    """
+    Estado atual de pipelines, jobs e workflows de dados.
+    Exemplos: pipeline Bronze concluído, job de sync Fabric falhando há 2 dias,
+    backfill da Silver em andamento até dia 20.
+    Decay médio (14 dias via settings) — status muda com frequência.
+    """
+
+
+# Configuração de decay por tipo (em dias para atingir confidence 0.1).
+# LEGADO: mantido para compatibilidade com store.py e código existente que importa DECAY_CONFIG.
+# O sistema de decay agora lê de settings via memory/decay.py._get_decay_days().
+# Este dict reflete os valores padrão — sobrescrito pelos settings em runtime.
 DECAY_CONFIG: dict[MemoryType, float | None] = {
     MemoryType.USER: None,  # Nunca decai
-    MemoryType.FEEDBACK: 90.0,  # 90 dias
+    MemoryType.FEEDBACK: 90.0,  # 90 dias (padrão; override: MEMORY_DECAY_FEEDBACK_DAYS)
     MemoryType.ARCHITECTURE: None,  # Nunca decai
-    MemoryType.PROGRESS: 7.0,  # 7 dias
+    MemoryType.PROGRESS: 7.0,  # 7 dias (padrão; override: MEMORY_DECAY_PROGRESS_DAYS)
+    MemoryType.DATA_ASSET: None,  # Nunca decai
+    MemoryType.PLATFORM_DECISION: None,  # Nunca decai
+    MemoryType.PIPELINE_STATUS: 14.0,  # 14 dias (padrão; override: MEMORY_DECAY_PIPELINE_STATUS_DAYS)
 }
 
 

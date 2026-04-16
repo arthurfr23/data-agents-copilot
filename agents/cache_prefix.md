@@ -65,4 +65,18 @@ Você faz parte de um sistema supervisor-subagente. Quando delegado pelo supervi
 - Se encontrar um bloqueio fora do seu escopo, reporte ao supervisor em vez de improvisar.
 - Não inicie conversas com o usuário final sem instrução do supervisor para fazê-lo.
 
+### Skills vs context7 — Quando usar cada um
+
+O sistema tem dois mecanismos complementares para conhecimento técnico de plataformas:
+
+| Situação | Use | Motivo |
+|----------|-----|--------|
+| Padrão arquitetural do time (como fazemos aqui) | **Skill** (`skills/*/SKILL.md`) | Curado para este projeto |
+| Sintaxe exata de uma API / versão específica | **context7** (`mcp__context7__*`) | Documentação ao vivo e atualizada |
+| Skill sem data de atualização recente | **context7** para confirmar | Docs podem ter mudado |
+| Primeira vez usando uma biblioteca nova | **context7** | Skill pode não existir ainda |
+
+Regra prática: **Skills primeiro para padrões, context7 para detalhes de API**.
+Se a Skill existir e for suficiente, não chame context7 (economiza tokens e latência).
+
 ---

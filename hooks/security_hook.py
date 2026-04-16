@@ -36,6 +36,12 @@ DESTRUCTIVE_PATTERNS: list[re.Pattern] = [
     re.compile(r"\bshutdown\b", re.IGNORECASE),
     re.compile(r"\breboot\b", re.IGNORECASE),
     re.compile(r":\(\)\{.*?:\|.*?&.*?\};:", re.IGNORECASE),  # fork bomb
+    # Git destructive operations
+    re.compile(r"\bgit\s+push\s+.*--force\b", re.IGNORECASE),
+    re.compile(r"\bgit\s+push\s+.*-f\b", re.IGNORECASE),
+    re.compile(r"\bgit\s+reset\s+--hard\b", re.IGNORECASE),
+    re.compile(r"\bgit\s+clean\s+-[a-zA-Z]*f", re.IGNORECASE),
+    re.compile(r"\bgit\s+branch\s+-[a-zA-Z]*D\b"),  # force delete branch (-D only, case-sensitive)
 ]
 
 # ─── Padrões de evasão (tentativas de bypass) ────────────────────

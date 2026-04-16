@@ -18,7 +18,7 @@ tier: T1
 Conteúdo do system prompt em Markdown...
 
 Campos obrigatórios: name, description, model, tools
-Campos opcionais: mcp_servers, kb_domains, tier
+Campos opcionais: mcp_servers, kb_domains, skill_domains, tier
 """
 
 import logging
@@ -77,6 +77,9 @@ AGENTS_REGISTRY_DIR = Path(__file__).parent / "registry"
 
 # Diretório base das Knowledge Bases
 KB_BASE_DIR = Path(__file__).parent.parent / "kb"
+
+# Diretório base das Skills operacionais
+SKILLS_BASE_DIR = Path(__file__).parent.parent / "skills"
 
 # Arquivo de prefixo de cache compartilhado (Ch. 9 — Fork Agents & Prompt Cache)
 CACHE_PREFIX_PATH = Path(__file__).parent / "cache_prefix.md"
@@ -321,6 +324,101 @@ def _load_kb_indexes(
     return header + "\n\n---\n\n".join(sections)
 
 
+def _load_skills_index(
+    skill_domains: list[str],
+    skills_base_dir: Path | None = None,
+) -> str:
+    """
+    Gera um índice dinâmico das Skills disponíveis para um agente.
+
+    Para cada domínio em skill_domains, varre skills/{domain}/ em busca de
+    arquivos SKILL.md e gera um índice com nome + primeira linha de descrição.
+    Domínios cujo diretório não exista são silenciosamente ignorados.
+
+    O índice lista os paths para que o agente saiba quais Skills existem e possa
+    lê-las via `Read` quando necessário — não injeta o conteúdo completo (que pode
+    ser muito grande), apenas a descoberta.
+
+    Domínios especiais:
+      - "root" → varre skills/*.md (raiz do diretório, sem subpasta)
+      - qualquer outro → varre skills/{domain}/**/SKILL.md
+
+    Args:
+        skill_domains: Lista de domínios de skill (ex: ["databricks", "fabric", "root"])
+        skills_base_dir: Diretório base das Skills. Padrão: skills/ na raiz do projeto.
+
+    Returns:
+        String com o índice de Skills disponíveis, formatada para injeção no prompt.
+        Retorna string vazia se nenhuma Skill for encontrada.
+    """
+    base = skills_base_dir or SKILLS_BASE_DIR
+    entries: list[str] = []
+
+    for domain in skill_domains:
+        if domain == "root":
+            # Skills na raiz (ex: skills/spark_patterns.md, skills/sql_generation.md)
+            skill_files = sorted(base.glob("*.md"))
+        else:
+            # Skills organizadas em subdiretórios (ex: skills/databricks/*/SKILL.md)
+            domain_dir = base / domain
+            if not domain_dir.exists():
+                logger.debug(f"Skills domain não encontrado (ignorado): {domain}")
+                continue
+            # Exclui diretórios de template (prefixo _) e pastas TEMPLATE
+            skill_files = sorted(
+                p
+                for p in domain_dir.rglob("SKILL.md")
+                if not any(part.startswith("_") or part.upper() == "TEMPLATE" for part in p.parts)
+            )
+
+        for skill_path in skill_files:
+            try:
+                # Extrai a primeira linha significativa (após frontmatter e títulos)
+                content = skill_path.read_text(encoding="utf-8")
+                first_line = ""
+                in_frontmatter = False
+                frontmatter_done = False
+                for line in content.splitlines():
+                    stripped = line.strip()
+                    # Detecta frontmatter YAML (delimitado por ---)
+                    if not frontmatter_done and stripped == "---":
+                        in_frontmatter = not in_frontmatter
+                        if not in_frontmatter:
+                            frontmatter_done = True
+                        continue
+                    if in_frontmatter:
+                        continue
+                    # Pula títulos markdown (# ...) e linhas vazias
+                    if stripped and not stripped.startswith("#") and not stripped.startswith("---"):
+                        first_line = stripped[:100]
+                        break
+
+                rel_path = skill_path.relative_to(base.parent)
+                skill_name = (
+                    skill_path.parent.name if skill_path.name == "SKILL.md" else skill_path.stem
+                )
+                entry = f"- `{rel_path}` — **{skill_name}**"
+                if first_line:
+                    entry += f": {first_line}"
+                entries.append(entry)
+                logger.debug(f"Skill indexada: {rel_path}")
+            except Exception as e:
+                logger.warning(f"Erro ao indexar Skill '{skill_path}': {e}")
+
+    if not entries:
+        return ""
+
+    header = (
+        "\n\n---\n\n"
+        "## [Contexto Injetado] Skills Disponíveis\n\n"
+        "As Skills abaixo estão disponíveis para consulta via `Read` quando necessário.\n"
+        "Cada skill contém playbooks operacionais com sintaxe, padrões e exemplos prontos.\n"
+        "Leia a SKILL.md relevante ANTES de gerar código para a ferramenta correspondente.\n\n"
+    )
+
+    return header + "\n".join(entries)
+
+
 def _load_cache_prefix(prefix_path: Path | None = None) -> str:
     """
     Carrega o prefixo de cache compartilhado (Ch. 9 — Fork Agents & Prompt Cache).
@@ -362,6 +460,8 @@ def load_agent(
     tier_effort_map: dict[str, str] | None = None,
     inject_kb_index: bool = False,
     kb_base_dir: Path | None = None,
+    inject_skills_index: bool = True,
+    skills_base_dir: Path | None = None,
     inject_cache_prefix: bool = True,
     cache_prefix_path: Path | None = None,
 ) -> tuple[str, AgentDefinition]:
@@ -379,9 +479,12 @@ def load_agent(
         tier_effort_map: Mapeamento tier -> effort ("high"/"medium"/"low").
             Controla o nível de raciocínio do modelo por tier.
             Override por frontmatter: campo `effort` no YAML.
-            Se None, usa frontmatter ou sem especificação de effort.
+            Se None, usa frontmatch ou sem especificação de effort.
         inject_kb_index: Se True, injeta index.md das KBs no prompt.
         kb_base_dir: Diretório base das KBs. Padrão: kb/ na raiz do projeto.
+        inject_skills_index: Se True (padrão), gera e injeta índice de Skills
+            disponíveis no prompt, baseado no campo `skill_domains` do frontmatter.
+        skills_base_dir: Diretório base das Skills. Padrão: skills/ na raiz do projeto.
         inject_cache_prefix: Se True (padrão), prepend o prefixo de cache
             compartilhado (agents/cache_prefix.md) ao system prompt.
         cache_prefix_path: Caminho alternativo para o arquivo de prefixo.
@@ -456,16 +559,46 @@ def load_agent(
         if kb_content:
             logger.info(f"KB injection: agente '{name}' ← {len(kb_domains)} domínios: {kb_domains}")
 
+    # Skills injection: gera índice dinâmico de Skills disponíveis no prompt.
+    # Diferente das KBs (que injetam conteúdo), as Skills injetam apenas um índice
+    # com paths — o agente lê a SKILL.md completa via Read quando necessário.
+    # Isso evita inflar o prompt com todo o conteúdo operacional de uma vez.
+    skill_domains: list[str] = metadata.get("skill_domains", [])
+    skills_content = ""
+    if inject_skills_index and skill_domains:
+        skills_content = _load_skills_index(skill_domains, skills_base_dir=skills_base_dir)
+        if skills_content:
+            logger.info(
+                f"Skills injection: agente '{name}' ← {len(skill_domains)} domínios: {skill_domains}"
+            )
+
     # Resolve aliases de tool sets para tools MCP concretas
     tools = _resolve_tools(tools_raw)
 
-    # Monta o prompt final: [prefixo compartilhado] + [corpo específico] + [KB]
+    # CWD injection: AgentDefinition não tem campo cwd — o sub-agente herda o
+    # cwd do processo (que no Chainlit/Streamlit pode ser diferente da raiz do
+    # projeto). Injetamos o path absoluto como instrução no prompt para que
+    # operações de Write/Bash/Read usem sempre caminhos absolutos corretos.
+    project_root = Path(__file__).parent.parent
+    cwd_note = (
+        f"\n\n---\n\n"
+        f"## Diretório de Trabalho\n\n"
+        f"A raiz do projeto é sempre: `{project_root}`\n\n"
+        f"- Ao escrever arquivos, use **caminhos absolutos** partindo de `{project_root}`.\n"
+        f"- Exemplo correto: `{project_root}/output/meu_arquivo.md`\n"
+        f"- NUNCA use caminhos relativos como `output/meu_arquivo.md` — eles dependem do cwd "
+        f"do processo que pode ser diferente ao rodar via UI (Chainlit/Streamlit).\n"
+    )
+
+    # Monta o prompt final: [prefixo compartilhado] + [corpo específico] + [KB] + [skills] + [cwd]
     # O separador --- garante que o prefixo é visualmente distinto do corpo,
     # mas NÃO altera o prefixo em si (só o que vem depois).
     if prefix:
-        full_prompt = prefix + _CACHE_PREFIX_SEPARATOR + body + kb_content
+        full_prompt = (
+            prefix + _CACHE_PREFIX_SEPARATOR + body + kb_content + skills_content + cwd_note
+        )
     else:
-        full_prompt = body + kb_content
+        full_prompt = body + kb_content + skills_content + cwd_note
 
     agent = AgentDefinition(
         description=description,
@@ -482,6 +615,7 @@ def load_agent(
         f"tools={len(tools)} | mcp_servers={len(mcp_servers)} | "
         f"maxTurns={agent_max_turns} | effort={agent_effort} | "
         f"kb_injected={len(kb_domains) if kb_content else 0} | "
+        f"skills_injected={len(skill_domains) if skills_content else 0} | "
         f"cache_prefix={bool(prefix)}"
     )
     return name, agent
@@ -495,6 +629,8 @@ def load_all_agents(
     tier_effort_map: dict[str, str] | None = None,
     inject_kb_index: bool = False,
     kb_base_dir: Path | None = None,
+    inject_skills_index: bool = True,
+    skills_base_dir: Path | None = None,
     inject_cache_prefix: bool = True,
     cache_prefix_path: Path | None = None,
 ) -> dict[str, AgentDefinition]:
@@ -519,6 +655,9 @@ def load_all_agents(
         tier_effort_map: Mapeamento tier -> effort. Se None, sem override por tier.
         inject_kb_index: Se True, injeta index.md das KBs no prompt dos agentes.
         kb_base_dir: Diretório base das KBs. Padrão: kb/ na raiz do projeto.
+        inject_skills_index: Se True (padrão), injeta índice de Skills disponíveis
+            no prompt dos agentes com campo `skill_domains` no frontmatter.
+        skills_base_dir: Diretório base das Skills. Padrão: skills/ na raiz do projeto.
         inject_cache_prefix: Se True (padrão), prepend o prefixo de cache
             compartilhado a todos os agentes. Ver `load_agent` para detalhes.
         cache_prefix_path: Caminho alternativo para o arquivo de prefixo.
@@ -551,6 +690,8 @@ def load_all_agents(
                 tier_effort_map=tier_effort_map,
                 inject_kb_index=inject_kb_index,
                 kb_base_dir=kb_base_dir,
+                inject_skills_index=inject_skills_index,
+                skills_base_dir=skills_base_dir,
                 inject_cache_prefix=inject_cache_prefix,
                 cache_prefix_path=cache_prefix_path,
             )
@@ -589,6 +730,10 @@ def inject_memory_context(query: str, system_prompt: str) -> str:
     Usa o Sonnet lateral para selecionar memórias do store que são
     relevantes para a query atual. Aplica decay antes do retrieval.
 
+    Retorna o system_prompt original sem modificação se:
+      - memory_enabled=False no .env
+      - memory_retrieval_enabled=False no .env
+
     Args:
         query: A query/tarefa atual do usuário.
         system_prompt: System prompt original do supervisor.
@@ -596,6 +741,11 @@ def inject_memory_context(query: str, system_prompt: str) -> str:
     Returns:
         System prompt enriquecido com memórias relevantes.
     """
+    from config.settings import settings  # importação local — evita circular import
+
+    if not settings.memory_enabled or not settings.memory_retrieval_enabled:
+        return system_prompt
+
     try:
         store = MemoryStore()
 

@@ -82,6 +82,7 @@ def compile_daily_logs(
         "superseded": 0,
         "skipped_dupes": 0,
         "contradiction_checks": 0,
+        "cleaned_logs": 0,
     }
 
     # 1. Listar daily logs não processados
@@ -144,10 +145,18 @@ def compile_daily_logs(
     # 5. Regenerar index
     store.build_index()
 
+    # 6. Limpeza de daily logs compilados antigos (se habilitado via settings)
+    cleaned = _cleanup_compiled_logs(store)
+    if cleaned:
+        metrics["cleaned_logs"] = cleaned
+        logger.info(f"Limpeza: {cleaned} daily logs compilados antigos removidos.")
+    else:
+        metrics["cleaned_logs"] = 0
+
     logger.info(
         f"Compilação concluída: {metrics['processed_logs']} logs, "
         f"{metrics['new_memories']} novas, {metrics['superseded']} substituídas, "
-        f"{metrics['skipped_dupes']} dupes ignoradas"
+        f"{metrics['skipped_dupes']} dupes ignoradas, {metrics['cleaned_logs']} logs limpos"
     )
 
     return metrics
@@ -413,6 +422,55 @@ def _heuristic_contradiction(new_memory: Memory, candidate: Memory) -> bool:
     word_overlap = new_words & existing_words
     min_len = min(len(new_words), len(existing_words))
     return min_len > 0 and len(word_overlap) / min_len > 0.5
+
+
+def _cleanup_compiled_logs(store: MemoryStore) -> int:
+    """
+    Remove daily logs compilados com mais de N dias (configurável via settings).
+
+    Logs compilados já tiveram seu conteúdo extraído para o store — o arquivo
+    bruto é redundante e apenas acumula disco.
+
+    Retorna o número de arquivos removidos.
+    """
+    from config.settings import settings  # importação local — evita circular import
+
+    if not settings.memory_auto_clean_daily_logs:
+        return 0
+
+    keep_days = settings.memory_keep_compiled_days
+    now = datetime.now(timezone.utc)
+    removed = 0
+
+    all_logs = store.list_daily_logs(unprocessed_only=False)
+
+    for log_path in all_logs:
+        # Só remove logs com marcador COMPILED
+        try:
+            content = log_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+
+        if "<!-- COMPILED" not in content:
+            continue  # Não compilado — não remove
+
+        # Extrai data do nome do arquivo (YYYY-MM-DD.md)
+        try:
+            date_str = log_path.stem  # ex: "2026-03-15"
+            log_date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue  # Nome inesperado — não remove
+
+        age_days = (now - log_date).days
+        if age_days >= keep_days:
+            try:
+                log_path.unlink()
+                removed += 1
+                logger.debug(f"Daily log antigo removido: {log_path.name} ({age_days} dias)")
+            except OSError as e:
+                logger.warning(f"Erro ao remover {log_path.name}: {e}")
+
+    return removed
 
 
 def _mark_as_compiled(log_path: Path) -> None:

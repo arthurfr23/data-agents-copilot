@@ -182,6 +182,8 @@ async def audit_tool_usage(
     has_error = bool(error_text)
     error_category = _classify_error(error_text) if has_error else None
 
+    tool_input = input_data.get("tool_input", {}) or {}
+
     log_entry: dict[str, Any] = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "event": "tool_call",
@@ -189,11 +191,21 @@ async def audit_tool_usage(
         "tool_use_id": tool_use_id,
         "operation_type": _classify_operation(tool_name),
         # Registramos apenas os nomes das chaves, não os valores
-        "input_keys": list(input_data.get("tool_input", {}).keys()),
+        "input_keys": list(tool_input.keys()),
         # Campos v2: categorização de erros e plataforma
         "platform": _detect_platform(tool_name),
         "has_error": has_error,
     }
+
+    # Para Read/Write/Glob/Grep: registra o path acessado (sem conteúdo sensível).
+    # Isso permite rastrear quais KBs, Skills e arquivos os agentes estão consultando.
+    if tool_name in ("Read", "Write", "Glob") and "file_path" in tool_input:
+        log_entry["file_path"] = str(tool_input["file_path"])
+    elif tool_name == "Grep" and "path" in tool_input:
+        log_entry["file_path"] = str(tool_input.get("path", ""))
+    elif tool_name == "Bash" and "command" in tool_input:
+        # Registra apenas os primeiros 120 chars do comando (sem argumentos longos)
+        log_entry["command_preview"] = str(tool_input["command"])[:120]
 
     # Adiciona campos de erro somente quando há erro (economia de espaço)
     if has_error:

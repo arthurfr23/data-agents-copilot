@@ -522,14 +522,21 @@ class TestKBInjection:
         assert "sql-patterns" in agent.prompt.lower() or "Padrões SQL" in agent.prompt
 
     def test_load_without_kb_injection_preserves_original_prompt(self):
-        """Com inject_kb_index=False, o prompt deve ser o body original sem KB."""
-        agents = load_all_agents(inject_kb_index=False)
+        """Com inject_kb_index=False e inject_skills_index=False, sem contexto injetado."""
+        agents = load_all_agents(inject_kb_index=False, inject_skills_index=False)
         agent = agents["sql-expert"]
         assert "[Contexto Injetado]" not in agent.prompt
 
     def test_load_with_kb_injection_default_false_preserves_prompt(self):
-        """O default de inject_kb_index é False — garante retrocompatibilidade."""
+        """O default de inject_kb_index é False — sem injeção de KB index."""
         agents = load_all_agents()
+        agent = agents["sql-expert"]
+        # KB index não é injetado por padrão (o marcador específico de injeção não aparece)
+        assert "[Contexto Injetado] Knowledge Base" not in agent.prompt
+
+    def test_load_without_any_injection_preserves_prompt(self):
+        """Com ambas injeções desabilitadas, o prompt não deve ter contexto injetado."""
+        agents = load_all_agents(inject_kb_index=False, inject_skills_index=False)
         agent = agents["sql-expert"]
         assert "[Contexto Injetado]" not in agent.prompt
 
