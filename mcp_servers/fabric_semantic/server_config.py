@@ -64,6 +64,8 @@ FABRIC_SEMANTIC_MCP_TOOLS = [
     "mcp__fabric_semantic__fabric_semantic_execute_dax",
     # Histórico de refresh — status, duração, erros por execução
     "mcp__fabric_semantic__fabric_semantic_get_refresh_history",
+    # Escrita — adiciona/atualiza medidas DAX via updateDefinition (Fabric REST API v1)
+    "mcp__fabric_semantic__fabric_semantic_update_definition",
 ]
 
 # Subconjunto somente leitura (sem execute_dax para uso mais restrito)

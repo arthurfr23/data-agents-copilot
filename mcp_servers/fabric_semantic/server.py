@@ -32,8 +32,10 @@ import base64
 import json
 import logging
 import os
+import re
 import time
 import traceback
+import uuid
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -202,7 +204,7 @@ def _parse_tmdl_text_table(content: str) -> dict[str, Any]:
                 rest = s[8:]
                 name, _, expr = rest.partition("=")
                 obj = {
-                    "name": name.strip(),
+                    "name": name.strip().strip("'\""),
                     "expression": expr.strip(),
                     "description": "",
                     "format_string": "",
@@ -499,6 +501,93 @@ def _extract_model_from_tmdl(tmdl_parts: dict[str, Any]) -> dict[str, Any]:
             break
 
     return model_data
+
+
+# ─── Helpers de geração e injeção TMDL ───────────────────────────────────────
+
+
+def _build_measure_tmdl_block(m: dict) -> str:
+    """Gera bloco TMDL de uma medida com indentação de 1 tab.
+
+    Formato TMDL correto para medidas:
+      \\tmeasure 'Nome' = <expr_inline>          ← expressão curta inline
+      \\t\\tformatString: "0.00%"                 ← propriedades em \\t\\t
+      \\t\\tlineageTag: <uuid>                    ← obrigatório pelo Fabric
+
+    Para expressão multi-linha:
+      \\tmeasure 'Nome' =
+      \\t\\t\\t<linha1>                            ← corpo em \\t\\t\\t (3 tabs)
+      \\t\\t\\t<linha2>
+      \\t\\tformatString: "0.00%"
+      \\t\\tlineageTag: <uuid>
+    """
+    name = m.get("name", "").strip()
+    expr = m.get("expression", "").strip()
+    fmt = m.get("format_string", "").strip()
+    desc = m.get("description", "").strip()
+    folder = m.get("display_folder", "").strip()
+    # lineageTag é obrigatório no TMDL do Fabric — sem ele o parser rejeita a medida
+    ltag = m.get("lineage_tag") or str(uuid.uuid4())
+
+    if "\n" in expr or len(expr) > 80:
+        lines = [f"\tmeasure '{name}' ="]
+        for eline in expr.splitlines():
+            lines.append(f"\t\t\t{eline.strip()}")
+    else:
+        lines = [f"\tmeasure '{name}' = {expr}"]
+
+    if fmt:
+        lines.append(f'\t\tformatString: "{fmt}"')
+    if desc:
+        lines.append(f'\t\tdescription: "{desc}"')
+    if folder:
+        lines.append(f'\t\tdisplayFolder: "{folder}"')
+    lines.append(f"\t\tlineageTag: {ltag}")
+
+    return "\n".join(lines)
+
+
+def _inject_measures_into_tmdl(
+    tmdl_content: str, measures: list[dict]
+) -> tuple[str, list[str], list[str]]:
+    """Injeta ou atualiza medidas em um bloco TMDL de tabela.
+
+    Para cada medida:
+    - Se já existe no TMDL, substitui o bloco inteiro (update).
+    - Se não existe, insere antes da primeira `partition` ou no final (insert).
+
+    Retorna:
+        (novo_tmdl, nomes_atualizados, nomes_inseridos)
+    """
+    updated_names: list[str] = []
+    inserted_names: list[str] = []
+    new_tmdl = tmdl_content
+
+    for m in measures:
+        mname = m.get("name", "").strip()
+        block = _build_measure_tmdl_block(m)
+
+        escaped = re.escape(mname)
+        # Casa `measure 'Nome'`, `measure "Nome"` e `measure Nome` (sem aspas).
+        # Evitar ['\"]? opcional: com zero-length match, o padrão ignora as aspas
+        # e casa substrings dentro de nomes diferentes (ex: "A" dentro de "'AB'").
+        existing_pattern = re.compile(
+            rf"\tmeasure\s+(?:'{escaped}'|\"{escaped}\"|{escaped})\s*=(?:[^\n]|\n(?!\t(?:measure|partition|column|annotation|\w)))*",
+            re.MULTILINE,
+        )
+        if existing_pattern.search(new_tmdl):
+            new_tmdl = existing_pattern.sub(block, new_tmdl, count=1)
+            updated_names.append(mname)
+        else:
+            partition_match = re.search(r"\n\tpartition ", new_tmdl)
+            if partition_match:
+                insert_pos = partition_match.start()
+                new_tmdl = new_tmdl[:insert_pos] + "\n" + block + new_tmdl[insert_pos:]
+            else:
+                new_tmdl = new_tmdl.rstrip() + "\n" + block + "\n"
+            inserted_names.append(mname)
+
+    return new_tmdl, updated_names, inserted_names
 
 
 # ─── MCP Tools ───────────────────────────────────────────────────────────────
@@ -1066,6 +1155,352 @@ def fabric_semantic_get_refresh_history(
             },
             ensure_ascii=False,
             indent=2,
+        )
+    except Exception as e:
+        return _error_response(e)
+
+
+@mcp.tool()
+def fabric_semantic_update_definition(
+    model_id: str,
+    table_name: str,
+    measures: list[dict],
+    workspace_id: str | None = None,
+) -> str:
+    """
+    Adiciona ou atualiza medidas DAX em um Semantic Model do Fabric.
+
+    Faz get da definição atual (TMDL), injeta as medidas novas/atualizadas no
+    arquivo TMDL da tabela alvo e publica via updateDefinition (Fabric REST API v1).
+
+    Args:
+        model_id: ID do Semantic Model.
+        table_name: Nome da tabela onde as medidas serão criadas. Ex: "vw_monitoramento_powerbi".
+        measures: Lista de medidas a criar/atualizar. Cada item deve ter:
+                  - name (str): nome da medida
+                  - expression (str): fórmula DAX
+                  - format_string (str, opcional): ex: "0.00%", "#,0", "0"
+                  - description (str, opcional)
+                  - display_folder (str, opcional)
+        workspace_id: ID do workspace. Se None, usa FABRIC_WORKSPACE_ID do .env.
+
+    Exemplo:
+        fabric_semantic_update_definition(
+            model_id="89e2a130-...",
+            table_name="vw_monitoramento_powerbi",
+            measures=[
+                {"name": "Taxa de Sucesso", "expression": "DIVIDE(COUNTROWS(FILTER(...)), COUNTROWS(...))", "format_string": "0.00%"},
+                {"name": "Total Falhas", "expression": "COUNTROWS(FILTER(...))", "format_string": "#,0"},
+            ]
+        )
+    """
+    dep_err = _check_deps()
+    if dep_err:
+        return json.dumps({"error": dep_err}, ensure_ascii=False)
+
+    ws = workspace_id or _workspace_id()
+
+    # ── Passo 1: Baixar definição atual via getDefinition ─────────────────────
+    try:
+        resp_get = requests.post(
+            f"https://api.fabric.microsoft.com/v1/workspaces/{ws}/semanticModels/{model_id}/getDefinition",
+            headers=_fabric_headers(),
+            timeout=30,
+        )
+
+        tmdl_parts_raw: list[dict] = []
+
+        def _get_parts_from_response(r: "requests.Response") -> list[dict]:
+            data = r.json()
+            definition = data.get("definition") or data.get("result", {}).get("definition") or {}
+            return definition.get("parts", [])
+
+        def _poll_get(location: str, max_wait: int = 60) -> "requests.Response | None":
+            deadline = time.time() + max_wait
+            delay = 2
+            while time.time() < deadline:
+                time.sleep(delay)
+                sr = requests.get(location, headers=_fabric_headers(), timeout=30)
+                if sr.status_code not in (200, 202, 429):
+                    return sr
+                if sr.status_code in (202, 429):
+                    delay = min(delay * 2, 10)
+                    continue
+                try:
+                    sd = sr.json()
+                except Exception:
+                    return sr
+                if sd.get("status") == "Succeeded":
+                    rr = requests.get(
+                        location.rstrip("/") + "/result",
+                        headers=_fabric_headers(),
+                        timeout=30,
+                    )
+                    return rr
+                if sd.get("status") in ("Failed", "Cancelled"):
+                    return sr
+                delay = min(delay * 2, 10)
+            return None
+
+        if resp_get.status_code == 200:
+            tmdl_parts_raw = _get_parts_from_response(resp_get)
+        elif resp_get.status_code == 202:
+            location = resp_get.headers.get("Location") or resp_get.headers.get(
+                "Operation-Location"
+            )
+            if not location:
+                return json.dumps(
+                    {"error": "getDefinition retornou 202 sem Location header"}, ensure_ascii=False
+                )
+            polled = _poll_get(location)
+            if polled is None or polled.status_code != 200:
+                return json.dumps(
+                    {
+                        "error": f"polling getDefinition falhou: HTTP {polled.status_code if polled else 'timeout'}",
+                        "detail": polled.text[:400] if polled else "",
+                    },
+                    ensure_ascii=False,
+                )
+            tmdl_parts_raw = _get_parts_from_response(polled)
+        else:
+            return json.dumps(
+                {
+                    "error": f"getDefinition HTTP {resp_get.status_code}",
+                    "detail": resp_get.text[:400],
+                },
+                ensure_ascii=False,
+            )
+    except Exception as e:
+        return _error_response(e)
+
+    if not tmdl_parts_raw:
+        return json.dumps({"error": "getDefinition não retornou parts TMDL"}, ensure_ascii=False)
+
+    # ── Passo 2: Decodificar, modificar e re-encodar as parts ─────────────────
+    try:
+        # Encontrar o arquivo TMDL da tabela alvo
+        table_path_key: str | None = None
+        table_content: str | None = None
+
+        for part in tmdl_parts_raw:
+            path = part.get("path", "")
+            payload_b64 = part.get("payload", "")
+            if not payload_b64:
+                continue
+            decoded = base64.b64decode(payload_b64).decode("utf-8", errors="replace")
+            # Verifica se este arquivo é da tabela alvo (nome no path ou no conteúdo)
+            if f"/tables/{table_name}.tmdl" in path or (
+                path.endswith(".tmdl") and "/tables/" in path and f"table {table_name}" in decoded
+            ):
+                table_path_key = path
+                table_content = decoded
+                break
+
+        if table_path_key is None or table_content is None:
+            # Tenta match mais flexível (case-insensitive, espaços → underscore)
+            norm_target = table_name.lower().replace(" ", "_")
+            for part in tmdl_parts_raw:
+                path = part.get("path", "")
+                payload_b64 = part.get("payload", "")
+                if not payload_b64:
+                    continue
+                decoded = base64.b64decode(payload_b64).decode("utf-8", errors="replace")
+                if "/tables/" in path and path.endswith(".tmdl"):
+                    path_norm = path.lower().replace(" ", "_")
+                    if norm_target in path_norm or norm_target in decoded.lower():
+                        table_path_key = path
+                        table_content = decoded
+                        break
+
+        if table_path_key is None or table_content is None:
+            available = [
+                p.get("path", "") for p in tmdl_parts_raw if "/tables/" in p.get("path", "")
+            ]
+            return json.dumps(
+                {
+                    "error": f"Tabela '{table_name}' não encontrada no TMDL.",
+                    "available_table_paths": available,
+                },
+                ensure_ascii=False,
+            )
+
+        # Injetar medidas novas/atualizadas no TMDL da tabela
+        new_tmdl, updated_names, inserted_names = _inject_measures_into_tmdl(
+            table_content, measures
+        )
+
+        # Re-encodar o conteúdo modificado em base64
+        new_payload_b64 = base64.b64encode(new_tmdl.encode("utf-8")).decode("ascii")
+
+        # Reconstruir lista de parts com o arquivo da tabela atualizado
+        updated_parts = []
+        for part in tmdl_parts_raw:
+            if part.get("path") == table_path_key:
+                updated_parts.append(
+                    {
+                        "path": table_path_key,
+                        "payload": new_payload_b64,
+                        "payloadType": part.get("payloadType", "InlineBase64"),
+                    }
+                )
+            else:
+                updated_parts.append(part)
+
+    except Exception as e:
+        return _error_response(e)
+
+    # ── Passo 2.5: Validar sintaxe DAX de cada medida antes de publicar ─────────
+    # Usa executeQueries com WITH DEFINE MEASURE + EVALUATE {1} — se a expressão
+    # tiver erro de sintaxe a API retorna 400/200+error antes de qualquer escrita.
+    try:
+        syntax_errors: list[dict] = []
+        for m in measures:
+            mname = m.get("name", "").strip()
+            expr = m.get("expression", "").strip()
+            if not expr:
+                syntax_errors.append({"measure": mname, "error": "expressão DAX vazia"})
+                continue
+
+            # Sanitiza nome da tabela para uso na query DAX
+            safe_table = table_name.replace("'", "''")
+            safe_name = mname.replace("'", "''")
+            validation_query = (
+                f"DEFINE\n  MEASURE '{safe_table}'[{safe_name}] = {expr}\nEVALUATE {{1}}"
+            )
+            val_payload = {
+                "queries": [{"query": validation_query}],
+                "serializerSettings": {"includeNulls": True},
+            }
+            # Tenta Fabric API primeiro, depois Power BI
+            val_resp = requests.post(
+                f"https://api.fabric.microsoft.com/v1/workspaces/{ws}/semanticModels/{model_id}/executeQueries",
+                headers=_fabric_headers(),
+                json=val_payload,
+                timeout=30,
+            )
+            if val_resp.status_code != 200:
+                val_resp = requests.post(
+                    f"https://api.powerbi.com/v1.0/myorg/groups/{ws}/datasets/{model_id}/executeQueries",
+                    headers=_powerbi_headers(),
+                    json=val_payload,
+                    timeout=30,
+                )
+            if val_resp.status_code == 200:
+                val_data = val_resp.json()
+                # A API retorna 200 mesmo com erro DAX — o erro fica em results[0].tables ou error field
+                val_results = val_data.get("results", [{}])
+                val_error = val_results[0].get("error") if val_results else None
+                if val_error:
+                    syntax_errors.append(
+                        {
+                            "measure": mname,
+                            "error": val_error.get("message", str(val_error)),
+                            "code": val_error.get("code", ""),
+                        }
+                    )
+            elif val_resp.status_code in (400, 422):
+                # Erro HTTP direto = sintaxe DAX inválida com certeza
+                try:
+                    err_detail = val_resp.json()
+                except Exception:
+                    err_detail = val_resp.text[:300]
+                syntax_errors.append({"measure": mname, "error": str(err_detail)})
+            # 403/401 = sem permissão para executeQueries — pula validação silenciosamente
+
+        if syntax_errors:
+            return json.dumps(
+                {
+                    "status": "validation_error",
+                    "error": "Erros de sintaxe DAX encontrados. Nenhuma alteração foi publicada.",
+                    "syntax_errors": syntax_errors,
+                    "hint": "Corrija as expressões DAX acima e tente novamente.",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+    except Exception as e:
+        # Falha na validação não bloqueia a publicação — loga e segue
+        logger.warning("Validação DAX falhou (não-bloqueante): %s", e)
+
+    # ── Passo 3: Publicar via updateDefinition ────────────────────────────────
+    try:
+        update_payload = {"definition": {"parts": updated_parts}}
+
+        resp_upd = requests.post(
+            f"https://api.fabric.microsoft.com/v1/workspaces/{ws}/semanticModels/{model_id}/updateDefinition",
+            headers=_fabric_headers(),
+            json=update_payload,
+            timeout=60,
+        )
+
+        # 200 = sucesso imediato
+        if resp_upd.status_code == 200:
+            return json.dumps(
+                {
+                    "status": "success",
+                    "model_id": model_id,
+                    "table": table_name,
+                    "measures_inserted": inserted_names,
+                    "measures_updated": updated_names,
+                    "total_processed": len(measures),
+                    "source": "fabric_rest_v1_sync",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+
+        # 202 = operação assíncrona
+        if resp_upd.status_code == 202:
+            location = resp_upd.headers.get("Location") or resp_upd.headers.get(
+                "Operation-Location"
+            )
+            if location:
+                # Polling do status
+                deadline = time.time() + 60
+                delay = 2
+                while time.time() < deadline:
+                    time.sleep(delay)
+                    sr = requests.get(location, headers=_fabric_headers(), timeout=30)
+                    if sr.status_code == 200:
+                        try:
+                            sd = sr.json()
+                            op_status = sd.get("status", "")
+                            if op_status == "Succeeded":
+                                return json.dumps(
+                                    {
+                                        "status": "success",
+                                        "model_id": model_id,
+                                        "table": table_name,
+                                        "measures_inserted": inserted_names,
+                                        "measures_updated": updated_names,
+                                        "total_processed": len(measures),
+                                        "source": "fabric_rest_v1_async",
+                                    },
+                                    ensure_ascii=False,
+                                    indent=2,
+                                )
+                            if op_status in ("Failed", "Cancelled"):
+                                return json.dumps(
+                                    {"error": f"updateDefinition {op_status}", "detail": sd},
+                                    ensure_ascii=False,
+                                )
+                        except Exception:
+                            pass
+                    delay = min(delay * 2, 10)
+                return json.dumps(
+                    {"error": "updateDefinition polling timeout (60s)"}, ensure_ascii=False
+                )
+
+        return json.dumps(
+            {
+                "error": f"updateDefinition HTTP {resp_upd.status_code}",
+                "detail": resp_upd.text[:500],
+                "hint": (
+                    "Verifique se o Service Principal tem permissão 'Dataset.ReadWrite.All' "
+                    "e role >= Contributor no workspace."
+                ),
+            },
+            ensure_ascii=False,
         )
     except Exception as e:
         return _error_response(e)
