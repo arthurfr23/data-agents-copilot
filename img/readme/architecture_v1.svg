@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" font-family="'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" font-family="'Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#0D1117"/>
@@ -13,122 +13,127 @@
   </defs>
 
   <!-- Background -->
-  <rect width="1100" height="620" fill="url(#bg)" rx="12"/>
+  <rect width="1200" height="650" fill="url(#bg)" rx="12"/>
 
   <!-- Title -->
-  <text x="550" y="38" font-size="16" font-weight="700" fill="#F0F6FC" text-anchor="middle" letter-spacing="1">COMO O DATA AGENTS FUNCIONA</text>
-  <line x1="60" y1="52" x2="1040" y2="52" stroke="#30363D" stroke-width="1"/>
+  <text x="600" y="38" font-size="16" font-weight="700" fill="#F0F6FC" text-anchor="middle" letter-spacing="1">COMO O DATA AGENTS FUNCIONA</text>
+  <line x1="60" y1="52" x2="1140" y2="52" stroke="#30363D" stroke-width="1"/>
 
   <!-- ═══════════════════════════════════════════════
        LAYER 1 — ENTRADA DO USUÁRIO
   ═══════════════════════════════════════════════ -->
-  <text x="60" y="80" font-size="11" fill="#8B949E" font-weight="600" letter-spacing="1">CAMADA 1 — COMO VOCÊ INTERAGE</text>
+  <text x="60" y="78" font-size="11" fill="#8B949E" font-weight="600" letter-spacing="1">CAMADA 1 — COMO VOCÊ INTERAGE</text>
 
-  <!-- CLI -->
-  <rect x="60" y="90" width="190" height="58" rx="8" fill="#161B22" stroke="#30363D" stroke-width="1.5"/>
-  <text x="155" y="116" font-size="13" font-weight="600" fill="#F0F6FC" text-anchor="middle">Terminal (CLI)</text>
-  <text x="155" y="136" font-size="11" fill="#8B949E" text-anchor="middle">python main.py</text>
+  <rect x="60" y="88" width="190" height="58" rx="8" fill="#161B22" stroke="#30363D" stroke-width="1.5"/>
+  <text x="155" y="114" font-size="13" font-weight="600" fill="#F0F6FC" text-anchor="middle">Terminal (CLI)</text>
+  <text x="155" y="134" font-size="11" fill="#8B949E" text-anchor="middle">python main.py</text>
 
-  <!-- Web Chat -->
-  <rect x="270" y="90" width="190" height="58" rx="8" fill="#161B22" stroke="#30363D" stroke-width="1.5"/>
-  <text x="365" y="116" font-size="13" font-weight="600" fill="#F0F6FC" text-anchor="middle">Web Chat</text>
-  <text x="365" y="136" font-size="11" fill="#8B949E" text-anchor="middle">Chainlit · Streamlit</text>
+  <rect x="268" y="88" width="190" height="58" rx="8" fill="#161B22" stroke="#30363D" stroke-width="1.5"/>
+  <text x="363" y="114" font-size="13" font-weight="600" fill="#F0F6FC" text-anchor="middle">Web Chat</text>
+  <text x="363" y="134" font-size="11" fill="#8B949E" text-anchor="middle">Chainlit · Streamlit</text>
 
-  <!-- Slash Commands -->
-  <rect x="480" y="90" width="560" height="58" rx="8" fill="#1A1A2E" stroke="#6E40C9" stroke-width="1.5"/>
-  <text x="760" y="112" font-size="13" font-weight="600" fill="#C4B5FD" text-anchor="middle">Comandos Slash</text>
-  <text x="760" y="132" font-size="11" fill="#8B949E" text-anchor="middle">/sql   /spark   /pipeline   /quality   /governance   /plan   /party   /geral   …</text>
+  <rect x="476" y="88" width="664" height="58" rx="8" fill="#1A1A2E" stroke="#6E40C9" stroke-width="1.5"/>
+  <text x="808" y="110" font-size="13" font-weight="600" fill="#C4B5FD" text-anchor="middle">Comandos Slash</text>
+  <text x="808" y="132" font-size="10.5" fill="#8B949E" text-anchor="middle">/sql · /spark · /pipeline · /python · /migrate · /quality · /governance · /semantic · /plan · /party · /geral · …</text>
 
   <!-- Arrows layer 1 → 2 -->
-  <line x1="155" y1="148" x2="155" y2="195" stroke="#8B949E" stroke-width="1.5" marker-end="url(#arr)"/>
-  <line x1="365" y1="148" x2="365" y2="195" stroke="#8B949E" stroke-width="1.5" marker-end="url(#arr)"/>
-  <line x1="760" y1="148" x2="760" y2="195" stroke="#6E40C9" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="155" y1="146" x2="155" y2="196" stroke="#8B949E" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="363" y1="146" x2="363" y2="196" stroke="#8B949E" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="808" y1="146" x2="808" y2="196" stroke="#6E40C9" stroke-width="1.5" marker-end="url(#arr)"/>
 
   <!-- ═══════════════════════════════════════════════
        LAYER 2 — SUPERVISOR
   ═══════════════════════════════════════════════ -->
   <text x="60" y="198" font-size="11" fill="#8B949E" font-weight="600" letter-spacing="1">CAMADA 2 — QUEM COORDENA</text>
 
-  <rect x="60" y="208" width="980" height="80" rx="10" fill="#162032" stroke="#2563EB" stroke-width="2"/>
-  <text x="550" y="241" font-size="15" font-weight="700" fill="#60A5FA" text-anchor="middle">Supervisor  —  Orquestrador Central</text>
-  <text x="550" y="263" font-size="12" fill="#93C5FD" text-anchor="middle">Entende o que você quer · Planeja a solução · Decide quem vai executar · Valida o resultado</text>
-  <text x="550" y="281" font-size="11" fill="#4B6B99" text-anchor="middle">Nunca executa código diretamente — sempre delega para os especialistas abaixo</text>
+  <rect x="60" y="208" width="1080" height="80" rx="10" fill="#162032" stroke="#2563EB" stroke-width="2"/>
+  <text x="600" y="241" font-size="15" font-weight="700" fill="#60A5FA" text-anchor="middle">Supervisor  —  Orquestrador Central</text>
+  <text x="600" y="263" font-size="12" fill="#93C5FD" text-anchor="middle">Entende o que você quer · Planeja a solução · Decide quem vai executar · Valida o resultado</text>
+  <text x="600" y="281" font-size="11" fill="#4B6B99" text-anchor="middle">Nunca executa código diretamente — sempre delega para os especialistas abaixo</text>
 
   <!-- Arrow layer 2 → 3 -->
-  <line x1="550" y1="288" x2="550" y2="328" stroke="#2563EB" stroke-width="2" marker-end="url(#arr-blue)"/>
+  <line x1="600" y1="288" x2="600" y2="328" stroke="#2563EB" stroke-width="2" marker-end="url(#arr-blue)"/>
 
   <!-- ═══════════════════════════════════════════════
        LAYER 3 — ESPECIALISTAS
   ═══════════════════════════════════════════════ -->
-  <text x="60" y="338" font-size="11" fill="#8B949E" font-weight="600" letter-spacing="1">CAMADA 3 — QUEM FAZ O TRABALHO  (Agentes Especialistas)</text>
+  <text x="60" y="332" font-size="11" fill="#8B949E" font-weight="600" letter-spacing="1">CAMADA 3 — QUEM FAZ O TRABALHO  (12 Agentes Especialistas)</text>
 
-  <!-- Engenharia group -->
-  <rect x="60" y="350" width="380" height="130" rx="10" fill="#0F1A0F" stroke="#238636" stroke-width="1.5"/>
-  <text x="250" y="372" font-size="12" font-weight="700" fill="#3FB950" text-anchor="middle">⚙ Engenharia de Dados</text>
+  <!-- ── Group 1: Engenharia Core [T1] ── x=60, w=450, y=344, h=130 -->
+  <rect x="60" y="344" width="450" height="130" rx="10" fill="#0F1A0F" stroke="#238636" stroke-width="1.5"/>
+  <text x="285" y="366" font-size="12" font-weight="700" fill="#3FB950" text-anchor="middle">⚙ Engenharia Core  [T1]</text>
 
-  <rect x="78" y="382" width="104" height="40" rx="6" fill="#161B22" stroke="#238636" stroke-width="1"/>
-  <text x="130" y="399" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">SQL Expert</text>
-  <text x="130" y="414" font-size="10" fill="#8B949E" text-anchor="middle">SQL · Schemas</text>
+  <!-- Row 1: SQL Expert, Spark Expert, Pipeline Architect -->
+  <rect x="78" y="374" width="134" height="40" rx="6" fill="#161B22" stroke="#238636" stroke-width="1"/>
+  <text x="145" y="391" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">SQL Expert</text>
+  <text x="145" y="406" font-size="10" fill="#8B949E" text-anchor="middle">SQL · Schemas · KQL</text>
 
-  <rect x="192" y="382" width="104" height="40" rx="6" fill="#161B22" stroke="#238636" stroke-width="1"/>
-  <text x="244" y="399" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Spark Expert</text>
-  <text x="244" y="414" font-size="10" fill="#8B949E" text-anchor="middle">PySpark · Delta</text>
+  <rect x="218" y="374" width="134" height="40" rx="6" fill="#161B22" stroke="#238636" stroke-width="1"/>
+  <text x="285" y="391" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Spark Expert</text>
+  <text x="285" y="406" font-size="10" fill="#8B949E" text-anchor="middle">PySpark · Delta Lake</text>
 
-  <rect x="306" y="382" width="116" height="40" rx="6" fill="#161B22" stroke="#238636" stroke-width="1"/>
-  <text x="364" y="399" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Pipeline Architect</text>
-  <text x="364" y="414" font-size="10" fill="#8B949E" text-anchor="middle">ETL/ELT · DataOps</text>
+  <rect x="358" y="374" width="134" height="40" rx="6" fill="#161B22" stroke="#238636" stroke-width="1"/>
+  <text x="425" y="391" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Pipeline Architect</text>
+  <text x="425" y="406" font-size="10" fill="#8B949E" text-anchor="middle">ETL/ELT · DataOps</text>
 
-  <rect x="78" y="432" width="104" height="38" rx="6" fill="#161B22" stroke="#238636" stroke-width="1"/>
-  <text x="130" y="448" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">dbt Expert</text>
-  <text x="130" y="463" font-size="10" fill="#8B949E" text-anchor="middle">dbt Core · Tests</text>
+  <!-- Row 2: Python Expert (new), Migration Expert (new) -->
+  <rect x="78" y="422" width="203" height="38" rx="6" fill="#162A0A" stroke="#4ADE80" stroke-width="1.2"/>
+  <text x="179" y="438" font-size="11" font-weight="600" fill="#86EFAC" text-anchor="middle">Python Expert</text>
+  <text x="179" y="453" font-size="10" fill="#8B949E" text-anchor="middle">Python · APIs · pytest · pandas</text>
 
-  <rect x="192" y="432" width="220" height="38" rx="6" fill="#1A1A0A" stroke="#F59E0B" stroke-width="1"/>
-  <text x="302" y="448" font-size="11" font-weight="600" fill="#FCD34D" text-anchor="middle">Party Mode (/party)</text>
-  <text x="302" y="463" font-size="10" fill="#8B949E" text-anchor="middle">2–6 agentes em paralelo · perspectivas simultâneas</text>
+  <rect x="289" y="422" width="203" height="38" rx="6" fill="#162A0A" stroke="#4ADE80" stroke-width="1.2"/>
+  <text x="390" y="438" font-size="11" font-weight="600" fill="#86EFAC" text-anchor="middle">Migration Expert</text>
+  <text x="390" y="453" font-size="10" fill="#8B949E" text-anchor="middle">SQL Server/PG → Databricks/Fabric</text>
 
-  <!-- Qualidade e Governança group -->
-  <rect x="458" y="350" width="330" height="130" rx="10" fill="#1A0F1A" stroke="#8B5CF6" stroke-width="1.5"/>
-  <text x="623" y="372" font-size="12" font-weight="700" fill="#A78BFA" text-anchor="middle">🛡 Qualidade e Governança</text>
+  <!-- ── Group 2: Especialistas [T2] ── x=524, w=380, y=344, h=130 -->
+  <rect x="524" y="344" width="380" height="130" rx="10" fill="#1A0F1A" stroke="#8B5CF6" stroke-width="1.5"/>
+  <text x="714" y="366" font-size="12" font-weight="700" fill="#A78BFA" text-anchor="middle">🛡 Especialistas  [T2]</text>
 
-  <rect x="474" y="382" width="140" height="40" rx="6" fill="#161B22" stroke="#8B5CF6" stroke-width="1"/>
-  <text x="544" y="399" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Data Quality</text>
-  <text x="544" y="414" font-size="10" fill="#8B949E" text-anchor="middle">Validação · SLA</text>
+  <!-- Row 1: Data Quality, Governance Auditor -->
+  <rect x="542" y="374" width="168" height="40" rx="6" fill="#161B22" stroke="#8B5CF6" stroke-width="1"/>
+  <text x="626" y="391" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Data Quality</text>
+  <text x="626" y="406" font-size="10" fill="#8B949E" text-anchor="middle">Validação · SLA · Profiling</text>
 
-  <rect x="628" y="382" width="144" height="40" rx="6" fill="#161B22" stroke="#8B5CF6" stroke-width="1"/>
-  <text x="700" y="399" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Governance Auditor</text>
-  <text x="700" y="414" font-size="10" fill="#8B949E" text-anchor="middle">LGPD · Linhagem</text>
+  <rect x="718" y="374" width="168" height="40" rx="6" fill="#161B22" stroke="#8B5CF6" stroke-width="1"/>
+  <text x="802" y="391" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Governance Auditor</text>
+  <text x="802" y="406" font-size="10" fill="#8B949E" text-anchor="middle">LGPD · Linhagem · PII</text>
 
-  <rect x="474" y="432" width="140" height="38" rx="6" fill="#161B22" stroke="#8B5CF6" stroke-width="1"/>
-  <text x="544" y="448" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Semantic Modeler</text>
-  <text x="544" y="463" font-size="10" fill="#8B949E" text-anchor="middle">DAX · Genie BI</text>
+  <!-- Row 2: dbt Expert, Semantic Modeler -->
+  <rect x="542" y="422" width="168" height="38" rx="6" fill="#161B22" stroke="#8B5CF6" stroke-width="1"/>
+  <text x="626" y="438" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">dbt Expert</text>
+  <text x="626" y="453" font-size="10" fill="#8B949E" text-anchor="middle">dbt Core · Tests · Docs</text>
 
-  <!-- Negócio group -->
-  <rect x="806" y="350" width="234" height="130" rx="10" fill="#1A1510" stroke="#F59E0B" stroke-width="1.5"/>
-  <text x="923" y="372" font-size="12" font-weight="700" fill="#FCD34D" text-anchor="middle">💼 Negócio</text>
+  <rect x="718" y="422" width="168" height="38" rx="6" fill="#161B22" stroke="#8B5CF6" stroke-width="1"/>
+  <text x="802" y="438" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Semantic Modeler</text>
+  <text x="802" y="453" font-size="10" fill="#8B949E" text-anchor="middle">DAX · Direct Lake · Genie BI</text>
 
-  <rect x="822" y="382" width="204" height="40" rx="6" fill="#161B22" stroke="#F59E0B" stroke-width="1"/>
-  <text x="924" y="399" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Business Analyst</text>
-  <text x="924" y="414" font-size="10" fill="#8B949E" text-anchor="middle">Briefings → Backlog</text>
+  <!-- ── Group 3: Conversacional [T3] ── x=918, w=222, y=344, h=130 -->
+  <rect x="918" y="344" width="222" height="130" rx="10" fill="#1A1510" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="1029" y="366" font-size="12" font-weight="700" fill="#FCD34D" text-anchor="middle">💼 Conversacional  [T3]</text>
 
-  <rect x="822" y="432" width="204" height="38" rx="6" fill="#161B22" stroke="#F59E0B" stroke-width="1"/>
-  <text x="924" y="448" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Geral (/geral)</text>
-  <text x="924" y="463" font-size="10" fill="#8B949E" text-anchor="middle">Respostas rápidas · 95% mais barato</text>
+  <rect x="936" y="374" width="186" height="40" rx="6" fill="#161B22" stroke="#F59E0B" stroke-width="1"/>
+  <text x="1029" y="391" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Business Analyst</text>
+  <text x="1029" y="406" font-size="10" fill="#8B949E" text-anchor="middle">Briefings → Backlog P0/P1/P2</text>
 
-  <!-- Arrows layer 3 → 4 -->
-  <line x1="250" y1="480" x2="250" y2="516" stroke="#8B949E" stroke-width="1.5" marker-end="url(#arr)"/>
-  <line x1="623" y1="480" x2="623" y2="516" stroke="#8B949E" stroke-width="1.5" marker-end="url(#arr)"/>
-  <line x1="923" y1="480" x2="923" y2="516" stroke="#8B949E" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="936" y="422" width="186" height="38" rx="6" fill="#161B22" stroke="#F59E0B" stroke-width="1"/>
+  <text x="1029" y="438" font-size="11" font-weight="600" fill="#F0F6FC" text-anchor="middle">Geral  (/geral)</text>
+  <text x="1029" y="453" font-size="10" fill="#8B949E" text-anchor="middle">Respostas rápidas · 95% mais barato</text>
+
+  <!-- ── Party Mode strip ── -->
+  <rect x="60" y="484" width="1080" height="38" rx="8" fill="#1A1A0A" stroke="#F59E0B" stroke-width="1.5"/>
+  <text x="600" y="499" font-size="12" font-weight="700" fill="#FCD34D" text-anchor="middle">🎉 Party Mode  (/party)  —  2 a 8 agentes respondendo em paralelo com perspectivas independentes</text>
+  <text x="600" y="515" font-size="10.5" fill="#8B949E" text-anchor="middle">--default · --quality · --arch · --engineering · --migration · --full  |  ou nomeie agentes: /party sql-expert python-expert &lt;query&gt;</text>
 
   <!-- ═══════════════════════════════════════════════
        LAYER 4 — PLATAFORMAS
   ═══════════════════════════════════════════════ -->
-  <text x="60" y="526" font-size="11" fill="#8B949E" font-weight="600" letter-spacing="1">CAMADA 4 — ONDE OS DADOS ESTÃO</text>
+  <text x="60" y="538" font-size="11" fill="#8B949E" font-weight="600" letter-spacing="1">CAMADA 4 — ONDE OS DADOS ESTÃO  (via MCP)</text>
 
-  <rect x="60" y="536" width="470" height="58" rx="10" fill="#1A0D0D" stroke="#FF3621" stroke-width="2"/>
-  <text x="295" y="561" font-size="14" font-weight="700" fill="#FF3621" text-anchor="middle">Databricks</text>
-  <text x="295" y="582" font-size="11" fill="#8B949E" text-anchor="middle">Unity Catalog · SQL · Spark · Genie · Model Serving · Workflows</text>
+  <rect x="60" y="548" width="530" height="58" rx="10" fill="#1A0D0D" stroke="#FF3621" stroke-width="2"/>
+  <text x="325" y="573" font-size="14" font-weight="700" fill="#FF3621" text-anchor="middle">Databricks</text>
+  <text x="325" y="594" font-size="11" fill="#8B949E" text-anchor="middle">Unity Catalog · SQL · Spark · Genie · Model Serving · Workflows</text>
 
-  <rect x="550" y="536" width="490" height="58" rx="10" fill="#0D1520" stroke="#0078D4" stroke-width="2"/>
-  <text x="795" y="561" font-size="14" font-weight="700" fill="#0078D4" text-anchor="middle">Microsoft Fabric</text>
-  <text x="795" y="582" font-size="11" fill="#8B949E" text-anchor="middle">Lakehouse · SQL Analytics · RTI (KQL) · Semantic Models · Genie BI</text>
+  <rect x="610" y="548" width="530" height="58" rx="10" fill="#0D1520" stroke="#0078D4" stroke-width="2"/>
+  <text x="875" y="573" font-size="14" font-weight="700" fill="#0078D4" text-anchor="middle">Microsoft Fabric</text>
+  <text x="875" y="594" font-size="11" fill="#8B949E" text-anchor="middle">Lakehouse · SQL Analytics · RTI (KQL) · Semantic Models · Power BI</text>
 </svg>

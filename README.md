@@ -105,7 +105,7 @@ python main.py
 
 ### Party Mode — Múltiplos Especialistas em Paralelo
 
-O comando `/party` convoca 2 a 6 agentes simultaneamente para a mesma pergunta. Cada um responde de forma independente, com sua perspectiva de domínio.
+O comando `/party` convoca 2 a 8 agentes simultaneamente para a mesma pergunta. Cada um responde de forma independente, com sua perspectiva de domínio.
 
 ```bash
 /party qual a diferença entre Delta Lake e Iceberg?
@@ -114,8 +114,14 @@ O comando `/party` convoca 2 a 6 agentes simultaneamente para a mesma pergunta. 
 /party --quality como garantir qualidade em dados incrementais?
 # → data-quality-steward + governance-auditor + semantic-modeler
 
+/party --engineering como processar um CSV de 10 GB com eficiência?
+# → python-expert + spark-expert + pipeline-architect
+
+/party --migration como avaliar complexidade de migração de SQL Server?
+# → migration-expert + sql-expert + spark-expert
+
 /party --full explique o Unity Catalog
-# → todos os 6 agentes especialistas
+# → todos os 8 agentes especialistas (T1 + principais T2)
 ```
 
 ---
@@ -139,7 +145,7 @@ O comando `/party` convoca 2 a 6 agentes simultaneamente para a mesma pergunta. 
 | `/brief <texto>` | Converte transcript/briefing em backlog estruturado |
 | `/plan <objetivo>` | Planejamento completo com thinking habilitado (8k tokens) |
 | `/review <artefato>` | Review de código ou pipeline |
-| `/party <query>` | Multi-agente paralelo (flags: `--quality`, `--arch`, `--full`) |
+| `/party <query>` | Multi-agente paralelo (flags: `--quality`, `--arch`, `--engineering`, `--migration`, `--full`) |
 | `/geral <pergunta>` | Resposta direta sem Supervisor — mais rápido e barato |
 | `/health` | Status das plataformas configuradas |
 | `/status` | Estado da sessão atual |
