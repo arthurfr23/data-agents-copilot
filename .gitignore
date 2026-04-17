@@ -26,6 +26,7 @@ venv/
 .ruff_cache/
 htmlcov/
 .coverage
+.files/
 
 # =============================================================================
 # LOGS & AUDITORIA

@@ -23,7 +23,7 @@ Modos de thinking:
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from claude_agent_sdk import ClaudeAgentOptions, HookMatcher
 
@@ -121,7 +121,10 @@ def build_supervisor_options(
         # Configurável via AGENT_PERMISSION_MODE no .env:
         #   "bypassPermissions" (padrão) — agentes executam sem confirmação
         #   "acceptEdits" — agentes pedem confirmação antes de writes/executes
-        permission_mode=settings.agent_permission_mode,
+        permission_mode=cast(
+            Literal["default", "acceptEdits", "plan", "bypassPermissions", "dontAsk", "auto"],
+            settings.agent_permission_mode,
+        ),
         max_turns=settings.max_turns,
         max_budget_usd=settings.max_budget_usd,
         # --- Streaming parcial para feedback visual em tempo real ---
