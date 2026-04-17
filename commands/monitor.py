@@ -143,7 +143,7 @@ def handle_monitor_status() -> str:
 
     # Próximo ciclo estimado
     try:
-        pass  # type: ignore
+        pass
     except Exception:
         pass
 
@@ -292,9 +292,9 @@ async def handle_monitor_ask(question: str, console=None, client=None) -> str:
     # Executa via SDK apontando direto para o business-monitor
     try:
         from claude_agent_sdk import query, AssistantMessage, TextBlock, ResultMessage
-        from agents.loader import load_agent_registry
+        from agents.loader import load_all_agents
 
-        agents = load_agent_registry()
+        agents = load_all_agents()
         monitor_agent = next((a for a in agents if a.name == "business-monitor"), None)
 
         if monitor_agent is None:
