@@ -142,8 +142,8 @@ class Settings(BaseSettings):
     agent_permission_mode: str = "bypassPermissions"
 
     # --- Configurações do Sistema ---
-    default_model: str = "bedrock/anthropic.claude-4-6-sonnet"
-    # default_model: str = "claude-opus-4-6"
+    # default_model: str = "bedrock/anthropic.claude-4-6-sonnet"
+    default_model: str = "claude-opus-4-6"
     max_budget_usd: float = 5.0
     max_turns: int = 50
     log_level: str = "INFO"

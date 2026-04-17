@@ -50,7 +50,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from commands.parser import parse_command  # noqa: E402
-from ui.config import (  # noqa: E402
+from ui.ui_config import (  # noqa: E402
     COMMAND_GROUPS as _COMMAND_GROUPS,
     agent_display_name as _agent_author_fn,
     enrich_tool_label as _enrich_tool_label,
