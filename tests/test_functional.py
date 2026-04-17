@@ -387,14 +387,18 @@ class TestWorkflowContextCacheSupervisorPrompt:
 
     def test_context_cache_covers_all_workflows(self):
         content = self._get_prompt()
-        # O prompt usa notação de range "WF-01 a WF-04" — verifica a presença da cobertura
+        # O prompt usa notação de range "WF-01 a WF-05" — verifica a presença da cobertura
         # seja via lista explícita ou via range
         covers_all = (
-            "WF-01" in content and "WF-02" in content and "WF-03" in content and "WF-04" in content
-        ) or ("WF-01 a WF-04" in content)
+            "WF-01" in content
+            and "WF-02" in content
+            and "WF-03" in content
+            and "WF-04" in content
+            and "WF-05" in content
+        ) or ("WF-01 a WF-05" in content)
         assert covers_all, (
-            "supervisor_prompt.py deve mencionar todos os workflows WF-01 a WF-04 "
-            "(seja individualmente ou via range 'WF-01 a WF-04')"
+            "supervisor_prompt.py deve mencionar todos os workflows WF-01 a WF-05 "
+            "(seja individualmente ou via range 'WF-01 a WF-05')"
         )
 
     def test_context_cache_instructs_read_tool(self):

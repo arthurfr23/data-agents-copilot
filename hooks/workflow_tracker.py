@@ -83,18 +83,23 @@ WORKFLOWS_LOG_PATH: Path = Path(settings.audit_log_path).parent / "workflows.jso
 
 # ─── Padrões de detecção ────────────────────────────────────────────────
 
-# Detecta referências a workflows no prompt de delegação
-WORKFLOW_PATTERN = re.compile(r"WF-0([1-4])", re.IGNORECASE)
+# Detecta referências a workflows no prompt de delegação (WF-01 a WF-05)
+WORKFLOW_PATTERN = re.compile(r"WF-0([1-5])", re.IGNORECASE)
 
 # Detecta nomes de agentes conhecidos
 KNOWN_AGENTS = {
     "sql-expert",
     "spark-expert",
     "pipeline-architect",
+    "python-expert",
+    "migration-expert",
     "data-quality-steward",
     "governance-auditor",
     "semantic-modeler",
     "business-analyst",
+    "dbt-expert",
+    "skill-updater",
+    "geral",
 }
 
 # Detecta referências ao Clarity Checkpoint
@@ -168,10 +173,15 @@ def _normalize_agent_name(raw: str) -> str:
         "sql-expert": "SQL Expert",
         "spark-expert": "Spark Expert",
         "pipeline-architect": "Pipeline Architect",
+        "python-expert": "Python Expert",
+        "migration-expert": "Migration Expert",
         "data-quality-steward": "Data Quality Steward",
         "governance-auditor": "Governance Auditor",
         "semantic-modeler": "Semantic Modeler",
         "business-analyst": "Business Analyst",
+        "dbt-expert": "dbt Expert",
+        "skill-updater": "Skill Updater",
+        "geral": "Geral",
     }
     return _DISPLAY_NAMES.get(raw, raw)
 

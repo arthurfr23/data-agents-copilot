@@ -275,6 +275,26 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
+    _tz_options = ["America/Sao_Paulo", "America/New_York", "Europe/London", "UTC", "Asia/Tokyo"]
+    _selected_tz = st.selectbox(
+        "🕐 Timezone",
+        _tz_options,
+        index=0,
+        label_visibility="visible",
+    )
+    try:
+        import zoneinfo
+
+        _DISPLAY_TZ = zoneinfo.ZoneInfo(_selected_tz)
+    except Exception:
+        import pytz  # type: ignore[import]
+
+        _DISPLAY_TZ = pytz.timezone(_selected_tz)  # type: ignore[assignment]
+
+    # Freshness indicator
+    _load_ts = datetime.now(timezone.utc)
+    st.caption(f"🕐 Dados: `{_load_ts.strftime('%H:%M:%S')} UTC`")
+    st.divider()
     st.caption(f"Logs: `{AUDIT_LOG.relative_to(ROOT)}`")
     st.caption(f"`{APP_LOG.relative_to(ROOT)}`")
 
@@ -497,7 +517,7 @@ elif page == "🤖 Agentes":
             st.subheader("📈 Performance dos Agentes")
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("Total de Delegações", total_delegations, help="workflows.jsonl")
-            c2.metric("Em Workflows", total_wf_steps, help="Delegações dentro de WF-01 a WF-04")
+            c2.metric("Em Workflows", total_wf_steps, help="Delegações dentro de WF-01 a WF-05")
             c3.metric("Erros Detectados", total_errors, help="audit.jsonl (has_error=true)")
             if total_delegations > 0:
                 error_rate = round(total_errors / (total_delegations + audit["total"]) * 100, 1)
@@ -546,9 +566,15 @@ elif page == "🤖 Agentes":
             st.divider()
 
         # ── Cards dos Agentes ──
-        tier_colors = {"T1": "🔵", "T2": "🟢"}
+        _TIER_BADGE = {
+            "T1": '<span style="background:#0F1A0F;color:#3FB950;border:1px solid #3FB950;padding:2px 8px;border-radius:10px;font-size:0.75em;font-weight:600">T1 Core</span>',
+            "T2": '<span style="background:#1A0F1A;color:#A78BFA;border:1px solid #A78BFA;padding:2px 8px;border-radius:10px;font-size:0.75em;font-weight:600">T2 Especialista</span>',
+            "T3": '<span style="background:#1A1510;color:#FCD34D;border:1px solid #FCD34D;padding:2px 8px;border-radius:10px;font-size:0.75em;font-weight:600">T3 Conversacional</span>',
+        }
         cols = st.columns(2)
-        for i, agent in enumerate(agents):
+        for i, agent in enumerate(
+            sorted(agents, key=lambda a: (a.get("tier", "T9"), a.get("name", "")))
+        ):
             with cols[i % 2]:
                 tier = agent.get("tier", "?")
                 model = agent.get("model", "?")
@@ -559,7 +585,8 @@ elif page == "🤖 Agentes":
                 deleg_count = agent_delegations.get(agent_name, 0)
                 wf_count = agent_in_workflows.get(agent_name, 0)
                 with st.container(border=True):
-                    st.markdown(f"### {tier_colors.get(tier, '⚪')} {agent_name}")
+                    badge = _TIER_BADGE.get(tier, f"<code>{tier}</code>")
+                    st.markdown(f"### {agent_name} {badge}", unsafe_allow_html=True)
                     st.caption(agent.get("description", "")[:200])
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("Tier", tier)
@@ -592,7 +619,7 @@ elif page == "🔄 Workflows":
             "- Delega tarefas para agentes especialistas\n"
             "- Executa o Clarity Checkpoint (Passo 0.5)\n"
             "- Gera specs (Passo 0.9)\n"
-            "- Aciona workflows WF-01 a WF-04"
+            "- Aciona workflows WF-01 a WF-05"
         )
     else:
         # Classificar eventos
@@ -607,7 +634,7 @@ elif page == "🔄 Workflows":
         # ── KPIs ──
         c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Delegações", len(delegations) + len(wf_steps))
-        c2.metric("Workflows", len(wf_steps), help="Etapas dentro de WF-01 a WF-04")
+        c2.metric("Workflows", len(wf_steps), help="Etapas dentro de WF-01 a WF-05")
         c3.metric("Clarity Checks", len(clarity))
         c4.metric(
             "Esclarecimentos",
@@ -646,6 +673,7 @@ elif page == "🔄 Workflows":
                     "WF-02": "Star Schema",
                     "WF-03": "Migração Cross-Platform",
                     "WF-04": "Auditoria Governança",
+                    "WF-05": "Migração Relacional → Nuvem",
                 }
                 wf_counts: dict[str, int] = defaultdict(int)
                 for ws in wf_steps:
@@ -653,11 +681,19 @@ elif page == "🔄 Workflows":
                     wf_counts[wf_id] += 1
                 df_wf = pd.DataFrame(
                     [
-                        {"Workflow": f"{k} — {wf_names.get(k, '')}", "Etapas": v}
+                        {"Workflow": f"{k} — {wf_names.get(k, k)}", "Etapas": v}
                         for k, v in sorted(wf_counts.items())
                     ]
                 )
                 st.dataframe(df_wf, use_container_width=True, hide_index=True)
+                # Download CSV
+                st.download_button(
+                    "⬇️ Exportar CSV",
+                    df_wf.to_csv(index=False).encode("utf-8"),
+                    "workflows.csv",
+                    "text/csv",
+                    key="dl_wf",
+                )
             else:
                 st.info("Nenhum workflow colaborativo acionado ainda.")
 
@@ -953,6 +989,13 @@ elif page == "📋 Logs":
                 ]
             )
             st.dataframe(df_audit, use_container_width=True, hide_index=True)
+            st.download_button(
+                "⬇️ Exportar audit.jsonl (filtrado)",
+                "\n".join(__import__("json").dumps(r, ensure_ascii=False) for r in filtered_audit),
+                "audit_export.jsonl",
+                "application/jsonl",
+                key="dl_audit",
+            )
 
 
 # ── CONFIGURAÇÕES ─────────────────────────────────────────────────────────────
@@ -1452,7 +1495,7 @@ elif page == "ℹ️ Sobre":
         ),
         (
             "🔄 Workflows",
-            "Rastreamento de workflows colaborativos (WF-01 a WF-04), delegações de agentes, "
+            "Rastreamento de workflows colaborativos (WF-01 a WF-05), delegações de agentes, "
             "Clarity Checkpoint (score, pass rate, histórico) e specs gerados. "
             "Inclui gráfico de atividade por data e histórico completo de eventos.",
         ),

@@ -135,6 +135,41 @@ Restrições constitucionais: [regras relevantes de kb/constitution.md]
 
 ---
 
+### WF-05: Migração Relacional → Nuvem (SQL Server / PostgreSQL → Databricks/Fabric)
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│ migration-      │───→│ sql-expert       │───→│ spark-expert     │
+│ expert          │    │                  │    │                  │
+│                 │    │ Adapta DDL para  │    │ Gera notebooks   │
+│ Assessment +    │    │ Delta/Lakehouse  │    │ de carga Bronze  │
+│ inventário DDL  │    │ + tipos          │    │ → Silver → Gold  │
+└─────────────────┘    └──────────────────┘    └──────────────────┘
+                                                        │
+                              ┌─────────────────────────┤ (paralelo)
+                              ▼                         ▼
+              ┌──────────────────────┐   ┌──────────────────────┐
+              │ data-quality-        │   │ governance-auditor   │
+              │ steward              │   │                      │
+              │                      │   │ Linhagem + PII +     │
+              │ Validação de dados   │   │ compliance LGPD      │
+              │ migrados + testes DQ │   │ pós-migração         │
+              └──────────────────────┘   └──────────────────────┘
+                              │
+                              ▼ (consolidação pelo Supervisor)
+                    Relatório de Migração Completo
+```
+
+**Trigger:** Usuário solicita migração de SQL Server ou PostgreSQL para Databricks ou Microsoft Fabric.
+**Handoff points:**
+1. migration-expert faz assessment completo via `migration_source` MCP → extrai DDL, views, procedures, estatísticas
+2. sql-expert recebe o inventário e adapta DDL para Delta Lake (Databricks) ou Lakehouse (Fabric), mapeando tipos
+3. spark-expert recebe o DDL adaptado e gera notebooks PySpark para carga Bronze → Silver → Gold
+4. data-quality-steward e governance-auditor trabalham **em paralelo** após a carga inicial
+5. Supervisor consolida o relatório final com status de cada objeto migrado e resultados de DQ
+
+---
+
 ## 3. Regras de Orquestração de Workflows
 
 ### 3.1 Princípios
@@ -178,6 +213,7 @@ O Supervisor deve detectar automaticamente quando um workflow pré-definido se a
 | "star schema", "camada gold", "dimensional" | WF-02 |
 | "migrar", "mover para fabric", "cross-platform" | WF-03 |
 | "auditoria", "governança completa", "relatório de compliance" | WF-04 |
+| "migrar sql server", "migrar postgres", "migração relacional", "banco relacional para databricks/fabric" | WF-05 |
 
 Quando detectado, o Supervisor deve:
 1. Informar o usuário qual workflow será utilizado
@@ -190,7 +226,7 @@ Quando detectado, o Supervisor deve:
 
 Para adicionar um novo workflow:
 
-1. Documente o workflow neste arquivo seguindo o formato dos WF-01 a WF-04
+1. Documente o workflow neste arquivo seguindo o formato dos WF-01 a WF-05
 2. Defina: trigger, spec template (se novo), sequência de agentes, handoff points
 3. Adicione as palavras-chave de detecção na tabela §3.3
 4. Se necessário, crie um novo template em `templates/`

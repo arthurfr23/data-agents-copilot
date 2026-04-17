@@ -60,7 +60,7 @@ pip install -e ".[dev,ui,monitoring]"
 cp .env.example .env   # edite com suas chaves
 
 # 5a. Web UI Chainlit (recomendada)
-./start_chainlit.sh    # http://localhost:8503
+./start.sh --chainlit  # http://localhost:8503 (Chat) + http://localhost:8501 (Monitoring)
 
 # 5b. Web UI Streamlit
 ./start.sh             # http://localhost:8502 (Chat) + http://localhost:8501 (Monitoring)
@@ -247,18 +247,21 @@ MEMORY_CAPTURE_ENABLED=true
 Interface com steps expandíveis em tempo real mostrando cada delegação e tool call. Dois modos: **Data Agents** (sistema completo) e **Dev Assistant** (Claude direto com ferramentas de código).
 
 ```bash
-./start_chainlit.sh
+./start.sh --chainlit         # Chainlit (8503) + Monitoring (8501)
+./start.sh --chainlit --monitor-only  # somente Chainlit
 ```
 
 ### Web UI Streamlit (porta 8502)
 Chat com histórico persistente, suporte a todos os slash commands e visualização de artefatos gerados (PRDs, SPECs, Backlogs).
 
 ```bash
-./start.sh
+./start.sh                    # Streamlit (8502) + Monitoring (8501)
+./start.sh --chat-only        # somente Streamlit
 ```
 
 ### Dashboard de Monitoramento (porta 8501)
 9 páginas: Overview, Agentes, Workflows, Execuções, MCP Servers, Logs, Configurações, Custo e Tokens.
+Novidades: tier badge nos cards de agentes, WF-05 nos workflows, download CSV, timezone configurável e indicador de freshness.
 
 ```bash
 ./start.sh --monitor-only

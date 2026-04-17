@@ -309,7 +309,8 @@ MEMORY_CAPTURE_ENABLED=true
 | `/health` | — | Status das plataformas configuradas |
 | `/status` | — | Estado da sessão atual |
 | `/memory <query>` | — | Consulta memória persistente |
-| `/party <query>` | — | Multi-agente paralelo: perspectivas independentes (flags: --quality, --arch, --full) |
+| `/party <query>` | — | Multi-agente paralelo: perspectivas independentes (flags: --quality, --arch, --engineering, --migration, --full) |
+| `/workflow <wf-id> <query>` | — | Executa workflow colaborativo pré-definido (WF-01 a WF-05) com context chain |
 | `/geral <pergunta>` | — | Resposta direta sem Supervisor (zero agentes, ~95% mais barato) |
 
 ---

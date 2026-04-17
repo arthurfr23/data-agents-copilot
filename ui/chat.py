@@ -31,61 +31,18 @@ sys.path.insert(0, str(ROOT))
 # ── Imports do projeto ────────────────────────────────────────────────────────
 from commands.parser import parse_command, COMMAND_REGISTRY  # noqa: E402
 from config.settings import settings  # noqa: E402
+from ui.config import (  # noqa: E402
+    COMMAND_GROUPS,
+    COMMANDS_NO_ARGS,
+    STREAMLIT_CSS,
+    tool_label,
+)
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 MONITORING_URL = "http://localhost:8501"
 CHAT_PORT = 8502
 APP_TITLE = "Data Agents"
 VERSION = "v2.0"
-
-# Mapa de tool → label amigável (subconjunto representativo)
-TOOL_LABELS: dict[str, str] = {
-    "Agent": "🤖 Delegando para agente especialista",
-    "Read": "📖 Lendo arquivo",
-    "Write": "✍️  Salvando arquivo",
-    "Grep": "🔍 Buscando conteúdo",
-    "Glob": "📂 Listando arquivos",
-    "Bash": "⚙️  Executando comando",
-    "AskUserQuestion": "❓ Aguardando resposta",
-    # Databricks
-    "mcp__databricks__execute_sql": "🗄️  SQL no Databricks",
-    "mcp__databricks__execute_sql_multi": "🗄️  SQL paralelo no Databricks",
-    "mcp__databricks__list_catalogs": "📋 Unity Catalog — catálogos",
-    "mcp__databricks__list_schemas": "📋 Unity Catalog — schemas",
-    "mcp__databricks__list_tables": "📋 Unity Catalog — tabelas",
-    "mcp__databricks__describe_table": "🔎 Inspecionando tabela",
-    "mcp__databricks__get_table_stats_and_schema": "📊 Stats + schema da tabela",
-    "mcp__databricks__run_job_now": "🚀 Disparando Job Databricks",
-    "mcp__databricks__wait_for_run": "⏳ Aguardando conclusão do Job",
-    "mcp__databricks__start_pipeline": "🚀 Iniciando Pipeline LakeFlow",
-    "mcp__databricks__get_pipeline": "📡 Status do Pipeline",
-    "mcp__databricks__execute_code": "⚡ Executando código serverless",
-    "mcp__databricks__create_or_update_genie": "🧞 Configurando Genie Space",
-    "mcp__databricks__create_or_update_dashboard": "📊 Criando AI/BI Dashboard",
-    "mcp__databricks__manage_ka": "🧠 Knowledge Assistant",
-    "mcp__databricks__manage_mas": "🤖 Mosaic AI Supervisor Agent",
-    "mcp__databricks__query_serving_endpoint": "🔮 Consultando endpoint ML",
-    # Fabric
-    "mcp__fabric__list_workspaces": "📋 Workspaces do Fabric",
-    "mcp__fabric_community__list_items": "📋 Itens do Fabric workspace",
-    "mcp__fabric_sql__fabric_sql_execute": "🗄️  SQL no Fabric Lakehouse",
-    "mcp__fabric_sql__fabric_sql_list_tables": "📋 Tabelas Fabric (todos schemas)",
-    "mcp__fabric_rti__kusto_query": "🔍 Query KQL (Eventhouse)",
-}
-
-# Grupos de comandos para a sidebar
-COMMAND_GROUPS: dict[str, list[str]] = {
-    "📋 Intake & Planejamento": ["/brief", "/plan", "/review", "/status"],
-    "⚡ Databricks": ["/sql", "/spark", "/pipeline", "/dbt"],
-    "🏭 Microsoft Fabric": ["/fabric", "/semantic"],
-    "🔍 Qualidade & Gov.": ["/quality", "/governance"],
-    "🔧 Sistema": ["/health"],
-    "🧠 Memória": ["/memory"],
-    "💬 Conversacional": ["/geral"],
-}
-
-# Comandos que executam sem precisar de texto adicional
-COMMANDS_NO_ARGS = {"/health", "/status", "/review"}
 
 # ── Configuração da página ────────────────────────────────────────────────────
 st.set_page_config(
@@ -96,44 +53,7 @@ st.set_page_config(
 )
 
 # ── CSS customizado ───────────────────────────────────────────────────────────
-st.markdown(
-    """
-<style>
-    #MainMenu { visibility: hidden; }
-    footer    { visibility: hidden; }
-
-    [data-testid="stSidebar"] { min-width: 285px !important; }
-
-    /* Botões de comando rápido */
-    .stButton > button {
-        font-family: 'Courier New', monospace !important;
-        font-size: 0.80em !important;
-        text-align: left !important;
-        padding: 4px 10px !important;
-    }
-
-    /* Separador de grupo */
-    .cmd-group-label {
-        font-size: 0.72em;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin: 8px 0 2px 0;
-    }
-
-    /* Pill de métricas */
-    .metric-row { font-size: 0.75em; color: #8899aa; margin-top: 4px; }
-
-    /* Painel de memória */
-    .mem-type-header { font-size: 0.78em; font-weight: 600; color: #ccd; margin: 6px 0 2px 0; }
-    .mem-entry { font-size: 0.73em; color: #aab; line-height: 1.4; margin-bottom: 2px; }
-    .mem-conf-bar { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
-    .mem-tag { font-size: 0.68em; background: #334; border-radius: 3px; padding: 1px 4px; color: #99b; }
-    .mem-injected { font-size: 0.70em; color: #5a8; background: #1a2e1a; border-radius: 4px; padding: 2px 7px; display: inline-block; margin-top: 3px; }
-</style>
-""",
-    unsafe_allow_html=True,
-)
+st.markdown(STREAMLIT_CSS, unsafe_allow_html=True)
 
 
 # ── Session state ─────────────────────────────────────────────────────────────
@@ -241,11 +161,8 @@ def _reset_agent_session() -> None:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def _tool_label(name: str) -> str:
-    if name in TOOL_LABELS:
-        return TOOL_LABELS[name]
-    clean = name.replace("mcp__", "").replace("__", " → ").replace("_", " ").title()
-    return f"🔧 {clean}"
+# tool_label e enrich_tool_label importados de ui/config.py
+_tool_label = tool_label
 
 
 def _strip_rich(text: str) -> str:

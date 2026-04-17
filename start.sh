@@ -5,9 +5,11 @@
 # juntos em segundo plano, com shutdown limpo ao pressionar Ctrl+C.
 #
 # Uso:
-#   ./start.sh               # inicia os dois apps
-#   ./start.sh --chat-only   # somente UI de Chat
+#   ./start.sh               # Chat (Streamlit) + Monitoring
+#   ./start.sh --chat-only   # somente UI de Chat (Streamlit)
 #   ./start.sh --monitor-only # somente Monitoramento
+#   ./start.sh --chainlit    # Chat (Chainlit, porta 8503) + Monitoring
+#   ./start.sh --chainlit --monitor-only  # somente Chainlit
 # ═══════════════════════════════════════════════════════════════════════════════
 
 set -euo pipefail
@@ -23,6 +25,7 @@ RESET="\033[0m"
 # ── Portas ────────────────────────────────────────────────────────────────────
 CHAT_PORT=8502
 MONITOR_PORT=8501
+CHAINLIT_PORT="${CHAINLIT_PORT:-8503}"
 
 # ── Raiz do projeto (diretório deste script) ──────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,18 +34,26 @@ cd "$SCRIPT_DIR"
 # ── Flags ────────────────────────────────────────────────────────────────────
 CHAT_ONLY=false
 MONITOR_ONLY=false
+USE_CHAINLIT=false
 for arg in "$@"; do
   case "$arg" in
     --chat-only)    CHAT_ONLY=true ;;
     --monitor-only) MONITOR_ONLY=true ;;
+    --chainlit)     USE_CHAINLIT=true ;;
     --help|-h)
       echo ""
       echo "  ${BOLD}./start.sh${RESET} [opções]"
       echo ""
       echo "  Opções:"
-      echo "    ${CYAN}--chat-only${RESET}     Inicia somente a UI de Chat    (porta $CHAT_PORT)"
-      echo "    ${CYAN}--monitor-only${RESET}  Inicia somente o Monitoramento (porta $MONITOR_PORT)"
+      echo "    ${CYAN}--chat-only${RESET}     Inicia somente a UI de Chat Streamlit  (porta $CHAT_PORT)"
+      echo "    ${CYAN}--chainlit${RESET}      Usa Chainlit em vez de Streamlit        (porta $CHAINLIT_PORT)"
+      echo "    ${CYAN}--monitor-only${RESET}  Inicia somente o Monitoramento          (porta $MONITOR_PORT)"
       echo "    ${CYAN}--help${RESET}          Exibe esta ajuda"
+      echo ""
+      echo "  Exemplos:"
+      echo "    ./start.sh                    # Streamlit Chat + Monitoring"
+      echo "    ./start.sh --chainlit         # Chainlit Chat + Monitoring"
+      echo "    ./start.sh --monitor-only     # Somente Monitoring"
       echo ""
       exit 0
       ;;
@@ -53,6 +64,11 @@ done
 echo ""
 echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════╗${RESET}"
 echo -e "${BOLD}${CYAN}║       Data Agents — UI Local             ║${RESET}"
+if [[ "$USE_CHAINLIT" == true ]]; then
+echo -e "${BOLD}${CYAN}║       Modo: Chainlit (porta $CHAINLIT_PORT)        ║${RESET}"
+else
+echo -e "${BOLD}${CYAN}║       Modo: Streamlit (porta $CHAT_PORT)        ║${RESET}"
+fi
 echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════╝${RESET}"
 echo ""
 
@@ -122,6 +138,26 @@ if [[ "$CHAT_ONLY" == false ]] && [[ "$MONITOR_ONLY" == false ]]; then
   fi
 fi
 
+# ── Cria diretório de logs e faz rotação ─────────────────────────────────────
+mkdir -p "$SCRIPT_DIR/logs"
+
+rotate_log() {
+  local log_file="$1"
+  local max_size_bytes=10485760  # 10 MB
+  local max_backups=3
+  if [[ -f "$log_file" ]] && [[ $(wc -c < "$log_file") -ge $max_size_bytes ]]; then
+    for i in $(seq $max_backups -1 1); do
+      [[ -f "${log_file}.${i}" ]] && mv "${log_file}.${i}" "${log_file}.$((i+1))"
+    done
+    mv "$log_file" "${log_file}.1"
+    echo -e "  ${YELLOW}↻${RESET}  Log rotacionado: $(basename "$log_file")"
+  fi
+}
+
+rotate_log "$SCRIPT_DIR/logs/chat.log"
+rotate_log "$SCRIPT_DIR/logs/monitor.log"
+rotate_log "$SCRIPT_DIR/logs/chainlit.log"
+
 # ── PIDs dos processos filhos ─────────────────────────────────────────────────
 CHAT_PID=""
 MONITOR_PID=""
@@ -157,14 +193,33 @@ fi
 
 # ── Inicia UI de Chat ─────────────────────────────────────────────────────────
 if [[ "$MONITOR_ONLY" == false ]]; then
-  echo -e "  ${GREEN}▶${RESET}  UI de Chat     →  ${BOLD}http://localhost:$CHAT_PORT${RESET}"
-  $STREAMLIT_CMD run ui/chat.py \
-    --server.port "$CHAT_PORT" \
-    --server.headless true \
-    --browser.gatherUsageStats false \
-    --theme.base dark \
-    > logs/chat.log 2>&1 &
-  CHAT_PID=$!
+  if [[ "$USE_CHAINLIT" == true ]]; then
+    # Verifica se chainlit está disponível
+    CHAINLIT_CMD=""
+    if command -v chainlit &>/dev/null; then
+      CHAINLIT_CMD="chainlit"
+    elif "$PYTHON_CMD" -m chainlit --version &>/dev/null 2>&1; then
+      CHAINLIT_CMD="$PYTHON_CMD -m chainlit"
+    else
+      echo -e "  ${RED}✘${RESET}  Chainlit não encontrado. Instale com: pip install -e '.[ui]'"
+      exit 1
+    fi
+    echo -e "  ${GREEN}▶${RESET}  Chainlit Chat  →  ${BOLD}http://localhost:$CHAINLIT_PORT${RESET}"
+    $CHAINLIT_CMD run ui/chainlit_app.py \
+      --port "$CHAINLIT_PORT" \
+      --host 0.0.0.0 \
+      > logs/chainlit.log 2>&1 &
+    CHAT_PID=$!
+  else
+    echo -e "  ${GREEN}▶${RESET}  UI de Chat     →  ${BOLD}http://localhost:$CHAT_PORT${RESET}"
+    $STREAMLIT_CMD run ui/chat.py \
+      --server.port "$CHAT_PORT" \
+      --server.headless true \
+      --browser.gatherUsageStats false \
+      --theme.base dark \
+      > logs/chat.log 2>&1 &
+    CHAT_PID=$!
+  fi
 fi
 
 echo ""
@@ -173,9 +228,12 @@ echo ""
 
 # ── Abre o browser (melhor esforço) ──────────────────────────────────────────
 sleep 2
-MAIN_URL="http://localhost:$CHAT_PORT"
 if [[ "$MONITOR_ONLY" == true ]]; then
   MAIN_URL="http://localhost:$MONITOR_PORT"
+elif [[ "$USE_CHAINLIT" == true ]]; then
+  MAIN_URL="http://localhost:$CHAINLIT_PORT"
+else
+  MAIN_URL="http://localhost:$CHAT_PORT"
 fi
 
 if command -v open &>/dev/null; then          # macOS

@@ -432,6 +432,27 @@ COMMAND_REGISTRY: dict[str, CommandDefinition] = {
         ),
         display_template="[bold cyan]💬 [Geral] Respondendo com Claude Haiku...[/bold cyan]",
     ),
+    "workflow": CommandDefinition(
+        name="workflow",
+        agent=None,
+        doma_mode="full",
+        description=(
+            "Executa um workflow colaborativo pré-definido (WF-01 a WF-05) com encadeamento "
+            "de contexto entre agentes e suporte a etapas paralelas. "
+            "Exemplos: /workflow WF-01 pipeline bronze-gold vendas | /workflow WF-05 migrar SQL Server"
+        ),
+        skills=["kb/collaboration-workflows.md"],
+        prompt_template=(
+            "[DOMA WORKFLOW] Execute o workflow pré-definido identificado na tarefa abaixo. "
+            "Consulte `kb/collaboration-workflows.md` para os detalhes do workflow solicitado. "
+            "Siga a sequência de agentes definida, passando o contexto de cada etapa para a próxima. "
+            "Compile o contexto do workflow em `output/workflow-context/<wf-id>-context.md` antes "
+            "de invocar o primeiro agente. "
+            "Se o workflow exigir aprovação humana em alguma etapa, pause e aguarde confirmação. "
+            "Tarefa: {task}"
+        ),
+        display_template="[bold magenta]⚙️ [DOMA Workflow] Iniciando workflow colaborativo...[/bold magenta]",
+    ),
 }
 
 
