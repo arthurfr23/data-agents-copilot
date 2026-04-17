@@ -15,6 +15,22 @@ cd "$SCRIPT_DIR"
 
 PORT="${CHAINLIT_PORT:-8503}"
 
+# ── Carrega .env — garante que as variáveis corretas sobrescrevem o shell ──────
+# Crítico: sem isso, variáveis exportadas por start.sh (ex: ANTHROPIC_BASE_URL
+# de uma sessão Flow anterior) ficam ativas e o Chainlit usa config errada.
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    if [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      val="${BASH_REMATCH[2]}"
+      val="${val#\'}" ; val="${val%\'}"
+      val="${val#\"}" ; val="${val%\"}"
+      export "$key=$val"
+    fi
+  done < "$SCRIPT_DIR/.env"
+fi
+
 # Verifica se chainlit está instalado
 if ! command -v chainlit &> /dev/null; then
     echo "❌ chainlit não encontrado."
