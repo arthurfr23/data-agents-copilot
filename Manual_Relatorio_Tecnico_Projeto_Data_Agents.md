@@ -2744,8 +2744,10 @@ O Data Agents oferece três interfaces de uso complementares, projetadas para pe
 ### 21.1 Interface Web Chainlit (Recomendada — v6.0+)
 
 ```bash
-./start_chainlit.sh
-# chainlit run ui/chainlit_app.py --port 8503
+./start.sh --chainlit              # Chainlit (8503) + Monitoring (8501)
+./start.sh --chainlit --monitor-only  # somente Chainlit
+# ou diretamente:
+chainlit run ui/chainlit_app.py --port 8503
 ```
 
 O Chainlit é a interface mais rica do sistema. Ao iniciar, apresenta dois botões de seleção de modo:
@@ -2760,9 +2762,11 @@ Um dos diferenciais visuais do Chainlit é a exibição expansível dos resultad
 
 **Como funciona tecnicamente:** O SDK emite `UserMessage` com `ToolResultBlock` contendo o output real de cada tool. O `_StepManager` estaciona o step com `park(tool_use_id)` ao detectar `content_block_stop`, e fecha com o conteúdo real quando o `UserMessage` correspondente chega (`receive_result(tool_use_id, content)`). O conteúdo é truncado em 3.000 chars para não sobrecarregar a UI.
 
-#### Cache de Supervisor
+#### Cache de Supervisor com TTL
 
-O `ClaudeSDKClient` do Supervisor é mantido em cache de módulo (`_supervisor_cache`). Isso significa que os MCP servers (~3-5s de cold start na primeira vez) são reutilizados entre sessões do browser — reload da página não recria as conexões.
+O `ClaudeSDKClient` do Supervisor é mantido em cache de módulo (`_supervisor_cache`). Os MCP servers (~3-5s de cold start na primeira vez) são reutilizados entre sessões do browser — reload da página não recria as conexões.
+
+O cache expira automaticamente após **2 horas** (`_SUPERVISOR_CACHE_TTL = 7200.0`), prevenindo vazamento de memória em instâncias de longa duração. Também é invalidado se o budget for excedido (`needs_reconnect = True`).
 
 Troque de modo a qualquer momento com `/modo`.
 

@@ -50,6 +50,12 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from commands.parser import parse_command  # noqa: E402
+from ui.config import (  # noqa: E402
+    COMMAND_GROUPS as _COMMAND_GROUPS,
+    agent_display_name as _agent_author_fn,
+    enrich_tool_label as _enrich_tool_label,
+    tool_label as _tool_label,
+)
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 MODE_SUPERVISOR = "supervisor"
@@ -88,108 +94,13 @@ Responda em português brasileiro. Use code blocks com syntax highlighting.
 Seja direto e objetivo — sem preambles desnecessários.
 """
 
-# Mapa de tool → label amigável
-_TOOL_LABELS: dict[str, str] = {
-    "Agent": "🤖 Delegando para agente especialista",
-    "Read": "📖 Lendo arquivo",
-    "Write": "✍️  Salvando arquivo",
-    "Grep": "🔍 Buscando conteúdo",
-    "Glob": "📂 Listando arquivos",
-    "Bash": "⚙️  Executando comando",
-    "AskUserQuestion": "❓ Aguardando resposta",
-    "mcp__databricks__execute_sql": "🗄️  SQL no Databricks",
-    "mcp__databricks__execute_sql_multi": "🗄️  SQL paralelo no Databricks",
-    "mcp__databricks__list_catalogs": "📋 Unity Catalog — catálogos",
-    "mcp__databricks__list_schemas": "📋 Unity Catalog — schemas",
-    "mcp__databricks__list_tables": "📋 Unity Catalog — tabelas",
-    "mcp__databricks__describe_table": "🔎 Inspecionando tabela",
-    "mcp__databricks__execute_code": "⚡ Executando código serverless",
-    "mcp__databricks__create_or_update_genie": "🧞 Configurando Genie Space",
-    "mcp__databricks__create_or_update_dashboard": "📊 Criando AI/BI Dashboard",
-    "mcp__databricks__run_job_now": "🚀 Disparando Job Databricks",
-    "mcp__databricks__wait_for_run": "⏳ Aguardando conclusão do Job",
-    "mcp__databricks__start_pipeline": "🚀 Iniciando Pipeline LakeFlow",
-    "mcp__databricks__get_pipeline": "📡 Status do Pipeline",
-    "mcp__fabric__list_workspaces": "📋 Workspaces do Fabric",
-    "mcp__fabric_community__list_items": "📋 Itens do Fabric workspace",
-    "mcp__fabric_sql__fabric_sql_execute": "🗄️  SQL no Fabric Lakehouse",
-    "mcp__fabric_sql__fabric_sql_list_tables": "📋 Tabelas Fabric",
-    "mcp__fabric_rti__kusto_query": "🔍 Query KQL (Eventhouse)",
-    "mcp__context7__get-library-docs": "📚 Consultando documentação",
-    "mcp__context7__resolve-library-id": "📚 Resolvendo biblioteca",
-    "mcp__postgres__query": "🐘 Query PostgreSQL",
-    "mcp__tavily__tavily-search": "🌐 Buscando na web",
-    "mcp__github__search_repositories": "🐙 Buscando repositórios GitHub",
-    "mcp__memory_mcp__read_graph": "🧠 Lendo knowledge graph",
-    "mcp__memory_mcp__add_entities": "🧠 Atualizando knowledge graph",
-}
-
-# Nomes de exibição por agente (para author nos cl.Message)
-_AGENT_AUTHORS: dict[str, str] = {
-    "sql-expert": "SQL Expert",
-    "spark-expert": "Spark Expert",
-    "pipeline-architect": "Pipeline Architect",
-    "data-quality-steward": "Data Quality Steward",
-    "governance-auditor": "Governance Auditor",
-    "semantic-modeler": "Semantic Modeler",
-    "business-analyst": "Business Analyst",
-    "dbt-expert": "dbt Expert",
-    "skill-updater": "Skill Updater",
-    "geral": "Geral",
-}
-
-# Grupos de comandos para o welcome message
-_COMMAND_GROUPS: dict[str, list[str]] = {
-    "📋 Intake & Planejamento": ["/brief", "/plan", "/review", "/status"],
-    "⚡ Databricks": ["/sql", "/spark", "/pipeline", "/dbt"],
-    "🏭 Microsoft Fabric": ["/fabric", "/semantic"],
-    "🔍 Qualidade & Gov.": ["/quality", "/governance"],
-    "🔧 Sistema": ["/health"],
-}
-
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _tool_label(name: str) -> str:
-    if name in _TOOL_LABELS:
-        return _TOOL_LABELS[name]
-    clean = name.replace("mcp__", "").replace("__", " → ").replace("_", " ").title()
-    return f"🔧 {clean}"
-
-
-def _enrich_tool_label(tool_name: str, data: dict[str, Any]) -> str:
-    """Retorna label enriquecido com args reais da tool. Retorna '' se não houver info relevante."""
-    if tool_name == "Read":
-        path = data.get("file_path") or data.get("path", "")
-        if path:
-            return f"📖 Lendo {path}..."
-    elif tool_name == "Write":
-        path = data.get("file_path", "")
-        if path:
-            return f"✏️ Escrevendo {path}..."
-    elif tool_name == "Bash":
-        cmd = data.get("command", "")
-        if cmd:
-            truncated = cmd[:60] + "..." if len(cmd) > 60 else cmd
-            return f"⚙️ Executando: {truncated}"
-    elif tool_name == "Grep":
-        pattern = data.get("pattern", "")
-        search_path = data.get("path", "")
-        if pattern and search_path:
-            return f"🔍 Buscando: '{pattern}' em {search_path}"
-        elif pattern:
-            return f"🔍 Buscando: '{pattern}'"
-    elif tool_name == "Glob":
-        pattern = data.get("pattern", "")
-        if pattern:
-            return f"📂 Listando: {pattern}"
-    return ""
+# _tool_label, _enrich_tool_label importados de ui/config.py
 
 
 def _agent_author(raw_name: str) -> str:
     """Retorna o nome de exibição do agente para cl.Message(author=...)."""
-    return _AGENT_AUTHORS.get(raw_name, raw_name.replace("-", " ").title())
+    return _agent_author_fn(raw_name)
 
 
 def _format_tool_result(content: str | list | None) -> str:
@@ -347,24 +258,33 @@ _supervisor_cache: dict = {}
 #   "client"          → ClaudeSDKClient conectado
 #   "options"         → ClaudeAgentOptions (mutável por query)
 #   "needs_reconnect" → True quando budget foi excedido — força reconexão na próxima ativação
+#   "created_at"      → timestamp float (time.monotonic) — para TTL de 2h
 _supervisor_lock = asyncio.Lock()
+
+# TTL do cache do Supervisor: 2 horas. Após este período a conexão é renovada
+# para evitar vazamento de memória em instâncias de longa duração.
+_SUPERVISOR_CACHE_TTL = 7200.0
 
 
 async def _get_or_create_supervisor() -> dict:
     """
     Retorna o cliente do Supervisor do cache, criando-o na primeira chamada.
 
-    Thread-safe via asyncio.Lock. Se o cliente existir e não precisar de
-    reconexão, retorna imediatamente (zero cold start). Se `needs_reconnect`
-    estiver marcado (budget excedido na sessão anterior), invalida e reconecta
-    antes de retornar — garantindo budget zerado.
+    Thread-safe via asyncio.Lock. Reconecta se:
+      - `needs_reconnect` está marcado (budget excedido)
+      - O cache tem mais de 2h (TTL expirado — evita vazamento de memória)
     """
     from agents.supervisor import build_supervisor_options
     from claude_agent_sdk import ClaudeSDKClient
 
     async with _supervisor_lock:
-        # Reconecta se o budget foi excedido na sessão anterior
-        if _supervisor_cache.get("needs_reconnect") and _supervisor_cache.get("client"):
+        # Expirar cache após TTL
+        created_at = _supervisor_cache.get("created_at", 0.0)
+        ttl_expired = (time.monotonic() - created_at) > _SUPERVISOR_CACHE_TTL
+
+        if (ttl_expired or _supervisor_cache.get("needs_reconnect")) and _supervisor_cache.get(
+            "client"
+        ):
             try:
                 await _supervisor_cache["client"].disconnect()
             except Exception:
@@ -379,6 +299,7 @@ async def _get_or_create_supervisor() -> dict:
             _supervisor_cache["client"] = client
             _supervisor_cache["options"] = options
             _supervisor_cache["needs_reconnect"] = False
+            _supervisor_cache["created_at"] = time.monotonic()
 
     return _supervisor_cache
 
