@@ -289,19 +289,33 @@ async def handle_monitor_ask(question: str, console=None, client=None) -> str:
         "5. Se não conseguir identificar o alerta, peça mais detalhes ao usuário."
     )
 
-    # Executa via SDK apontando direto para o business-monitor
+    # Executa via SDK em modo conversacional — sem MCP, só analisa o contexto do prompt
     try:
-        from claude_agent_sdk import query, AssistantMessage, TextBlock, ResultMessage
-        from agents.loader import load_all_agents
+        from claude_agent_sdk import (  # noqa: PLC0415
+            AssistantMessage,
+            ClaudeAgentOptions,
+            ResultMessage,
+            TextBlock,
+            query,
+        )
+        from config.settings import settings  # noqa: PLC0415
 
-        agents = load_all_agents()
-        monitor_agent = next((a for a in agents if a.name == "business-monitor"), None)
-
-        if monitor_agent is None:
-            return "❌ Agent business-monitor não encontrado no registry."
+        options = ClaudeAgentOptions(
+            model=settings.default_model,
+            system_prompt=(
+                "Você é o Business Monitor em modo interativo. "
+                "Analise os alertas recentes e responda perguntas de negócio sobre eles. "
+                "Seja objetivo e direto — o usuário quer entender o impacto e a ação correta."
+            ),
+            allowed_tools=[],
+            agents=None,
+            mcp_servers={},
+            max_turns=3,
+            permission_mode="bypassPermissions",
+        )
 
         response_text = ""
-        async for event in query(prompt=prompt, options=monitor_agent):
+        async for event in query(prompt=prompt, options=options):
             if isinstance(event, AssistantMessage):
                 for block in event.content:
                     if isinstance(block, TextBlock):
