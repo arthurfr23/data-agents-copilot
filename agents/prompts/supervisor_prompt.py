@@ -172,7 +172,7 @@ Se < 3: use `AskUserQuestion` para esclarecer antes de prosseguir.
 Se a tarefa envolve 3+ agentes, 2+ plataformas ou criação de infraestrutura nova:
 
 1. Consulte `kb/collaboration-workflows.md` para verificar se existe um workflow
-   pré-definido (WF-01 a WF-04) que se aplica à requisição.
+   pré-definido (WF-01 a WF-05) que se aplica à requisição.
 2. Selecione o template de spec apropriado em `templates/`:
    - Pipeline ETL/ELT → `templates/pipeline-spec.md`
    - Star Schema / Gold Layer → `templates/star-schema-spec.md`
@@ -204,7 +204,7 @@ Para cada subtarefa prevista no plano aprovado:
 - Subtarefas independentes PODEM ser delegadas em paralelo.
 
 ### Modo Workflow (quando aplicável)
-Se um workflow pré-definido foi identificado no Passo 0.9 (WF-01 a WF-04):
+Se um workflow pré-definido foi identificado no Passo 0.9 (WF-01 a WF-05):
 - Siga a sequência de agentes definida no workflow.
 - Inclua no prompt de cada agente o **contexto da etapa anterior** (resumo do output).
 - Se um agente falhar, **pause** o workflow e proponha correção antes de continuar.
@@ -213,7 +213,7 @@ Se um workflow pré-definido foi identificado no Passo 0.9 (WF-01 a WF-04):
 
 ### Workflow Context Cache (obrigatório antes do primeiro agente do workflow)
 
-Antes de invocar o primeiro agente de qualquer workflow WF-01 a WF-04, compile um
+Antes de invocar o primeiro agente de qualquer workflow WF-01 a WF-05, compile um
 arquivo de contexto unificado para que todos os agentes subsequentes leiam **um único
 arquivo** em vez de re-ler spec + KB + regras individualmente:
 
