@@ -12,6 +12,17 @@
 - **`PRODUCT.md`** na raiz: tese de produto em uma página — ICP, JTBD,
   diferencial vs alternativas (Genie nativo, Copilot Fabric, dbt AI,
   LangChain, ChatGPT/Claude direto) e anti-escopo explícito.
+- **`make bootstrap`** (`scripts/bootstrap.py`): wizard interativo que
+  gera um `.env` mínimo a partir de 3 perguntas (Anthropic + Databricks
+  opcional + Fabric opcional). Sem dependências extras; cross-platform.
+  Defaults de sistema (DEFAULT_MODEL, MAX_BUDGET_USD, memória) vêm
+  pré-configurados.
+- **`make demo`** (`scripts/demo.py`): smoke test end-to-end chamando
+  `commands/geral.run_geral_query` direto (Haiku 4.5, zero MCP, zero
+  Supervisor). Custo ~$0.005 por execução. Valida que o sistema
+  funciona antes de configurar Databricks/Fabric.
+- **8 testes** em `tests/test_bootstrap.py` para `_render_env` e
+  `_validate_anthropic_key` (funções puras do wizard).
 
 ### Fixed
 
