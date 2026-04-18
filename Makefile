@@ -3,7 +3,7 @@
 # Automação de tarefas comuns de desenvolvimento e deploy
 # ═══════════════════════════════════════════════════════════════════
 
-.PHONY: help install dev test lint format type-check security clean run health-databricks health-fabric fabric-env deploy-staging deploy-prod refresh-skills refresh-skills-dry refresh-skills-force
+.PHONY: help install dev bootstrap demo test lint format type-check security clean run health-databricks health-fabric fabric-env deploy-staging deploy-prod refresh-skills refresh-skills-dry refresh-skills-force
 
 # Cores para output
 CYAN := \033[36m
@@ -26,6 +26,12 @@ install: ## Instala dependências de produção
 
 dev: ## Instala dependências de desenvolvimento + UI
 	pip install -e ".[dev,ui,monitoring]"
+
+bootstrap: ## Wizard interativo para criar .env mínimo (primeira vez)
+	python scripts/bootstrap.py
+
+demo: ## Executa query canônica (/geral) — smoke test end-to-end
+	python scripts/demo.py
 
 # ─── Quality ──────────────────────────────────────────────────────
 

@@ -56,18 +56,24 @@ conda create -n data-agents python=3.12 && conda activate data-agents
 # 3. Instale dependências
 pip install -e ".[dev,ui,monitoring]"
 
-# 4. Configure credenciais
-cp .env.example .env   # edite com suas chaves
+# 4. Configure credenciais (escolha uma)
+make bootstrap         # wizard interativo: cria .env mínimo em ~2 min
+cp .env.example .env   # ou copie e edite manualmente com suas chaves
 
-# 5a. Web UI Chainlit (recomendada)
+# 5. Smoke test end-to-end (só precisa de ANTHROPIC_API_KEY, ~$0.005)
+make demo
+
+# 6a. Web UI Chainlit (recomendada)
 ./start.sh --chainlit  # http://localhost:8503 (Chat) + http://localhost:8501 (Monitoring)
 
-# 5b. Web UI Streamlit
+# 6b. Web UI Streamlit
 ./start.sh             # http://localhost:8502 (Chat) + http://localhost:8501 (Monitoring)
 
-# 5c. Terminal
-python main.py
+# 6c. Terminal
+python main.py         # ou: make run
 ```
+
+> **Primeira vez?** `make bootstrap && make demo` valida seu setup em <5 minutos, sem precisar configurar Databricks ou Fabric.
 
 ### Credenciais no `.env`
 
