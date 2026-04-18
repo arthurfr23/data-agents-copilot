@@ -178,8 +178,24 @@ class TestEmitAlert:
 
 class TestSendEmailNotConfigured:
     def test_returns_false_when_no_smtp(self):
+        """Quando SMTP não está configurado, _send_email retorna False sem enviar nada."""
         from utils.monitor_alerter import _send_email
 
+        # _send_email faz `from config.settings import settings` internamente e verifica
+        # se smtp_host/smtp_user/smtp_password/to_email estão preenchidos.
+        # Em ambiente de CI nenhuma dessas variáveis está configurada → deve retornar False.
+        payload = {
+            "severity": "ALTA",
+            "monitor": "T",
+            "alert_id": "x",
+            "timestamp": "2025-01-01T00:00:00",
+            "platform": "db",
+            "table": "t",
+            "records_affected": 1,
+            "message": "m",
+            "sample": [],
+        }
+        # Mocka o módulo de settings para retornar smtp_host vazio
         mock_settings = MagicMock()
         mock_settings.smtp_host = ""
         mock_settings.smtp_user = ""
@@ -187,23 +203,10 @@ class TestSendEmailNotConfigured:
         mock_settings.monitor_alert_email_to = ""
         mock_settings.smtp_port = 587
 
-        with patch("utils.monitor_alerter._send_email.__globals__") as _:
-            pass  # just test the guard
+        import config.settings as settings_module
 
-        with patch("config.settings.settings", mock_settings):
-            result = _send_email(
-                {
-                    "severity": "ALTA",
-                    "monitor": "T",
-                    "alert_id": "x",
-                    "timestamp": "2025-01-01T00:00:00",
-                    "platform": "db",
-                    "table": "t",
-                    "records_affected": 1,
-                    "message": "m",
-                    "sample": [],
-                }
-            )
+        with patch.object(settings_module, "settings", mock_settings):
+            result = _send_email(payload)
         assert result is False
 
     def test_password_comment_stripping(self):
@@ -695,11 +698,11 @@ class TestMonitorCommandParser:
     def test_monitor_registered(self):
         from commands.parser import COMMAND_REGISTRY
 
-        names = [cmd.name for cmd in COMMAND_REGISTRY]
-        assert "monitor" in names
+        # COMMAND_REGISTRY é dict[str, CommandDefinition] — as chaves são os nomes
+        assert "monitor" in COMMAND_REGISTRY
 
     def test_monitor_internal_mode(self):
         from commands.parser import COMMAND_REGISTRY
 
-        cmd = next(c for c in COMMAND_REGISTRY if c.name == "monitor")
+        cmd = COMMAND_REGISTRY["monitor"]
         assert cmd.doma_mode == "internal"
