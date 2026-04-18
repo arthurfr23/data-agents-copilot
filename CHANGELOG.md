@@ -1,0 +1,176 @@
+> All notable changes to this project are documented here.
+>
+> Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/).
+> Versioning: [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html).
+
+# Changelog
+
+## [Unreleased]
+
+### Gated (aguardando telemetria)
+
+- **T1.7** — Decidir Caminho A vs B da memória (`logs/memory_usage.jsonl` 24-72h).
+- **T2.5** — Dashboard de cache hit rate (`logs/audit.jsonl` acumulado).
+- **T4.5** — Decisão final Caminho A da memória (6 semanas de métricas).
+
+### Backlog
+
+- **T0.2.1** — Abrir issue no `anthropics/claude-agent-sdk-python` pedindo
+  passthrough de `extra_headers` para `anthropic-beta: token-efficient-tools-2025-02-19`.
+
+---
+
+## [1.0.0] — 2026-04-18
+
+Primeira release versionada. Representa o estado após a execução dos sprints
+S0-S4 do plano de enxugamento 2026: correções pontuais, sessão com memória
+real, elevação da maturidade declarativa e refatoração arquitetural.
+
+**Suite:** 1026 testes ✅ (0 falhas).
+
+### Added
+
+- **Transcript por sessão** (`hooks/transcript_hook.py`): persiste JSONL
+  append-only em `logs/sessions/<session_id>.jsonl` com turnos
+  user/assistant, tools usadas, custo e duração.
+- **Slash `/sessions`** (`commands/sessions.py`): tabela Rich com todas as
+  sessões — ID, timestamps, turns, custo, status (transcript 📝 ou
+  checkpoint 💾), último prompt.
+- **Slash `/resume <id>|last`**: reabre sessão injetando os últimos N turnos
+  do transcript (default 30×2000 chars ≈ 8% do context budget); fallback
+  para `build_resume_prompt` em sessões legadas.
+- **Session Summarizer** (`utils/summarizer.py`): Haiku 4.5 via Anthropic
+  Messages API direta, produz resumo em 7 campos GAPS G3 (Objetivo /
+  Decisões / Artefatos / Pendências / Próximos passos / Contexto técnico /
+  Descobertas-chave). Regra "Nunca invente" + `Nenhum(a)` para campos vazios.
+- **Auto-fire do summarizer** em `hooks/context_budget_hook.py`: dispara uma
+  vez por sessão ao cruzar `context_budget_summarize_threshold` (0.65),
+  persiste em `logs/summaries/<sid>.md`.
+- **Emergency checkpoint em saídas normais**: `main.py` registra `atexit`,
+  SIGINT, SIGTERM, SIGHUP; `hooks/checkpoint.py` grava
+  `logs/sessions/<sid>.json` + espelho em `logs/checkpoint.json`.
+- **Histórico múltiplo de sessões** via `list_sessions()` e
+  `load_session_by_id()` em `hooks/checkpoint.py`.
+- **Slash `/add-agent`** (`.claude/commands/add-agent.md`): scaffolda novo
+  registry, sinaliza os dois pontos manuais (supervisor_prompt,
+  test_agents), valida YAML e faz smoke test do loader.
+- **Slash `/add-mcp`** (`.claude/commands/add-mcp.md`): guia pelos 5 passos
+  do CLAUDE.md + checklist + 4 validações automáticas.
+- **Matriz de delegação declarativa** (`agents/delegation_map.yaml` +
+  `agents/delegation.py`): 25 routes, renderização de
+  `kb/task_routing.md` §2 via markers, `classify()` determinístico.
+- **Declaração de commands em YAML** (`config/commands.yaml`): 22 definições
+  de slash commands, loader em `commands/parser.py` reduzido para ~120
+  linhas.
+- **Pacote `workflow/`**: extração de `hooks/workflow_tracker.py` em
+  `dag.py` / `tracker.py` / `executor.py`.
+- **Pacote `compression/`**: extração de `hooks/output_compressor_hook.py`
+  em `constants.py` / `strategies.py` / `metrics.py` / `hook.py`.
+- **`utils/tokenizer.py`**: `estimate_tokens_flat` e
+  `estimate_tokens_adjusted` — fonte única de estimativa, substitui
+  implementações inline em `context_budget_hook` e `compression/metrics`.
+- **Scripts independentes do Supervisor:**
+  - `scripts/refresh_skills.py` — chama Anthropic Messages API direta com
+    tool nativo `web_search_20250305`.
+  - `scripts/monitor_daemon.py` — executa SQL direto via
+    `databricks-sdk`/`pymssql` (sem LLM).
+- **`docs/mcp_fabric_guide.md`**: matriz de decisão para namespaces ATIVO
+  (`mcp__fabric_community__*`) vs OFICIAL (`mcp__fabric__*`).
+- **Telemetria de cache** em `hooks/audit_hook.py`:
+  `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_hit_rate`
+  gravados em `logs/audit.jsonl` quando o SDK expuser.
+- **Telemetria de memória** em `memory/telemetry.py`: contadores em
+  `store.read/write`, `compiler.compile`, `retrieval.retrieve`; grava
+  `logs/memory_usage.jsonl`.
+- **Testes para MCPs customizados**: `tests/test_databricks_genie_server.py`
+  (22), `tests/test_fabric_sql_server.py` (21), `tests/test_transcript_hook.py`
+  (21), `tests/test_sessions_command.py` (21), `tests/test_summarizer.py`
+  (16).
+
+### Changed
+
+- **Supervisor thinking migrado para Opus 4.7**: `{type: adaptive, effort:
+  high}` em `agents/supervisor.py` (era `{type: enabled, budget_tokens:
+  8000}`, incompatível).
+- **Agente `geral` em Haiku 4.5** (`bedrock/anthropic.claude-haiku-4-5`) —
+  ~4× mais barato para Q&A conceitual.
+- **`agents/prompts/supervisor_prompt.py` 361 → 150 linhas (-58%)**:
+  descrições em prosa compactadas; tabelas de roteamento e KBs movidas para
+  `kb/task_routing.md`.
+- **Regras S1-S7 são fonte única em `kb/constitution.md`**: removidas das
+  duplicações em `supervisor_prompt.py` e `cache_prefix.md`.
+- **`commands/parser.py` 542 → 120 linhas (-78%)**: definições migradas para
+  `config/commands.yaml` (228 linhas), API pública preservada
+  (`COMMAND_REGISTRY`, `CommandDefinition`, `parse_command`,
+  `get_help_text`).
+- **`hooks/workflow_tracker.py` 492l → 45l (shim)**: re-exporta do novo
+  pacote `workflow/`.
+- **`hooks/output_compressor_hook.py` 437l → 52l (shim)**: re-exporta do
+  novo pacote `compression/`.
+- **Fabric MCPs reorganizados**: rename apenas de variáveis Python
+  (`FABRIC_COMMUNITY_MCP_TOOLS` → `FABRIC_MCP_TOOLS` canônico;
+  `FABRIC_MCP_TOOLS` oficial MS → `FABRIC_OFFICIAL_MCP_TOOLS`). Alias
+  legado preservado.
+- **`business-monitor` agente** é agora **somente Q&A interativo** —
+  modo autônomo vive em `scripts/monitor_daemon.py`.
+- **`skill-updater` removido do registry** — refresh é 100% script em
+  `scripts/refresh_skills.py`.
+- **`memory/types.py::Memory.normalized_summary`** — `@property` única,
+  substitui lógica duplicada em `compiler.py` e `lint.py`.
+- **Diagrama e contagem de agentes em `.claude/CLAUDE.md`** ajustados de
+  "12 agentes" para "13 agentes" (sem contar `_template.md`).
+- **`hooks/context_budget_hook.reset_context_budget`** aceita
+  `session_id: str | None = None`, propagado por
+  `hooks/session_lifecycle.on_session_start`.
+
+### Removed
+
+- `agents/registry/skill-updater.md` — virou script puro.
+- `memory/decay.py` — marcado para remoção (aguarda decisão T1.7).
+- `_run_via_agent` em `monitor_daemon.py` — 33 linhas de dead code legacy
+  que acoplavam daemon ao agente.
+
+### Fixed
+
+- `agents/supervisor.py`: crash em `/plan` com Opus 4.7 (thinking syntax).
+- `hooks/checkpoint.py`: double-save ao encerrar sessão
+  (flag `_checkpoint_saved_for_session` + reset por iteração).
+- `tests/test_memory_retrieval.py`: adaptado para a nova assinatura
+  `_query_sonnet_for_ids → (ids, cost)`.
+- `tests/test_agents.py::valid_models`: inclui
+  `bedrock/anthropic.claude-haiku-4-5`.
+- `tests/test_supervisor.py::test_build_thinking_enabled`: ajustado para
+  `{type: adaptive, effort: high}`.
+- `tests/test_output_compressor.py`: monkeypatch aponta para
+  `compression.hook._compress_sql_result` (re-export binding resolvido em
+  import time).
+
+### Security
+
+- Nenhuma alteração relevante nesta release.
+
+### Observability
+
+- `logs/audit.jsonl`: campos `cache_write_tokens`, `cache_read_tokens`,
+  `cache_hit_rate`.
+- `logs/memory_usage.jsonl`: hits, custo Sonnet, duração por função.
+- `logs/compression.jsonl`: métricas de compressão por tool.
+- `logs/sessions/<sid>.jsonl`: transcript completo append-only.
+- `logs/sessions/<sid>.json`: checkpoint por sessão
+  (`logs/checkpoint.json` continua como espelho da mais recente).
+- `logs/summaries/<sid>.md`: resumo Haiku disparado a 65% do budget.
+
+### Notes
+
+- SDK `claude-agent-sdk==0.1.61` **não** expõe `extra_headers` nem
+  `cache_control` — tarefas T0.2 (`token-efficient-tools` beta) e T5.1
+  (prompt caching explícito) permanecem bloqueadas upstream
+  (issue `anthropics/claude-agent-sdk-python#626`).
+- O baseline de linhas de código pré-enxugamento está em
+  `to_do/baseline_loc.txt` (2026-04-17): 52.314 LOC totais, 42.460
+  prod-only, 13 agentes, 13 MCPs.
+
+---
+
+[Unreleased]: https://github.com/ThomazRossito/data-agents/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/ThomazRossito/data-agents/releases/tag/v1.0.0
