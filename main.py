@@ -12,8 +12,10 @@ Uso:
 """
 
 import asyncio
+import atexit
 import hashlib
 import logging
+import signal
 import sys
 import time
 
@@ -53,6 +55,7 @@ from hooks.checkpoint import (
     build_resume_prompt,
 )
 from hooks.memory_hook import flush_session_memories
+from hooks.transcript_hook import append_turn as _append_transcript_turn
 from memory.compiler import compile_daily_logs
 from memory.store import MemoryStore
 from agents.loader import inject_memory_context
@@ -69,6 +72,55 @@ _RETRIEVAL_CACHE_TTL = 60.0  # segundos
 
 # Flag para garantir que apply_decay() só é executado 1x por sessão
 _decay_applied: bool = False
+
+# Estado exposto para atexit/signal handlers (T1.1).
+# Atualizado a cada turn bem-sucedido em run_interactive; consumido pelo
+# _emergency_checkpoint no encerramento para salvar checkpoint mesmo em
+# saídas normais (sair) ou abruptas (SIGTERM, Ctrl+C no terminal).
+_active_session: dict | None = None
+_active_session_id: str | None = None
+_checkpoint_saved_for_session: bool = False
+
+
+def _emergency_checkpoint(reason: str = "abnormal_exit") -> None:
+    """
+    Salva checkpoint se houver sessão ativa e checkpoint ainda não gravado.
+
+    Chamado por atexit (último recurso) e pelos signal handlers. Idempotente:
+    se `_checkpoint_saved_for_session` já for True, sai sem fazer nada.
+
+    Mantido minimalista — atexit não pode depender de event loop.
+    """
+    global _checkpoint_saved_for_session
+    if _checkpoint_saved_for_session or _active_session is None:
+        return
+    state = _active_session
+    if not state.get("last_prompt"):
+        return
+    try:
+        save_checkpoint(
+            last_prompt=state.get("last_prompt", ""),
+            reason=reason,
+            cost_usd=state.get("total_cost", 0.0),
+            turns=state.get("total_turns", 0),
+            session_id=_active_session_id,
+        )
+        _checkpoint_saved_for_session = True
+    except Exception as e:
+        logger.debug(f"Emergency checkpoint falhou ({reason}): {e}")
+
+
+def _signal_handler(signum: int, _frame: object) -> None:
+    """
+    Handler de SIGTERM/SIGHUP: grava checkpoint e encerra com exit(0).
+
+    SIGINT (Ctrl+C) é tratado pelo asyncio como KeyboardInterrupt dentro do
+    event loop — mantemos o fluxo original, não registramos SIGINT aqui.
+    """
+    name = signal.Signals(signum).name if hasattr(signal, "Signals") else str(signum)
+    _emergency_checkpoint(reason=f"signal_{name.lower()}")
+    # SystemExit é capturado pelo atexit que garante flush dos logs do Python
+    sys.exit(0)
 
 
 # ─── Mapeamento de tool → label amigável para o usuário ──────────────
@@ -164,8 +216,11 @@ def print_banner() -> None:
 
 
 async def _stream_response(
-    client: ClaudeSDKClient, prompt: str = "", session_type: str = "interactive"
-) -> dict[str, float | int]:
+    client: ClaudeSDKClient,
+    prompt: str = "",
+    session_type: str = "interactive",
+    session_id: str | None = None,
+) -> dict:
     """
     Processa o stream de resposta do agente com feedback visual em tempo real.
 
@@ -175,13 +230,21 @@ async def _stream_response(
       - Texto da resposta final em Markdown
       - Resumo de custo/turns/tempo ao finalizar
 
+    T4.1 — Transcript: se `session_id` for fornecido, o turno do assistente
+    (texto acumulado + lista de tools disparadas + métricas) é persistido em
+    `logs/sessions/<session_id>.jsonl`.
+
     Args:
         client: Instância ativa do ClaudeSDKClient para receber o stream.
         prompt: Prompt original enviado ao agente. Apenas os primeiros 100
             caracteres são usados para o log de sessão.
+        session_type: Tipo da sessão ("interactive", "plan", "sql", etc.).
+        session_id: ID da sessão para persistência do transcript. Se None,
+            o transcript não é gravado (backcompat com testes/single-query).
 
     Returns:
-        Dict com métricas da resposta: {"cost": float, "turns": int}.
+        Dict com: cost (float), turns (int), text (str — resposta completa),
+        tools_used (list[str]), duration_ms (int).
     """
     # Estado do streaming
     current_tool: str | None = None
@@ -189,7 +252,15 @@ async def _stream_response(
     response_started: bool = False
     turn_count: int = 0
     live_status: Live | None = None
-    metrics: dict[str, float | int] = {"cost": 0.0, "turns": 0}
+    metrics: dict = {
+        "cost": 0.0,
+        "turns": 0,
+        "text": "",
+        "tools_used": [],
+        "duration_ms": 0,
+    }
+    _assistant_text_parts: list[str] = []
+    _tools_used: list[str] = []
 
     # Rastreia tempo de início por tool call para exibir elapsed time
     _step_start: float = time.monotonic()
@@ -229,6 +300,7 @@ async def _stream_response(
                     tool_input_buffer = ""
                     _step_start = time.monotonic()
                     _current_agent = None
+                    _tools_used.append(current_tool)
                     label = _get_tool_label(current_tool)
                     _stop_spinner(live_status)
                     live_status = _start_spinner(f"{label}...")
@@ -294,6 +366,7 @@ async def _stream_response(
                     if not response_started:
                         console.print("[bold blue]Agente:[/bold blue]")
                         response_started = True
+                    _assistant_text_parts.append(block.text)
                     console.print(Markdown(block.text))
                     console.print()
 
@@ -331,9 +404,29 @@ async def _stream_response(
             # Capturar métricas para checkpoint
             metrics["cost"] = float(message.total_cost_usd or 0)
             metrics["turns"] = int(message.num_turns or 0)
+            metrics["duration_ms"] = int(message.duration_ms or 0)
 
     # Garante que o spinner seja parado em qualquer caso
     _stop_spinner(live_status)
+
+    # Consolida texto + tools para o transcript
+    assistant_text = "\n\n".join(p for p in _assistant_text_parts if p.strip())
+    metrics["text"] = assistant_text
+    metrics["tools_used"] = list(dict.fromkeys(_tools_used))  # dedupe preservando ordem
+
+    # T4.1: persistir turno do assistente no transcript, se session_id foi passado.
+    # Falhas são absorvidas pelo próprio hook — não propagam para o loop interativo.
+    if session_id and assistant_text:
+        _append_transcript_turn(
+            session_id=session_id,
+            role="assistant",
+            content=assistant_text,
+            tools_used=metrics["tools_used"],
+            cost_usd=metrics["cost"],
+            turns=metrics["turns"],
+            duration_ms=metrics["duration_ms"],
+            metadata={"session_type": session_type},
+        )
 
     return metrics
 
@@ -422,14 +515,26 @@ async def _handle_memory_command(user_input: str) -> None:
 _geral_history: list[dict] = []
 
 
-async def _stream_geral(user_message: str, session_type: str = "geral") -> dict[str, float]:
+async def _stream_geral(
+    user_message: str, session_type: str = "geral", session_id: str | None = None
+) -> dict[str, float]:
     """
     Wrapper CLI para run_geral_query() — adiciona feedback visual (spinner, Rich).
 
     A lógica de query está em commands/geral.py (importada também pela UI).
     Esta função lida apenas com apresentação específica do terminal.
+
+    T4.1 — Transcript: se `session_id` for passado, grava os turnos user e
+    assistant no transcript da sessão.
     """
     _geral_history.append({"role": "user", "content": user_message})
+    if session_id:
+        _append_transcript_turn(
+            session_id=session_id,
+            role="user",
+            content=user_message,
+            metadata={"session_type": session_type, "command": "/geral"},
+        )
 
     spinner = Spinner("dots", text=Text("💬 Geral pensando...", style="dim"))
     live = Live(spinner, console=console, refresh_per_second=10, transient=True)
@@ -458,6 +563,16 @@ async def _stream_geral(user_message: str, session_type: str = "geral") -> dict[
         console.print(Markdown(response_text))
         console.print()
         _geral_history.append({"role": "assistant", "content": response_text})
+        if session_id:
+            _append_transcript_turn(
+                session_id=session_id,
+                role="assistant",
+                content=response_text,
+                cost_usd=raw_metrics.get("cost"),
+                turns=int(raw_metrics.get("turns") or 0) or None,
+                duration_ms=int((raw_metrics.get("duration") or 0) * 1000) or None,
+                metadata={"session_type": session_type, "command": "/geral"},
+            )
 
     cost = raw_metrics["cost"]
     parts = [f"💰 Custo: ${cost:.5f}"]
@@ -471,15 +586,19 @@ async def _stream_geral(user_message: str, session_type: str = "geral") -> dict[
     return metrics
 
 
-async def _stream_party(user_input: str) -> dict[str, float]:
+async def _stream_party(user_input: str, session_id: str | None = None) -> dict[str, float]:
     """
     DOMA Party Mode — spawna múltiplos agentes em paralelo e exibe perspectivas independentes.
 
     Cada agente recebe a mesma query e responde com seu próprio contexto e expertise,
     sem influência dos demais. O resultado é apresentado com cabeçalho por agente.
 
+    T4.1 — Transcript: se `session_id` for passado, grava o turno do usuário e
+    um turno consolidado do assistente contendo todas as respostas dos agentes.
+
     Args:
         user_input: Input completo do usuário incluindo /party e flags.
+        session_id: ID da sessão para persistência do transcript.
 
     Returns:
         Dict com métricas consolidadas: {"cost": float}.
@@ -495,6 +614,18 @@ async def _stream_party(user_input: str) -> dict[str, float]:
             "  /party --arch descreva a arquitetura Medallion[/yellow]\n"
         )
         return {"cost": 0.0}
+
+    if session_id:
+        _append_transcript_turn(
+            session_id=session_id,
+            role="user",
+            content=user_input,
+            metadata={
+                "session_type": "party",
+                "command": "/party",
+                "agents": agent_names,
+            },
+        )
 
     console.print(
         f"[bold magenta]🎉 [DOMA Party Mode][/bold magenta] "
@@ -537,6 +668,25 @@ async def _stream_party(user_input: str) -> dict[str, float]:
     console.print(
         f"[dim]💰 Party Mode — {len(results)} agentes | Custo total: ${total_cost:.5f}[/dim]\n"
     )
+
+    # Grava um turno consolidado no transcript contendo todas as respostas.
+    if session_id and results:
+        consolidated = "\n\n".join(
+            f"## {name}\n{text.strip()}" for name, text, _ in results if text.strip()
+        )
+        if consolidated:
+            _append_transcript_turn(
+                session_id=session_id,
+                role="assistant",
+                content=consolidated,
+                cost_usd=total_cost,
+                metadata={
+                    "session_type": "party",
+                    "command": "/party",
+                    "agents": [name for name, _, _ in results],
+                },
+            )
+
     return {"cost": total_cost}
 
 
@@ -549,6 +699,19 @@ async def run_interactive() -> None:
         "total_cost": 0.0,
         "total_turns": 0,
     }
+
+    # T1.1: registra o estado como "sessão ativa" para que atexit/signal handlers
+    # possam gravar checkpoint em saídas normais (sair) ou abruptas (SIGTERM).
+    # Os handlers só são registrados uma vez por processo (idempotência via flag global).
+    global _active_session, _active_session_id, _checkpoint_saved_for_session
+    _active_session = _session_state
+    _checkpoint_saved_for_session = False
+    if not getattr(run_interactive, "_handlers_installed", False):
+        atexit.register(_emergency_checkpoint, "atexit")
+        signal.signal(signal.SIGTERM, _signal_handler)
+        if hasattr(signal, "SIGHUP"):  # não existe no Windows
+            signal.signal(signal.SIGHUP, _signal_handler)
+        run_interactive._handlers_installed = True  # type: ignore[attr-defined]
 
     # ── 1. Banner primeiro — antes de qualquer inicialização ─────────────────
     print_banner()
@@ -587,6 +750,7 @@ async def run_interactive() -> None:
     import uuid
 
     _session_id = f"cli-{uuid.uuid4().hex[:8]}"
+    _active_session_id = _session_id  # T1.2: expõe para _emergency_checkpoint
     try:
         async with ClaudeSDKClient(options=options) as client:
             # Ch.12 — Session Lifecycle: reseta contadores e prepara buffer de memória
@@ -613,6 +777,10 @@ async def run_interactive() -> None:
                 )
 
             while True:
+                # T1.1: reset do flag a cada iteração — estado potencialmente
+                # novo significa que _emergency_checkpoint deve salvar de novo
+                # se o processo morrer abruptamente antes do próximo save explícito.
+                _checkpoint_saved_for_session = False
                 try:
                     # Input com idle timeout: detecta inatividade e oferece reset
                     try:
@@ -633,7 +801,9 @@ async def run_interactive() -> None:
                                 reason="idle_timeout",
                                 cost_usd=_session_state["total_cost"],
                                 turns=_session_state["total_turns"],
+                                session_id=_session_id,
                             )
+                            _checkpoint_saved_for_session = True
                         console.print(
                             f"\n[yellow]⏰ Inatividade detectada "
                             f"({settings.idle_timeout_minutes} min). "
@@ -662,6 +832,21 @@ async def run_interactive() -> None:
 
                     # --- Comandos internos do CLI ---
                     if user_input.lower() in ("sair", "exit", "quit", "q", "/exit"):
+                        # T1.1: salva checkpoint em saída normal — até hoje a sessão
+                        # perdia contexto nesse caminho; agora é recuperável via `continuar`.
+                        if _session_state["last_prompt"]:
+                            save_checkpoint(
+                                last_prompt=_session_state["last_prompt"],
+                                reason="normal_exit",
+                                cost_usd=_session_state["total_cost"],
+                                turns=_session_state["total_turns"],
+                                session_id=_session_id,
+                            )
+                            _checkpoint_saved_for_session = True
+                            console.print(
+                                "[dim]💾 Checkpoint salvo. Digite [bold]continuar[/bold] "
+                                "na próxima sessão para retomar.[/dim]"
+                            )
                         # Flush de memória antes de encerrar
                         try:
                             n_mem = flush_session_memories(session_id="interactive")
@@ -687,7 +872,9 @@ async def run_interactive() -> None:
                                 reason="user_reset",
                                 cost_usd=_session_state["total_cost"],
                                 turns=_session_state["total_turns"],
+                                session_id=_session_id,
                             )
+                            _checkpoint_saved_for_session = True
                             console.print(
                                 "[dim]💾 Checkpoint salvo. Use [bold]continuar[/bold] "
                                 "na próxima sessão para retomar.[/dim]\n"
@@ -731,9 +918,18 @@ async def run_interactive() -> None:
                         clear_checkpoint()
                         checkpoint = None  # Consumido
                         console.print("[bold cyan]🔄 Retomando sessão anterior...[/bold cyan]\n")
+                        _append_transcript_turn(
+                            session_id=_session_id,
+                            role="user",
+                            content=user_input,
+                            metadata={"session_type": "resume"},
+                        )
                         await client.query(resume_prompt)
                         result_metrics = await _stream_response(
-                            client, prompt="[RESUME] " + resume_prompt[:100]
+                            client,
+                            prompt="[RESUME] " + resume_prompt[:100],
+                            session_type="resume",
+                            session_id=_session_id,
                         )
                         _session_state["last_prompt"] = resume_prompt[:200]
                         _session_state["total_cost"] += result_metrics.get("cost", 0)
@@ -767,16 +963,80 @@ async def run_interactive() -> None:
                         await _handle_memory_command(user_input)
                         continue
 
+                    # --- /sessions → Lista sessões registradas (local, sem Supervisor) ---
+                    if command_result and command_result.command == "/sessions":
+                        from commands.sessions import handle_sessions_command
+
+                        handle_sessions_command(user_input, console)
+                        continue
+
+                    # --- /resume <id>|last → Retoma sessão anterior via transcript ---
+                    if command_result and command_result.command == "/resume":
+                        from commands.sessions import (
+                            build_resume_prompt_for_session,
+                            find_last_session_id,
+                        )
+
+                        parts = user_input.split(maxsplit=1)
+                        arg = parts[1].strip() if len(parts) > 1 else "last"
+                        target_id: str | None
+                        if arg.lower() == "last":
+                            target_id = find_last_session_id()
+                            if not target_id:
+                                console.print(
+                                    "[yellow]Nenhuma sessão disponível para retomar. "
+                                    "Use `/sessions` para listar.[/yellow]"
+                                )
+                                continue
+                        else:
+                            target_id = arg
+
+                        resume_prompt = build_resume_prompt_for_session(target_id)
+                        if not resume_prompt:
+                            console.print(
+                                f"[yellow]Sessão `{target_id}` não encontrada "
+                                f"ou sem dados para retomar.[/yellow]"
+                            )
+                            continue
+
+                        console.print(
+                            f"[bold cyan]🔄 Retomando sessão `{target_id}` "
+                            f"({len(resume_prompt)} chars de contexto)...[/bold cyan]\n"
+                        )
+                        _append_transcript_turn(
+                            session_id=_session_id,
+                            role="user",
+                            content=user_input,
+                            metadata={
+                                "session_type": "resume",
+                                "command": "/resume",
+                                "resumed_from": target_id,
+                            },
+                        )
+                        await client.query(resume_prompt)
+                        result_metrics = await _stream_response(
+                            client,
+                            prompt=f"[RESUME {target_id}] " + resume_prompt[:80],
+                            session_type="resume",
+                            session_id=_session_id,
+                        )
+                        _session_state["last_prompt"] = f"/resume {target_id}"
+                        _session_state["total_cost"] += result_metrics.get("cost", 0)
+                        _session_state["total_turns"] += result_metrics.get("turns", 0)
+                        continue
+
                     # --- /geral → Haiku direto, sem Supervisor ---
                     if command_result and command_result.command == "/geral":
-                        result_metrics = await _stream_geral(user_input, session_type="geral")
+                        result_metrics = await _stream_geral(
+                            user_input, session_type="geral", session_id=_session_id
+                        )
                         _session_state["last_prompt"] = user_input
                         _session_state["total_cost"] += result_metrics.get("cost", 0)
                         continue
 
                     # --- /party → DOMA Party Mode: múltiplos agentes em paralelo ---
                     if command_result and command_result.command == "/party":
-                        result_metrics = await _stream_party(user_input)
+                        result_metrics = await _stream_party(user_input, session_id=_session_id)
                         _session_state["last_prompt"] = user_input
                         _session_state["total_cost"] += result_metrics.get("cost", 0)
                         continue
@@ -829,10 +1089,26 @@ async def run_interactive() -> None:
                         except Exception as e:
                             logger.warning(f"Memory retrieval falhou: {e}")
 
+                    # T4.1: registrar o turno do usuário no transcript ANTES de enviar
+                    # para o Supervisor. Assim, mesmo se o turno quebrar (erro/budget),
+                    # o prompt original fica no histórico da sessão.
+                    _append_transcript_turn(
+                        session_id=_session_id,
+                        role="user",
+                        content=user_input,
+                        metadata={
+                            "session_type": _session_type,
+                            "command": command_result.command if command_result else None,
+                        },
+                    )
+
                     # --- Enviar para o Supervisor e processar com feedback visual ---
                     await client.query(doma_prompt)
                     result_metrics = await _stream_response(
-                        client, prompt=doma_prompt, session_type=_session_type
+                        client,
+                        prompt=doma_prompt,
+                        session_type=_session_type,
+                        session_id=_session_id,
                     )
 
                     # Atualizar estado da sessão para checkpoint
@@ -856,7 +1132,9 @@ async def run_interactive() -> None:
                         reason="budget_exceeded",
                         cost_usd=_session_state["total_cost"],
                         turns=_session_state["total_turns"],
+                        session_id=_session_id,
                     )
+                    _checkpoint_saved_for_session = True
                     console.print(f"\n[bold red]Orçamento excedido:[/bold red] {e.message}")
                     console.print(
                         "[bold yellow]💾 Checkpoint salvo automaticamente![/bold yellow]\n"

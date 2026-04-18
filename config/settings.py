@@ -207,8 +207,9 @@ class Settings(BaseSettings):
     memory_decay_pipeline_status_days: float = 14.0
 
     # --- Skill Auto-Refresh ---
-    # Se True, habilita a atualização automática das Skills via skill-updater agent.
-    # O refresh usa context7 + firecrawl para buscar docs atualizadas das plataformas.
+    # Se True, habilita a atualização automática das Skills via scripts/refresh_skills.py.
+    # O script chama a Anthropic Messages API direta (sem MCP, sem agente) e usa o
+    # tool nativo web_search para buscar docs atualizadas das plataformas.
     # Execute manualmente: make refresh-skills
     # Agendamento automático: configurado via SKILL_REFRESH_INTERVAL_DAYS.
     skill_refresh_enabled: bool = True
@@ -291,6 +292,10 @@ class Settings(BaseSettings):
     # Limiares: 80% → WARNING, 95% → ERROR + salva checkpoint.
     context_budget_warn_threshold: float = 0.80
     context_budget_critical_threshold: float = 0.95
+    # T4.4: limiar para disparar sumarização lateral via Haiku (compactação do
+    # histórico em 7 campos estruturados). Default 65% — abaixo do warn para
+    # agir preventivamente antes do usuário sentir o impacto.
+    context_budget_summarize_threshold: float = 0.65
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
