@@ -9,6 +9,11 @@ dependencies = [
     # Core — Claude Agent SDK
     "claude-agent-sdk>=0.1.48",
 
+    # Anthropic SDK direto — usado por utils/summarizer.py (Haiku via Messages API)
+    # e scripts/refresh_skills.py (web_search nativo). Não é dependência transitiva
+    # garantida do claude-agent-sdk.
+    "anthropic>=0.39.0",
+
     # MCP Servers
     "databricks-mcp-server>=0.4.4",
     "microsoft-fabric-rti-mcp>=0.1.0",
