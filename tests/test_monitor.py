@@ -195,7 +195,16 @@ class TestSendEmailNotConfigured:
             "message": "m",
             "sample": [],
         }
-        # Mocka o módulo de settings para retornar smtp_host vazio
+        # config/__init__.py faz `from config.settings import settings`, o que faz
+        # `import config.settings` retornar a instância Pydantic em vez do módulo.
+        # Usamos sys.modules para obter o módulo real e patchear corretamente.
+        import sys
+        import importlib
+
+        settings_mod = sys.modules.get("config.settings") or importlib.import_module(
+            "config.settings"
+        )
+
         mock_settings = MagicMock()
         mock_settings.smtp_host = ""
         mock_settings.smtp_user = ""
@@ -203,9 +212,7 @@ class TestSendEmailNotConfigured:
         mock_settings.monitor_alert_email_to = ""
         mock_settings.smtp_port = 587
 
-        import config.settings as settings_module
-
-        with patch.object(settings_module, "settings", mock_settings):
+        with patch.object(settings_mod, "settings", mock_settings):
             result = _send_email(payload)
         assert result is False
 
@@ -232,9 +239,16 @@ class TestSendEmailNotConfigured:
         mock_smtp.login = fake_login
         mock_smtp.sendmail = MagicMock()
 
+        import sys
+        import importlib
+
+        settings_mod = sys.modules.get("config.settings") or importlib.import_module(
+            "config.settings"
+        )
+
         with (
             patch("smtplib.SMTP", return_value=mock_smtp),
-            patch("config.settings.settings", mock_settings),
+            patch.object(settings_mod, "settings", mock_settings),
         ):
             _send_email(
                 {
