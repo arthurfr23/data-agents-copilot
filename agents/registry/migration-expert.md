@@ -126,7 +126,7 @@ local. Seguir este fluxo:
 2. **Se o scope `migration-secrets` NÃO existir:**
    - Criá-lo usando Bash + Databricks CLI:
      ```bash
-     databricks secrets create-scope --scope migration-secrets
+     databricks secrets create-scope migration-secrets
      ```
    - Popular as chaves com os valores de `MIGRATION_SOURCES` (disponíveis no settings):
      ```bash
