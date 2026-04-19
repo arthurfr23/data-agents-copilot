@@ -40,6 +40,11 @@ if [[ -f "$SCRIPT_DIR/.env" ]]; then
   done < "$SCRIPT_DIR/.env"
 fi
 
+# Respeita MONITOR_ENABLED=false do .env (a menos que --no-monitor já tenha desativado)
+if [[ "${MONITOR_ENABLED:-true}" == "false" ]]; then
+  BIZ_MONITOR=false
+fi
+
 # Verifica se chainlit está instalado
 if ! command -v chainlit &> /dev/null; then
     echo "❌ chainlit não encontrado."

@@ -10,9 +10,9 @@
 # ══════════════════════════════════════════════════════════════════════
 
 global:
-  interval_minutes: 3           # intervalo padrão entre ciclos
+  interval_minutes: 60          # intervalo padrão entre ciclos
   start_hour: 8                 # início do monitoramento (hora local)
-  end_hour: 23                  # fim do monitoramento (hora local)
+  end_hour: 18                  # fim do monitoramento (hora local)
   sample_limit: 10              # máximo de registros na amostra do alerta
   alert_cooldown_minutes: 60    # tempo mínimo entre alertas do mesmo monitor
 
@@ -50,7 +50,7 @@ monitors:
     severity: CRITICA
     message_template: "{count} produto(s) com estoque ZERADO."
     active: true
-    interval_minutes: 3        # verifica mais frequentemente
+    interval_minutes: 60        # verifica mais frequentemente
 
   # # ── VENDAS ────────────────────────────────────────────────────────
   # - name: "Vendas Zeradas após 10h"
