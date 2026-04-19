@@ -17,7 +17,7 @@ cp .env.example .env   # preencher credenciais
 python main.py                        # CLI interativo
 python main.py "liste tabelas silver" # single-query
 ./start.sh                            # Web UI (Chat + Monitoring)
-./start.sh --chat-only                # Só o chat (porta 8502)
+./start.sh --chat-only                # Só o chat Chainlit (porta 8503)
 
 # Qualidade
 make test        # pytest com cobertura (mínimo 80%)
@@ -33,7 +33,7 @@ make health-fabric
 ## Arquitetura de Alto Nível
 
 ```
-Usuário → main.py / ui/chat.py / ui/chainlit_app.py
+Usuário → main.py / ui/chainlit_app.py
   └─► Supervisor (claude-opus-4-6, sem MCP direto)
         ├─► business-analyst   [T3] — intake de requisitos, /brief
         ├─► sql-expert         [T1] — SQL, schemas, catálogos
@@ -104,7 +104,7 @@ model: claude-sonnet-4-6        # ou claude-opus-4-6 para T1 complexo
 tools: [Read, Write, Grep, Glob, databricks_readonly, context7_all]
 mcp_servers: [databricks, context7]
 kb_domains: [databricks, sql-patterns]   # injeta index.md automaticamente
-skill_domains: [databricks, root]        # injeta índice de SKILL.md disponíveis
+skill_domains: [databricks, patterns]    # injeta índice de SKILL.md disponíveis
 tier: T2                                  # T1 | T2 | T3
 ---
 # Nome do Agente
@@ -307,10 +307,13 @@ MEMORY_CAPTURE_ENABLED=true
 | `/python <tarefa>` | python-expert | Python puro: pacotes, testes, APIs, CLIs, automação |
 | `/genie <tarefa>` | semantic-modeler | Criar/atualizar Genie Spaces no Databricks |
 | `/dashboard <tarefa>` | semantic-modeler | Criar/publicar AI/BI Dashboards |
+| `/monitor <pergunta>` | business-monitor | Q&A sobre alertas do daemon de monitoramento |
 | `/review <artefato>` | Supervisor | Review de código/pipeline |
 | `/health` | — | Status das plataformas configuradas |
 | `/status` | — | Estado da sessão atual |
 | `/memory <query>` | — | Consulta memória persistente |
+| `/sessions [all\|<id>]` | — | Lista sessões registradas (transcript + checkpoint) |
+| `/resume [last\|<id>]` | — | Retoma sessão anterior reconstruindo contexto do transcript |
 | `/party <query>` | — | Multi-agente paralelo: perspectivas independentes (flags: --quality, --arch, --engineering, --migration, --full) |
 | `/workflow <wf-id> <query>` | — | Executa workflow colaborativo pré-definido (WF-01 a WF-05) com context chain |
 | `/geral <pergunta>` | — | Resposta direta sem Supervisor (zero agentes, ~95% mais barato) |

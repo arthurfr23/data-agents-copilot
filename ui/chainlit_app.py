@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -34,6 +35,15 @@ from pathlib import Path
 from typing import Any
 
 import chainlit as cl
+
+# Chainlit chama load_dotenv() ao ser importado e injeta ANTHROPIC_API_KEY no
+# os.environ a partir do .env. Isso força o subprocess `claude` (do SDK) a usar
+# a chave de API em vez do OAuth do Claude Code — quebrando o fluxo quando a
+# chave pertence a uma org sem saldo. Removemos aqui para que o CLI caia no
+# OAuth, igual ao main.py (que não importa chainlit).
+os.environ.pop("ANTHROPIC_API_KEY", None)
+os.environ.pop("ANTHROPIC_BASE_URL", None)
+
 from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
@@ -81,7 +91,7 @@ Plataformas alvo: Databricks (Unity Catalog, DLT, LakeFlow) + Microsoft Fabric.
 - hooks/               — PreToolUse / PostToolUse hooks
 - kb/                  — Knowledge Bases por domínio
 - tests/               — pytest (mínimo 80% cobertura)
-- ui/chat.py           — interface Streamlit atual
+- ui/chainlit_app.py   — interface Chainlit atual
 
 ## Papel
 Assistente de desenvolvimento para tarefas no próprio projeto:

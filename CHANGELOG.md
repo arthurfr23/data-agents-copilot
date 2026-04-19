@@ -7,6 +7,98 @@
 
 ## [Unreleased]
 
+### Removed
+
+- **Interface Streamlit de chat** (T5.4): `ui/chat.py` (964 LOC) removido.
+  Chainlit (`ui/chainlit_app.py`) é agora a única UI de chat, ativada por
+  `./start.sh` na porta 8503. Streamlit continua como dependência do
+  dashboard de monitoramento (`monitoring/app.py`, porta 8501) e foi
+  removido dos extras `[ui]` em `pyproject.toml` — permanece só em
+  `[monitoring]`. Arquivos ajustados: `start.sh` (flag `--chainlit`
+  removida, porta padrão 8503), `start_chainlit.sh`, `README.md`,
+  `.claude/CLAUDE.md`, `Manual_Relatorio_Tecnico_Projeto_Data_Agents.md`,
+  `commands/geral.py` (docstring), `main.py` (comentário),
+  `ui/chainlit_app.py` (prompt do Dev Assistant), `ui/ui_config.py`
+  (constantes `COMMANDS_NO_ARGS` e `STREAMLIT_CSS` removidas),
+  `tests/test_functional.py` (removida a parametrização de `ui/chat.py`
+  em `TestDOMARenamingNoBMADInCode` e o teste `test_chat_uses_doma_prompt`).
+
+### Changed
+
+- **`scripts/refresh_skills.py` migrado para Anthropic Batch API** (T5.2):
+  todas as skills pendentes de refresh agora são submetidas em um único
+  batch via `client.messages.batches.create()`, com 50% de desconto sobre
+  input+output. O script faz polling a cada 10s (SLA máximo 24h, batches
+  pequenos concluem em minutos) e escreve cada SKILL.md conforme os
+  resultados retornam. Flag `--concurrent` removida (paralelismo é
+  servidor-side). Custo estimado por rodada cai de `~$1-3` para `~$0.50-1.50`.
+  20 testes novos em `tests/test_refresh_skills_batch.py` mockam o ciclo
+  `create → retrieve → results` e cobrem custo, submissão única,
+  propagação de erros e curto-circuito em `--dry-run`.
+
+- **Skills migradas para o formato nativo Anthropic** (T5.3): cinco skills
+  canônicas que viviam como arquivos flat em `skills/*.md` agora residem em
+  `skills/patterns/<name>/SKILL.md` com frontmatter YAML (`name` +
+  `description`):
+  - `data_quality.md` → `patterns/data-quality/SKILL.md`
+  - `pipeline_design.md` → `patterns/pipeline-design/SKILL.md`
+  - `sql_generation.md` → `patterns/sql-generation/SKILL.md`
+  - `spark_patterns.md` → `patterns/spark-patterns/SKILL.md`
+  - `star_schema_design.md` → `patterns/star-schema-design/SKILL.md`
+
+  `agents/loader.py::_load_skills_index` deixou de ter o branch especial
+  `"root"` e usa `description` do frontmatter como hint (antes inferia a
+  primeira linha do corpo). 8 agentes tiveram `skill_domains: [..., root]`
+  atualizados para `[..., patterns]`; 25 testes novos em
+  `tests/test_native_skills.py` cobrem descoberta e injeção.
+
+### Added
+
+- **Página "🔭 Observabilidade"** em `monitoring/app.py` (T6.5): nova
+  página do dashboard com 4 tabs — (1) **Custo por agente**: agrega
+  `logs/sessions.jsonl` via mapa `session_type → agente`, soma
+  `total_cost_usd` / `num_turns`, complementa com delegações reais do
+  Supervisor a partir de `logs/workflows.jsonl` (event `agent_delegation`);
+  (2) **Latência**: p50/p95/max/mean por agente em ms (filtra
+  `duration_s > 0`); (3) **Erros por MCP**: taxa de erro por `platform`
+  vindo de `logs/audit.jsonl` (`has_error=true`) com
+  `st.column_config.ProgressColumn` + drill-down dos últimos 50 erros,
+  mais erros de sessão (`sessions.jsonl.has_error`); (4) **Cache hit
+  rate**: empty state gated em T2.5/SDK #626 que auto-ativa quando
+  `cache_read_tokens` aparecer nos registros. Respeita o filtro de data
+  da sidebar já existente.
+- **`PRODUCT.md`** na raiz: tese de produto em uma página — ICP, JTBD,
+  diferencial vs alternativas (Genie nativo, Copilot Fabric, dbt AI,
+  LangChain, ChatGPT/Claude direto) e anti-escopo explícito.
+- **`make bootstrap`** (`scripts/bootstrap.py`): wizard interativo que
+  gera um `.env` mínimo a partir de 3 perguntas (Anthropic + Databricks
+  opcional + Fabric opcional). Sem dependências extras; cross-platform.
+  Defaults de sistema (DEFAULT_MODEL, MAX_BUDGET_USD, memória) vêm
+  pré-configurados.
+- **`make demo`** (`scripts/demo.py`): smoke test end-to-end chamando
+  `commands/geral.run_geral_query` direto (Haiku 4.5, zero MCP, zero
+  Supervisor). Custo ~$0.005 por execução. Valida que o sistema
+  funciona antes de configurar Databricks/Fabric.
+- **8 testes** em `tests/test_bootstrap.py` para `_render_env` e
+  `_validate_anthropic_key` (funções puras do wizard).
+- **`make evals`** (`evals/runner.py` + `evals/canonical_queries.yaml`):
+  framework de regressão v1 com 15 queries canônicas e rubric
+  determinística (`must_include`, `must_not_include`, `min_length`,
+  `max_length`). Score 1.0 / 0.5 / 0.0 por query; exit 0 se tudo passa.
+  Executa via `run_geral_query` (Haiku 4.5, ~$0.005 por query =
+  ~$0.08 por rodada completa). Resultados persistidos em
+  `logs/evals/<timestamp>.jsonl`. Filtros CLI: `--domain`, `--id`,
+  `--limit`. **18 testes** em `tests/test_evals.py` cobrindo
+  loader, scoring e filtros.
+
+### Fixed
+
+- `README.md`: removidas referências ao agente `skill-updater` (removido em
+  T3.6 do Sprint 3). Refresh de Skills é agora `scripts/refresh_skills.py`.
+- `.github/workflows/cd.yml`: removido trigger por tag (`push: tags: v*`);
+  deploy exclusivamente via `workflow_dispatch` manual. Evita falhas de CD
+  por secrets intencionalmente não configurados.
+
 ### Gated (aguardando telemetria)
 
 - **T1.7** — Decidir Caminho A vs B da memória (`logs/memory_usage.jsonl` 24-72h).
@@ -15,8 +107,15 @@
 
 ### Backlog
 
-- **T0.2.1** — Abrir issue no `anthropics/claude-agent-sdk-python` pedindo
-  passthrough de `extra_headers` para `anthropic-beta: token-efficient-tools-2025-02-19`.
+- ~~**T0.2.1**~~ — Issue aberta em
+  [`anthropics/claude-agent-sdk-python#845`](https://github.com/anthropics/claude-agent-sdk-python/issues/845)
+  pedindo passthrough de `extra_headers` (ou relaxar `SdkBeta`) para
+  opt-in em `anthropic-beta: token-efficient-tools-2025-02-19` (~10-14%
+  menos output tokens em workloads de tool use).
+- **T5.1** — Prompt caching explícito no Supervisor. **Confirmado bloqueado em
+  SDK 0.1.63**: `SdkBeta` aceita apenas `context-1m-2025-08-07`, sem campo
+  `cache_control` nem `extra_headers`. Issue #626 (upstream) segue aberta.
+  Caching implícito via `agents/cache_prefix.md` byte-idêntico continua ativo.
 
 ---
 
