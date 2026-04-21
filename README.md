@@ -207,6 +207,7 @@ O sistema conecta diretamente às plataformas via Model Context Protocol (MCP):
 | `databricks` | Databricks | SQL, listagem de tabelas, clusters, jobs, model serving |
 | `databricks_genie` | Databricks Genie | Conversational BI, espaços Genie |
 | `fabric` | Microsoft Fabric | REST API, workspaces, itens, pipelines |
+| `fabric_official` | Microsoft Fabric (OneLake) | OneLake file ops — upload/download/list/delete — e API specs oficiais (npx `@microsoft/fabric-mcp`, auth via `az login`) |
 | `fabric_sql` | Fabric SQL Analytics | Queries diretas ao Lakehouse via TDS (resolve limitação do schema `dbo` da REST API) |
 | `fabric_rti` | Fabric RTI | KQL, Kusto, Real-Time Intelligence |
 | `fabric_community` | Fabric | Linhagem de dados, dependências entre itens |
@@ -311,6 +312,8 @@ make health-fabric
 | `CONSOLE_LOG_LEVEL` | WARNING | Nível de log no terminal (WARNING oculta logs operacionais) |
 | `SKILL_REFRESH_INTERVAL_DAYS` | 3 | Intervalo de refresh das Skills |
 | `AGENT_PERMISSION_MODE` | `bypassPermissions` | `acceptEdits` para pedir confirmação antes de writes |
+| `SIFTOOLS_PRUNING_ENABLED` | `false` | Pruning semântico das tools MCP por agente via embeddings locais (zero LLM cost). Requer artifact `.cache/siftools/tools.json` — gerar com `python -m agents.siftools_integration rebuild` |
+| `SIFTOOLS_TOP_K` | `15` | Número máximo de tools mantidas por agente quando o pruning está ativo |
 
 ---
 
