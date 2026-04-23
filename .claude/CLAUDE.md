@@ -379,3 +379,255 @@ POSTGRES_URL=postgresql://...     # banco PostgreSQL
 
 # context7 e memory_mcp: sem credenciais, ativos automaticamente
 ```
+
+---
+
+## Mapa Completo de Arquivos e Módulos
+
+> Use esta seção como guia de navegação. Antes de qualquer tarefa que envolva código,
+> leia os arquivos relevantes listados abaixo. Para uma varredura total do projeto,
+> execute o slash command `/analyze-project`.
+
+### Raiz do Projeto
+
+| Arquivo | Propósito |
+|---------|-----------|
+| `main.py` | Entry point CLI — inicializa Supervisor, lida com args, gerencia sessão e loop |
+| `start.sh` / `start_chainlit.sh` | Scripts que sobem Chainlit + processo de monitoramento |
+| `pyproject.toml` | Dependências, extras `[dev]` `[ui]` `[monitoring]`, config ruff/mypy/pytest |
+| `Makefile` | Targets: `test`, `lint`, `format`, `type-check`, `health-databricks`, `health-fabric` |
+| `chainlit.md` | Página de boas-vindas do Chat UI (Chainlit) |
+| `databricks.yml` | Bundle config para Databricks Asset Bundles (DAB) |
+| `.env.example` | Template de variáveis de ambiente |
+| `.mcp.json` | MCP servers para uso direto no Claude Code Desktop |
+| `.pre-commit-config.yaml` | Hooks de pre-commit: ruff, mypy, pytest smoke |
+| `README.md` | Documentação pública com badges, quickstart e overview |
+| `PRODUCT.md` | Visão de produto, roadmap e decisões estratégicas |
+| `CHANGELOG.md` | Histórico de versões e mudanças |
+
+### agents/ — Orquestração e Carregamento
+
+| Arquivo | Classes / Funções chave | Propósito |
+|---------|------------------------|-----------|
+| `loader.py` | `AgentMeta`, `preload_registry()`, `load_agent()`, `load_all_agents()`, `inject_memory_context()`, `MCP_TOOL_SETS` | Carrega `.md` do registry, resolve aliases, injeta KB + Skills + cache prefix |
+| `supervisor.py` | `build_supervisor_options()` | Monta `ClaudeAgentOptions` com agentes + hooks + MCPs + thinking config |
+| `delegation.py` | `DelegationRouter`, `route_to_agent()` | Roteamento declarativo de delegações |
+| `delegation_map.yaml` | — | YAML: padrões de intent → agente alvo |
+| `mlflow_wrapper.py` | `MLflowAgentWrapper` | Wrapper para logging de experimentos com MLflow |
+| `siftools_integration.py` | `is_enabled()`, `prune_agent_tools()` | Pruning semântico opcional do tool set |
+| `cache_prefix.md` | — | Prefixo byte-idêntico injetado em TODOS os agentes (prompt caching -40% custo) |
+| `prompts/supervisor_prompt.py` | `SUPERVISOR_SYSTEM_PROMPT` | System prompt do Supervisor: regras, tiers, delegação |
+| `registry/*.md` | Frontmatter YAML + corpo Markdown | Definição declarativa de cada agente |
+| `registry/_template.md` | — | Template para criar novos agentes |
+
+**13 agentes no registry:** `business-analyst`, `business-monitor`, `data-quality-steward`,
+`dbt-expert`, `geral`, `governance-auditor`, `migration-expert`, `pipeline-architect`,
+`python-expert`, `semantic-modeler`, `spark-expert`, `sql-expert`.
+
+### config/ — Configuração Central
+
+| Arquivo | Classes / Funções chave | Propósito |
+|---------|------------------------|-----------|
+| `settings.py` | `Settings(BaseSettings)`, `validate_platform_credentials()`, `startup_diagnostics()` | Todas as credenciais, tier maps, feature flags via Pydantic |
+| `mcp_servers.py` | `ALL_MCP_CONFIGS`, `ALWAYS_ACTIVE_MCPS`, `build_mcp_registry()` | Registry de todos os MCP servers; detecta quais têm credenciais |
+| `commands.yaml` | — | Mapeamento slash commands → handlers Python |
+| `exceptions.py` | `DataAgentsError`, `MCPConnectionError`, `AgentDelegationError` | Hierarquia de exceções |
+| `logging_config.py` | `setup_logging()` | structlog JSONL → `logs/app.jsonl` |
+| `snapshot.py` | `ConfigSnapshot`, `save_snapshot()`, `load_snapshot()` | Estado de configuração entre sessões |
+
+**Campos críticos em `Settings`:** `default_model`, `tier_model_map`, `tier_turns_map`,
+`tier_effort_map`, `max_turns`, `max_budget_usd`, `agent_permission_mode`,
+`memory_enabled`, `memory_retrieval_enabled`, `memory_capture_enabled`,
+`inject_kb_index`, `siftools_pruning_enabled`.
+
+### mcp_servers/ — Servidores MCP
+
+Cada subdiretório: `__init__.py` + `server_config.py` (+ `server.py` para MCPs customizados).
+
+| Diretório | Tipo | Ferramentas representativas |
+|-----------|------|-----------------------------|
+| `databricks/` | Oficial (uvx) | `execute_sql`, `list_catalogs`, `create_job`, `get_cluster` — 50+ tools |
+| `databricks_genie/` | Customizado (Python FastAPI-MCP) | `create_space`, `ask_question`, `get_conversation` |
+| `fabric/` | Oficial (dotnet) | Workspace, Lakehouse, Pipeline, Semantic Model ops |
+| `fabric_rti/` | Oficial (uvx) | KQL/Kusto queries em Real-Time Intelligence |
+| `fabric_sql/` | Customizado (Python pyodbc) | SQL Analytics Endpoint via TDS |
+| `fabric_semantic/` | Customizado (Python) | Introspecção TMDL, DAX INFO functions, RLS |
+| `context7/` | Público (npx) | `resolve-library-id`, `get-library-docs` — sem credenciais |
+| `tavily/` | Público (uvx) | `tavily-search`, `tavily-extract` |
+| `github/` | Público (uvx) | Repos, issues, PRs, commits |
+| `firecrawl/` | Público (uvx) | Scrape, crawl, search, extract |
+| `postgres/` | Público (npx) | Queries SELECT readonly |
+| `memory_mcp/` | Público (npx) | Knowledge graph persistente — sem credenciais |
+| `migration_source/` | Customizado (Python) | DDL + schema extraction de SQL Server/PostgreSQL |
+
+### hooks/ — Interceptadores de Tool Calls
+
+| Arquivo | Tipo | Função principal | Comportamento |
+|---------|------|-----------------|---------------|
+| `security_hook.py` | PreToolUse | `block_destructive_commands()` | Bloqueia 22 padrões (rm -rf, DROP TABLE, git reset --hard, etc.) |
+| `security_hook.py` | PreToolUse | `check_sql_cost()` | Detecta SELECT * sem WHERE/LIMIT em qualquer tool |
+| `audit_hook.py` | PostToolUse | `audit_tool_usage()` | Loga em `logs/audit.jsonl`: agente, tool, status, duração |
+| `cost_guard_hook.py` | PostToolUse | `log_cost_generating_operations()` | HIGH/MEDIUM/LOW; alerta após 5 HIGH consecutivos |
+| `output_compressor_hook.py` | PostToolUse | `compress_tool_output()` | Reduz outputs acima do threshold antes de enviar ao modelo |
+| `workflow_tracker.py` | Pre+Post | `pre_track_workflow_events()`, `track_workflow_events()` | Rastreia delegações, Clarity Checkpoint, progress callbacks |
+| `memory_hook.py` | PostToolUse | `capture_session_context()` | Acumula fatos da sessão; flush ao encerrar |
+| `context_budget_hook.py` | PostToolUse | `track_context_budget()` | Avisa a 80% e ERROR a 95% do context window |
+| `session_logger.py` | PostToolUse | `log_session_metrics()` | Custo, turns, duração por sessão em `logs/sessions.jsonl` |
+| `session_lifecycle.py` | SessionStart/End | `on_session_start()`, `on_session_end()` | Injeta memórias no início; config snapshot; flush ao encerrar |
+| `checkpoint.py` | — | `save_checkpoint()`, `load_checkpoint()` | Serializa/restaura estado da sessão |
+| `transcript_hook.py` | PostToolUse | `save_transcript()` | Persiste transcript em `logs/sessions/<id>.jsonl` |
+
+### memory/ — Memória Episódica (Layer 1)
+
+| Arquivo | Classes / Funções chave | Propósito |
+|---------|------------------------|-----------|
+| `store.py` | `MemoryStore`, `save()`, `list_all()`, `get()` | Persistência de memórias em JSON |
+| `retrieval.py` | `retrieve_relevant_memories()`, `format_memories_for_injection()` | Busca semântica via Sonnet lateral |
+| `extractor.py` | `extract_facts_from_session()` | Extrai fatos estruturados do transcript |
+| `compiler.py` | `compile_memories()` | Consolida e deduplica memórias |
+| `decay.py` | `apply_decay()` | Reduz peso de memórias antigas (temporal decay) |
+| `types.py` | `Memory`, `MemoryStore`, `MemoryFact` | Dataclasses e tipos do sistema |
+| `telemetry.py` | `log_memory_event()` | Métricas de uso da memória |
+| `lint.py` | `lint_memories()` | Valida integridade das memórias salvas |
+
+### commands/ — Handlers de Slash Commands
+
+| Arquivo | Handler | Slash Command |
+|---------|---------|---------------|
+| `parser.py` | `parse_command()`, `CommandRegistry` | Parsing genérico de qualquer `/comando <args>` |
+| `geral.py` | `handle_geral()` | `/geral` — resposta direta sem Supervisor (~95% mais barato) |
+| `monitor.py` | `handle_monitor()` | `/monitor` — Q&A sobre alertas do daemon |
+| `party.py` | `handle_party()` | `/party` — multi-agente paralelo com flags: --quality, --arch, --engineering, --full |
+| `sessions.py` | `handle_sessions()`, `handle_resume()` | `/sessions` + `/resume` — listagem e retomada |
+| `workflow.py` | `handle_workflow()` | `/workflow` — executa workflows WF-01 a WF-05 |
+
+### compression/ — Compressão de Outputs de Tool
+
+| Arquivo | Classes / Funções chave | Propósito |
+|---------|------------------------|-----------|
+| `hook.py` | `compress_tool_output()` | Hook que detecta e comprime outputs grandes |
+| `strategies.py` | `TruncationStrategy`, `SummaryStrategy`, `JSONPruningStrategy` | Estratégias por tipo de output |
+| `metrics.py` | `CompressionMetrics`, `log_compression_event()` | Métricas de compressão |
+| `constants.py` | `MAX_OUTPUT_TOKENS`, `COMPRESSION_THRESHOLD` | Limites e thresholds |
+
+### workflow/ — Workflows Colaborativos (WF-01 a WF-05)
+
+| Arquivo | Classes / Funções chave | Propósito |
+|---------|------------------------|-----------|
+| `dag.py` | `WorkflowDAG`, `WorkflowStep`, `build_dag()` | Grafo acíclico de dependências entre steps |
+| `executor.py` | `WorkflowExecutor`, `execute_workflow()` | Executa steps com context chain entre agentes |
+| `tracker.py` | `WorkflowTracker`, `log_step()` | Rastreia execução em `logs/workflows.jsonl` |
+
+### ui/ — Interface Web (Chainlit)
+
+| Arquivo | Funções chave | Propósito |
+|---------|--------------|-----------|
+| `chainlit_app.py` | `@cl.on_chat_start`, `@cl.on_message` | App principal: sessão, streaming, slash commands na UI |
+| `ui_config.py` | `UIConfig`, `THEME`, `AVATAR_MAP` | Tema, avatares por agente, labels |
+| `exporter.py` | `export_session()`, `to_markdown()`, `to_html()` | Exporta sessão para download |
+
+### utils/ — Utilitários Compartilhados
+
+| Arquivo | Funções chave | Propósito |
+|---------|--------------|-----------|
+| `frontmatter.py` | `parse_yaml_frontmatter()` | Parser de YAML frontmatter dos `.md` dos agentes |
+| `tokenizer.py` | `count_tokens()`, `estimate_cost()` | Contagem de tokens e estimativa de custo |
+| `summarizer.py` | `summarize_text()` | Sumarização via Haiku para compressão de contexto |
+| `monitor_alerter.py` | `send_alert()`, `AlertChannel` | Envio de alertas do daemon de monitoramento |
+
+### tests/ — Cobertura de Testes (mínimo 80%)
+
+| Arquivo de Teste | O que cobre |
+|-----------------|-------------|
+| `test_agents.py` | Carregamento de agentes, campos obrigatórios, model routing por tier |
+| `test_supervisor.py` | Build de ClaudeAgentOptions, hooks registrados, MCP registry |
+| `test_hooks.py` | Security (22 padrões), audit, cost guard, output compressor |
+| `test_settings.py` | Credenciais, CREDENTIAL_FREE_MCPS, tier maps |
+| `test_mcp_configs.py` | Formato de configuração de todos os MCPs |
+| `test_memory_store.py` | Persistência de memórias |
+| `test_memory_retrieval.py` | Busca semântica de memórias |
+| `test_memory_decay.py` | Temporal decay de memórias |
+| `test_memory_extractor.py` | Extração de fatos do transcript |
+| `test_memory_compiler.py` | Consolidação e deduplicação |
+| `test_memory_lint.py` | Validação de integridade |
+| `test_commands.py` | Parser e handlers de slash commands |
+| `test_workflow.py` | DAG, executor, tracker |
+| `test_functional.py` | Integração end-to-end (smoke tests) |
+| `test_delegation.py` | Roteamento declarativo de delegações |
+| `test_checkpoint.py` | Save/restore de sessão |
+| `test_sessions_command.py` | Listagem e retomada de sessões |
+| `test_agent_preload.py` | Fase rápida de preload (AgentMeta) |
+| `test_*_server.py` | MCPs customizados: genie, fabric_sql, fabric_semantic, migration_source |
+
+### kb/ — Knowledge Bases
+
+Estrutura: `kb/<domain>/index.md` + `concepts/*.md` + `patterns/*.md`
+
+| Domínio | Conteúdo |
+|---------|---------|
+| `databricks/` | Unity Catalog, Delta Lake, Jobs, Compute, AI/ML |
+| `fabric/` | Lakehouse, RTI, Direct Lake, cross-platform |
+| `data-quality/` | Expectations, profiling, drift detection, SLA |
+| `governance/` | Acesso, auditoria, compliance LGPD, linhagem, PII |
+| `pipeline-design/` | Medallion, ETL/ELT, orquestração multi-plataforma |
+| `spark-patterns/` | Delta Lake, streaming, performance, SDP rules, LakeFlow |
+| `sql-patterns/` | DDL, dialetos, star schema, query optimization |
+| `semantic-modeling/` | DAX, Direct Lake, Metric Views, modelos semânticos |
+| `python-patterns/` | Concorrência, type system, testing, APIs, CLI, packaging |
+| `migration/` | Guias SQL Server/PostgreSQL → Databricks/Fabric |
+| `constitution.md` | Regras invioláveis S1–S7 |
+| `shared/anti-patterns.md` | Anti-padrões a evitar em todo o sistema |
+
+### skills/ — Skills Operacionais (playbooks para os agentes)
+
+| Domínio | Skills (SKILL.md) disponíveis |
+|---------|-----------------------------|
+| `databricks/` | agent-bricks, ai-functions, aibi-dashboards, app-python, bundles, config, dbsql, docs, execution-compute, genie, iceberg, jobs, lakebase-autoscale, lakebase-provisioned, metric-views, mlflow-evaluation, model-serving, python-sdk, spark-declarative-pipelines, spark-structured-streaming, synthetic-data-gen, unity-catalog, unstructured-pdf-generation, vector-search, zerobus-ingest, spark-python-data-source |
+| `fabric/` | cross-platform, data-factory, deployment-pipelines, direct-lake, eventhouse-rti, git-integration, medallion, monitoring-dmv, notebook-manager, workspace-manager |
+| `migration/` | Skill completa de assessment e migração |
+| `patterns/` | data-quality, pipeline-design, spark-patterns, sql-generation, star-schema-design |
+| `python/` | fastapi-patterns, pandas-polars-patterns, pytest-patterns, python-packaging |
+
+---
+
+## Fluxo de Dados — Como uma Query Percorre o Sistema
+
+```
+1. Usuário → main.py ou chainlit_app.py
+2. inject_memory_context() enriquece system prompt com memórias relevantes
+3. Supervisor recebe query + contexto de memória
+4. Supervisor lê kb/ e avalia Clarity Checkpoint (mínimo 3/5)
+5. Supervisor delega ao agente via tool Agent()
+6. Hooks PreToolUse: security → sql_cost check
+7. Agente especialista executa com seus MCPs
+8. Hooks PostToolUse: audit → cost_guard → workflow_tracker → memory → context_budget → compress
+9. Resposta retorna ao Supervisor, que sintetiza para o usuário
+10. session_lifecycle.on_session_end(): flush memória + config snapshot
+```
+
+---
+
+## Anti-Padrões de Código — NUNCA Fazer
+
+```python
+# ❌ Import global de settings (causa circular import)
+from config.settings import settings  # no topo do módulo
+
+# ✅ Import local dentro da função
+def get_config():
+    from config.settings import settings
+    return settings.value
+
+# ❌ Caminho relativo (falha quando cwd ≠ raiz do projeto)
+Path("output/meu.md").write_text("...")
+
+# ✅ Caminho absoluto
+project_root = Path(__file__).parent.parent
+(project_root / "output/meu.md").write_text("...")
+
+# ❌ cache_prefix.md com conteúdo dinâmico (invalida prompt cache)
+# agents/cache_prefix.md NUNCA deve conter timestamps, IDs ou estados variáveis
+
+# ❌ Supervisor executando SQL/PySpark/MCP diretamente (viola S1, S2)
+# Sempre delegar ao agente especialista correto
+```
