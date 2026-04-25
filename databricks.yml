@@ -1,0 +1,40 @@
+bundle:
+  name: arthur-data-agents
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    default: main
+  schema:
+    default: data_agents
+  warehouse_id:
+    lookup:
+      warehouse: "Shared SQL Warehouse"
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      profile: dev-profile
+    variables:
+      catalog: dev_catalog
+      schema: data_agents_dev
+
+  staging:
+    mode: development
+    workspace:
+      profile: staging-profile
+    variables:
+      catalog: staging_catalog
+      schema: data_agents_staging
+
+  prod:
+    mode: production
+    workspace:
+      profile: prod-profile
+    variables:
+      catalog: prod_catalog
+      schema: data_agents_prod
