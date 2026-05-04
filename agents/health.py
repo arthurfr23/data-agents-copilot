@@ -55,18 +55,13 @@ def _check_copilot(settings: Any) -> str:
 
 def _check_databricks(settings: Any) -> str:
     if not settings.has_databricks():
-        raise _HealthWarning("DATABRICKS_HOST / DATABRICKS_TOKEN ausentes")
-    url = f"{settings.databricks_host}/api/2.0/clusters/list"
-    req = urllib.request.Request(
-        url,
-        headers={"Authorization": f"Bearer {settings.databricks_token}"},
-    )
+        raise _HealthWarning("DATABRICKS_HOST / credenciais ausentes")
     try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT):
-            pass
-    except urllib.error.HTTPError as e:
-        if e.code in (401, 403):
-            return f"Databricks reachable (HTTP {e.code} — token inválido)"
+        list(settings.databricks_client.clusters.list())
+    except Exception as e:
+        msg = str(e)
+        if "401" in msg or "403" in msg:
+            raise _HealthWarning(f"Databricks reachable mas auth falhou: {msg[:100]}")
         raise
     return f"Databricks reachable ({settings.databricks_host})"
 

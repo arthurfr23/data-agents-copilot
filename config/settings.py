@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     # ── Databricks ──────────────────────────────────────────────────────────
     databricks_host: str = Field("", alias="DATABRICKS_HOST")
     databricks_token: str = Field("", alias="DATABRICKS_TOKEN")
+    databricks_client_id: str = Field("", alias="DATABRICKS_CLIENT_ID")
+    databricks_client_secret: str = Field("", alias="DATABRICKS_CLIENT_SECRET")
     databricks_sql_warehouse_id: str = Field("", alias="DATABRICKS_SQL_WAREHOUSE_ID")
     databricks_catalog: str = Field("main", alias="DATABRICKS_CATALOG")
     databricks_schema: str = Field("default", alias="DATABRICKS_SCHEMA")
@@ -109,10 +111,23 @@ class Settings(BaseSettings):
     def has_databricks(self) -> bool:
         host = self.databricks_host or ""
         token = self.databricks_token or ""
-        # Rejeita placeholders do .env de exemplo
+        client_id = self.databricks_client_id or ""
         if "workspace-name" in host or "xxx" in token.lower():
             return False
-        return bool(host and token)
+        return bool(host) and bool(token or (client_id and self.databricks_client_secret))
+
+    @cached_property
+    def databricks_client(self):
+        from databricks.sdk import WorkspaceClient
+        kwargs = {}
+        if self.databricks_host:
+            kwargs["host"] = self.databricks_host
+        if self.databricks_token:
+            kwargs["token"] = self.databricks_token
+        elif self.databricks_client_id and self.databricks_client_secret:
+            kwargs["client_id"] = self.databricks_client_id
+            kwargs["client_secret"] = self.databricks_client_secret
+        return WorkspaceClient(**kwargs)
 
     def has_fabric(self) -> bool:
         workspace = self.fabric_workspace_id or ""
