@@ -1,7 +1,6 @@
 ---
 name: geral
 tier: T3
-model: gpt-4.1-mini
 skills: []
 mcps: []
 description: "Respostas conceituais diretas sem MCP. ~95% mais barato. Use para perguntas como: O que é Delta Lake? Como funciona SCD Tipo 2?"

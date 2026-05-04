@@ -1,9 +1,8 @@
 ---
 name: devops_engineer
 tier: T2
-model: gpt-4.1
 skills: [databricks-asset-bundles, databricks-ci-integration]
-mcps: [databricks]
+mcps: [databricks, filesystem, git]
 description: "CI/CD para Databricks (DABs, Azure DevOps) e Fabric (Git integration, REST API). branch strategy, SP setup, bundle.yml."
 kb_domains: [ci-cd, databricks-platform]
 stop_conditions:

@@ -48,12 +48,15 @@ venv.bak/
 .env.*.local
 
 # Project
-output/prd/
+output/
 logs/
 *.log
 .cache/
+memory/data/progress/
+memory/data/architecture/
 
 # Databricks
+.databricks/
 .databricks_token
 *.tfstate*
 .terraform/

@@ -1,7 +1,6 @@
 ---
 name: naming_guard
 tier: T2
-model: gpt-4.1
 skills: [sql-optimizer, schema-validator]
 mcps: [databricks]
 description: "Audita convenções de nomenclatura no Unity Catalog, valida CREATE TABLE e gera sugestões de rename padronizadas."

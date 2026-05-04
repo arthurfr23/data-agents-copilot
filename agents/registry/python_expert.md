@@ -3,7 +3,7 @@ name: python_expert
 tier: T1
 model: claude-sonnet-4-6
 skills: [python-expert]
-mcps: []
+mcps: [filesystem, git]
 description: "Python puro: pacotes, automação, APIs, CLIs, testes, type hints, pandas, polars, PEP 8."
 kb_domains: [prompt-engineering, testing, shared]
 stop_conditions:

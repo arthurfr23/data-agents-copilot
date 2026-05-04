@@ -99,7 +99,8 @@ def test_run_returns_direct_response():
     with patch("agents.base.settings") as mock_settings:
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_resp
-        mock_settings.copilot_client = mock_client
+        mock_settings.llm_client = mock_client
+        mock_settings.anthropic_api_key = ""
         mock_settings.model_for_tier.return_value = "gpt-4o"
         mock_settings.turns_for_tier.return_value = 5
 
@@ -124,7 +125,8 @@ def test_run_with_context_adds_message():
     with patch("agents.base.settings") as mock_settings:
         mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = capture_create
-        mock_settings.copilot_client = mock_client
+        mock_settings.llm_client = mock_client
+        mock_settings.anthropic_api_key = ""
         mock_settings.model_for_tier.return_value = "gpt-4o"
         mock_settings.turns_for_tier.return_value = 5
 
@@ -135,8 +137,10 @@ def test_run_with_context_adds_message():
     messages = calls[0]
     roles = [m["role"] for m in messages]
     assert "system" in roles
-    assert roles.count("user") == 2
-    assert any("contexto extra" in str(m.get("content", "")) for m in messages)
+    assert roles.count("user") == 1
+    # context foi movido para o system prompt
+    system_content = next(m["content"] for m in messages if m["role"] == "system")
+    assert "contexto extra" in system_content
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +173,8 @@ def test_run_handles_tool_call_then_finish():
          patch("agents.base.BaseAgent._dispatch_tool", return_value="[catalogs]") as mock_dispatch:
         mock_client = MagicMock()
         mock_client.chat.completions.create.side_effect = [resp1, resp2]
-        mock_settings.copilot_client = mock_client
+        mock_settings.llm_client = mock_client
+        mock_settings.anthropic_api_key = ""
         mock_settings.model_for_tier.return_value = "gpt-4o"
         mock_settings.turns_for_tier.return_value = 5
 
@@ -207,7 +212,8 @@ def test_run_respects_max_turns():
          patch("agents.base.BaseAgent._dispatch_tool", return_value="ok"):
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = resp
-        mock_settings.copilot_client = mock_client
+        mock_settings.llm_client = mock_client
+        mock_settings.anthropic_api_key = ""
         mock_settings.model_for_tier.return_value = "gpt-4o"
         mock_settings.turns_for_tier.return_value = 2
 

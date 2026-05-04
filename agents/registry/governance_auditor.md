@@ -1,7 +1,6 @@
 ---
 name: governance_auditor
 tier: T2
-model: gpt-4.1
 skills: [pipeline-reviewer]
 mcps: [databricks, fabric]
 description: "Auditoria de acessos, linhagem, PII/LGPD, Unity Catalog, Purview, naming compliance."

@@ -1,7 +1,6 @@
 ---
 name: dbt_expert
 tier: T2
-model: gpt-4.1
 skills: [data-engineer]
 mcps: [databricks, fabric]
 description: "dbt Core: models, testes, snapshots, seeds, sources, docs YAML, macros Jinja, dbt-databricks, dbt-fabric."

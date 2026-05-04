@@ -140,6 +140,12 @@ class Supervisor:
             self._post_process(user_input, result, agent_name="naming_guard")
             return _compress_result(result)
 
+        # 3.5. /plan → delega via PRD ao agente especialista correto
+        if command == "/plan":
+            result = self._plan_and_delegate(task)
+            self._post_process(user_input, result, agent_name="plan")
+            return _compress_result(result)
+
         # 4. Comando explícito (/naming, /sql, /python, /dbt, etc.)
         if command and command in AGENT_COMMANDS:
             agent_name = AGENT_COMMANDS[command]
@@ -346,12 +352,25 @@ class Supervisor:
                 tokens_used=0,
             )
 
+        from config.settings import settings
+
         mem_ctx = self._load_memory_context(task)
+        platform_lines = []
+        if settings.has_fabric():
+            platform_lines.append(f"- Microsoft Fabric (workspace: {settings.fabric_workspace_id})")
+        if settings.has_databricks():
+            platform_lines.append(f"- Databricks (host: {settings.databricks_host})")
+        if not platform_lines:
+            platform_lines.append("- Nenhuma plataforma configurada")
+        platform_ctx = "Plataformas disponíveis neste ambiente:\n" + "\n".join(platform_lines)
+
         prd_prompt = (
             "Crie um PRD conciso para a tarefa abaixo.\n"
             "Retorne APENAS JSON válido no formato:\n"
             '{"agent_name": "<agente>", "prd": "<conteúdo markdown do PRD>"}\n\n'
             f"Agentes válidos: {_PRD_AGENTS.replace('|', ', ')}\n\n"
+            f"{platform_ctx}\n\n"
+            "Escolha o agente e abordagem compatíveis com as plataformas disponíveis acima. "
             "O PRD deve incluir: Objetivo, Entradas esperadas, Saídas esperadas, "
             f"Agente responsável, Riscos.\n\nTarefa: {task}"
         )
@@ -361,12 +380,25 @@ class Supervisor:
         )
         prd_raw = prd_result.content
         try:
+            # Tenta parse direto
             prd_data = json.loads(prd_raw)
+        except (json.JSONDecodeError, AttributeError):
+            # Fallback: extrair JSON de dentro de code blocks ```json ... ```
+            json_block = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", prd_raw, re.DOTALL)
+            if json_block:
+                try:
+                    prd_data = json.loads(json_block.group(1))
+                except (json.JSONDecodeError, AttributeError):
+                    prd_data = None
+            else:
+                prd_data = None
+
+        if prd_data and isinstance(prd_data, dict):
             agent_name = str(prd_data.get("agent_name", "")).lower().strip()
             prd_content = str(prd_data.get("prd", prd_raw))
             if agent_name not in _PRD_AGENTS.split("|"):
                 agent_name = ""
-        except (json.JSONDecodeError, AttributeError):
+        else:
             logger.warning("_plan_and_delegate: JSON inválido no PRD, fallback regex")
             prd_content = prd_raw
             agent_name = ""
@@ -404,15 +436,26 @@ class Supervisor:
 
     def _inject_preflight_context(self, agent_name: str, task: str, kb_ctx: str) -> str:
         """Gera cabeçalho de preflight para injetar no context do agente."""
+        from config.settings import settings
+
         criticality, threshold, confidence, decision = self._assess_confidence(
             task, kb_ctx
         )
         kb_hit = len(kb_ctx.strip()) > 200
+
+        fabric_status = f"ATIVO (workspace: {settings.fabric_workspace_id})" if settings.has_fabric() else "NÃO CONFIGURADO"
+        databricks_status = f"ATIVO (host: {settings.databricks_host})" if settings.has_databricks() else "NÃO CONFIGURADO"
+
         return (
             f"## Supervisor Pre-flight\n"
             f"AGENT: {agent_name} | TYPE: {criticality} | "
             f"CONFIDENCE: {confidence:.2f} | KB_HIT: {kb_hit} | THRESHOLD: {threshold}\n"
-            f"STATUS: {decision} — preencha o Execution Template na sua resposta.\n"
+            f"STATUS: {decision} — preencha o Execution Template na sua resposta.\n\n"
+            f"## Plataformas Configuradas\n"
+            f"- Microsoft Fabric: {fabric_status}\n"
+            f"- Databricks: {databricks_status}\n"
+            f"Use APENAS as plataformas marcadas como ATIVO. "
+            f"Não tente usar ferramentas de plataformas NÃO CONFIGURADAS.\n"
         )
 
     def _check_escalation(self, result: AgentResult, original_task: str) -> AgentResult:
@@ -575,18 +618,70 @@ class Supervisor:
         return "Use estritamente as convenções abaixo:\n\n" + content
 
     def _load_external_context(self, agent_name: str, task: str) -> str:
-        """Injeta contexto de repos externos conforme agente e tarefa.
+        """Injeta contexto de repos externos conforme agente e tarefa."""
+        parts: list[str] = []
 
-        Atualmente:
-          - devops_engineer + task com CI/CD Fabric → scripts do alisonpezzott/fabric-ci-cd
-        """
         if agent_name in ("devops_engineer", "fabric_expert") and _FABRIC_CICD_PATTERN.search(task):
             try:
                 from integrations.github_context import fetch_fabric_cicd_context
-                return fetch_fabric_cicd_context()
+                ctx = fetch_fabric_cicd_context()
+                if ctx:
+                    parts.append(ctx)
             except Exception as exc:
                 logger.debug("fabric-ci-cd context fetch falhou: %s", exc)
-        return ""
+
+        repo_ctx = self._build_repo_context()
+        if repo_ctx:
+            parts.append(repo_ctx)
+
+        return "\n\n".join(parts)
+
+    def _build_repo_context(self) -> str:
+        """Retorna contexto do repositório local (branch, commits, estrutura) se LOCAL_REPO_PATH definido."""
+        from config.settings import settings
+        root = settings.local_repo_path.strip()
+        if not root:
+            return ""
+        repo_path = Path(root)
+        if not repo_path.exists():
+            return ""
+
+        import subprocess
+
+        def _git(args: list[str]) -> str:
+            try:
+                r = subprocess.run(
+                    ["git"] + args, cwd=repo_path,
+                    capture_output=True, text=True, timeout=10,
+                )
+                return r.stdout.strip() if r.returncode == 0 else ""
+            except Exception:
+                return ""
+
+        branch = _git(["rev-parse", "--abbrev-ref", "HEAD"]) or "?"
+        status = _git(["status", "--short", "--branch"])
+        log = _git(["log", "-5", "--oneline", "--decorate"])
+
+        # Estrutura: arquivos tracked (top 40)
+        ls = _git(["ls-files"])
+        tracked = ls.splitlines()[:40] if ls else []
+        structure = "\n  ".join(tracked) if tracked else "(sem arquivos tracked)"
+
+        lines = [
+            "## Repositório Local",
+            f"Path: {root}",
+            f"Branch: {branch}",
+            "",
+            "Status:",
+            status or "(limpo)",
+            "",
+            "Últimos commits:",
+            log or "(sem commits)",
+            "",
+            f"Arquivos tracked ({len(tracked)} mostrados):",
+            "  " + structure,
+        ]
+        return "\n".join(lines)
 
     # ── Memória ─────────────────────────────────────────────────────────────
 
@@ -608,6 +703,9 @@ class Supervisor:
 
     def _save_memory(self, task: str, result_content: str) -> None:
         if not self._memory_enabled:
+            return
+        if "<function_calls>" in result_content or "<invoke " in result_content:
+            logger.debug("_save_memory: conteúdo com fake XML descartado")
             return
         try:
             from memory.extractor import extract_and_save
@@ -734,7 +832,8 @@ class Supervisor:
 # ── Helpers de módulo ────────────────────────────────────────────────────────
 
 def _compress_result(result: AgentResult) -> AgentResult:
-    compressed = compress(result.content)
+    from config.settings import settings
+    compressed = compress(result.content, max_chars=settings.output_max_chars)
     if compressed is result.content:
         return result
     return AgentResult(

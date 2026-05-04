@@ -20,11 +20,11 @@ default_threshold: 0.90
 
 | Variável | Valor |
 |---|---|
-| `workspace_id` | `70283cb8-b750-411c-9d8f-fe2b9217a2f1` |
-| `lakehouse_name` | `dev_lakehouse` |
-| `lakehouse_id` | `bccadc52-6f73-4d80-97a0-74a64933a1ab` |
+| `workspace_id` | Lido de `FABRIC_WORKSPACE_ID` (settings) |
+| `lakehouse_name` | Lido de `FABRIC_LAKEHOUSE_NAME` (settings) |
+| `lakehouse_id` | Lido de `FABRIC_LAKEHOUSE_ID` (settings) |
 
-Use esses valores diretamente em qualquer chamada de tool que exija `workspace_id`, `lakehouse_id` ou `default_lakehouse_id`. Não chame `fabric_list_lakehouses` para descobrir o que já está aqui.
+Use os valores de settings diretamente em qualquer chamada de tool que exija `workspace_id`, `lakehouse_id` ou `default_lakehouse_id`. Não chame `fabric_list_lakehouses` para descobrir o que já está configurado.
 
 ---
 

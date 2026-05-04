@@ -919,7 +919,7 @@ FABRIC_TOOLS: list[dict] = [
                     },
                     "default_lakehouse_id": {
                         "type": "string",
-                        "description": "UUID do lakehouse padrão. OBRIGATÓRIO para que spark.table() resolva corretamente. Ex: 'bccadc52-6f73-4d80-97a0-74a64933a1ab'",
+                        "description": "UUID do lakehouse padrão. OBRIGATÓRIO para que spark.table() resolva corretamente.",
                     },
                     "default_lakehouse_name": {
                         "type": "string",
@@ -966,7 +966,7 @@ FABRIC_TOOLS: list[dict] = [
                     "notebook_id": {"type": "string", "description": "ID do notebook a atualizar"},
                     "default_lakehouse_id": {
                         "type": "string",
-                        "description": "UUID do lakehouse padrão — injeta metadado trident. Ex: 'bccadc52-6f73-4d80-97a0-74a64933a1ab'",
+                        "description": "UUID do lakehouse padrão — injeta metadado trident.",
                     },
                     "default_lakehouse_name": {
                         "type": "string",
@@ -1021,7 +1021,7 @@ FABRIC_TOOLS: list[dict] = [
                     "workspace_id": {"type": "string", "description": "ID do workspace (opcional)"},
                     "lakehouse_id": {
                         "type": "string",
-                        "description": "UUID ou nome do Lakehouse (ex: 'dev_lakehouse' ou 'bccadc52-...')",
+                        "description": "UUID ou nome do Lakehouse (ex: 'meu_lakehouse' ou UUID)",
                     },
                     "path": {
                         "type": "string",
@@ -1096,7 +1096,7 @@ FABRIC_TOOLS: list[dict] = [
                     },
                     "lakehouse_id": {
                         "type": "string",
-                        "description": "UUID ou nome do Lakehouse (ex: 'dev_lakehouse' ou 'bccadc52-...')",
+                        "description": "UUID ou nome do Lakehouse (ex: 'meu_lakehouse' ou UUID)",
                     },
                     "path": {
                         "type": "string",
@@ -1183,10 +1183,12 @@ _DISPATCH_MAP = {
         a.get("recursive", False),
     ),
     "fabric_update_notebook_definition": lambda a: _fabric_update_notebook_definition(
-        a.get("workspace_id", ""),
+        a.get("workspace_id", "") or settings.fabric_workspace_id,
         a["notebook_id"],
         ipynb_content=a.get("ipynb_content", ""),
         cells=a.get("cells"),
+        default_lakehouse_id=a.get("default_lakehouse_id", "") or settings.fabric_lakehouse_id,
+        default_lakehouse_name=a.get("default_lakehouse_name", "") or settings.fabric_lakehouse_name or "dev_lakehouse",
     ),
 }
 

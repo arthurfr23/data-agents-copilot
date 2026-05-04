@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
 
 import questionary
@@ -22,6 +23,7 @@ _AGENT_CHOICES = [
     questionary.Choice("📦  dbt Expert (models, snapshots)", value="/dbt"),
     questionary.Choice("🐍  Python Expert (código, testes)", value="/python"),
     questionary.Choice("🏛️   Fabric Expert (Lakehouse, OneLake)", value="/fabric"),
+    questionary.Choice("🔍  Fabric Assessment (governança, fabricgov)", value="/assessment"),
     questionary.Choice("🏗️   Lakehouse Engineer (implantação, migração)", value="/lakehouse"),
     questionary.Choice("🤖  Databricks AI (MLflow, Genie)", value="/ai"),
     questionary.Choice("⚙️   DevOps Engineer (DABs, CI/CD)", value="/devops"),
@@ -38,69 +40,72 @@ _AGENT_CHOICES = [
 
 
 def run_menu(supervisor) -> None:
-    """Loop principal do menu interativo."""
+    """Menu single-shot: seleciona agente, executa tarefa, retorna."""
+    import datetime
     from hooks import audit_hook, cost_guard_hook, security_hook
 
     _print_header(supervisor)
 
-    while True:
-        choice = questionary.select(
-            "O que você quer fazer?",
-            choices=_AGENT_CHOICES,
-            use_shortcuts=False,
-        ).ask()
+    choice = questionary.select(
+        "O que você quer fazer?",
+        choices=_AGENT_CHOICES,
+        use_shortcuts=False,
+    ).ask()
 
-        if choice is None or choice == "_exit":
-            console.print("\n[dim]Até logo![/dim]")
-            break
+    if choice is None or choice == "_exit":
+        return
 
-        elif choice == "_list":
-            agents = supervisor.list_agents()
-            console.print(Panel(
-                "\n".join(f"  • {a}" for a in sorted(agents)),
-                title="Agentes disponíveis",
-            ))
+    if choice == "_list":
+        agents = supervisor.list_agents()
+        console.print(Panel(
+            "\n".join(f"  • {a}" for a in sorted(agents)),
+            title="Agentes disponíveis",
+        ))
+        return
 
-        elif choice == "_tasks":
-            _show_task_list()
+    if choice == "_tasks":
+        _show_task_list()
+        return
 
-        elif choice == "_file":
-            _run_file_flow(supervisor)
+    if choice == "_file":
+        _run_file_flow(supervisor)
+        return
 
-        elif choice == "/health":
-            from agents.health import run_health_check
-            with console.status("Verificando..."):
-                result = run_health_check()
-            console.print(Markdown(result.content))
+    if choice == "/health":
+        from agents.health import run_health_check
+        with console.status("Verificando..."):
+            result = run_health_check()
+        console.print(Markdown(result.content))
+        return
 
-        else:
-            # Agente direto — pede a tarefa
-            task = questionary.text(
-                f"Tarefa para {choice}:",
-                multiline=False,
-            ).ask()
+    # Agente direto — pede a tarefa
+    task = questionary.text(
+        f"Tarefa para {choice}:",
+        multiline=False,
+    ).ask()
 
-            if not task:
-                continue
+    if not task:
+        return
 
-            user_input = f"{choice} {task}"
-            ok, reason = security_hook.check_input(user_input)
-            if not ok:
-                console.print(f"[red]Bloqueado:[/red] {reason}")
-                continue
+    user_input = f"{choice} {task}"
+    ok, reason = security_hook.check_input(user_input)
+    if not ok:
+        console.print(f"[red]Bloqueado:[/red] {reason}")
+        return
 
-            with console.status("[bold green]Processando..."):
-                result = supervisor.route(user_input)
+    with console.status("[bold green]Processando..."):
+        result = supervisor.route(user_input)
 
-            audit_hook.record(
-                agent="menu",
-                task=user_input,
-                tokens_used=result.tokens_used,
-                tool_calls=result.tool_calls_count,
-            )
-            cost_guard_hook.track("general", result.tokens_used)
-            console.print(Markdown(result.content))
-            _print_token_summary(result)
+    audit_hook.record(
+        agent="menu",
+        task=user_input,
+        tokens_used=result.tokens_used,
+        tool_calls=result.tool_calls_count,
+    )
+    cost_guard_hook.track("general", result.tokens_used)
+    console.print(Markdown(result.content))
+    _print_token_summary(result)
+    _save_session(user_input, result.content)
 
 
 def _run_file_flow(supervisor) -> None:
@@ -164,6 +169,15 @@ def _print_header(supervisor) -> None:
         title="🤖 data-agents-copilot",
         expand=False,
     ))
+
+
+def _save_session(task: str, content: str) -> None:
+    sessions_dir = Path("output/sessions")
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    path = sessions_dir / f"{ts}.md"
+    path.write_text(f"# {task}\n\n{content}\n", encoding="utf-8")
+    console.print(f"[dim]Sessão salva em output/sessions/{ts}.md[/dim]")
 
 
 def _print_token_summary(result) -> None:

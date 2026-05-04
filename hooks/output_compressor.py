@@ -8,23 +8,17 @@ janela de contexto em chamadas subsequentes.
 """
 from __future__ import annotations
 
-_HEAD_CHARS = 3000
-_TAIL_CHARS = 2000
-
-
 def compress(text: str, max_chars: int = 8000) -> str:
     """
     Trunca `text` para no máximo `max_chars` caracteres.
-
-    Preserva os primeiros `_HEAD_CHARS` e últimos `_TAIL_CHARS` chars,
-    inserindo uma linha de indicação do truncamento no meio.
+    Preserva os primeiros 2/3 e os últimos 1/3 do limite.
     Se o texto já couber em `max_chars`, retorna inalterado.
     """
-    if len(text) <= max_chars:
+    if max_chars <= 0 or len(text) <= max_chars:
         return text
 
-    head_limit = min(_HEAD_CHARS, max_chars // 2)
-    tail_limit = min(_TAIL_CHARS, max_chars // 2)
+    head_limit = max_chars * 2 // 3
+    tail_limit = max_chars - head_limit
     removed = len(text) - head_limit - tail_limit
     marker = f"\n\n[...{removed} caracteres truncados...]\n\n"
     return text[:head_limit] + marker + text[-tail_limit:]

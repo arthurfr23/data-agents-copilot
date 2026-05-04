@@ -22,7 +22,6 @@ _OUTPUT_BLOCKED_PATTERNS = [
     r"\brm\s+-rf\b",
     r"\bgit\s+reset\s+--hard\b",
     r"\bgit\s+push\s+--force\b",
-    r"\.env\b",
     r"\.ssh/",
 ]
 

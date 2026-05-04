@@ -1,6 +1,7 @@
 ---
 name: qa_reviewer
-tier: T1
+tier: T3
+model: claude-haiku-4-5-20251001
 skills: []
 mcps: []
 ---

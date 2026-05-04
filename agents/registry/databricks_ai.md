@@ -1,7 +1,6 @@
 ---
 name: databricks_ai
 tier: T2
-model: gpt-4.1
 skills: [data-engineer]
 mcps: [databricks]
 description: "Databricks AI: Agent Bricks, Mosaic AI Gateway, Unity AI Gateway, Genie Agent Mode, MLflow, Model Serving, agentic analytics."

@@ -1,7 +1,6 @@
 ---
 name: data_quality
 tier: T2
-model: gpt-4.1
 skills: [pipeline-reviewer, schema-validator]
 mcps: [databricks, fabric]
 description: "Validação de dados, profiling estatístico, DQX, Great Expectations, SLAs de qualidade por camada da Arquitetura Medalhão."

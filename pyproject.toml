@@ -8,6 +8,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "openai>=1.30.0",
+    "anthropic>=0.40.0",
     "mcp>=1.0.0",
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
@@ -16,6 +17,7 @@ dependencies = [
     "rich>=13.0.0",
     "chainlit>=1.1.0",
     "requests>=2.31.0",
+    "azure-identity>=1.16.0",
 ]
 
 [project.optional-dependencies]
@@ -49,4 +51,4 @@ testpaths = ["tests"]
 addopts = "--cov=agents --cov=config --cov=hooks --cov-report=term-missing --cov-fail-under=80"
 
 [tool.setuptools]
-packages = ["agents", "cli", "config", "hooks", "memory", "workflow", "evals", "ui", "utils", "orchestrator"]
+packages = ["agents", "cli", "config", "hooks", "integrations", "memory", "workflow", "evals", "ui", "utils", "orchestrator"]

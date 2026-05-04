@@ -23,7 +23,14 @@ def _lazy_supervisor():
 
 
 def cmd_start(args: argparse.Namespace) -> None:
-    """Menu interativo."""
+    """REPL conversacional (padrão)."""
+    from cli.repl import run_repl
+    sup = _lazy_supervisor()
+    run_repl(sup)
+
+
+def cmd_menu(args: argparse.Namespace) -> None:
+    """Menu interativo com seleção visual."""
     from cli.menu import run_menu
     sup = _lazy_supervisor()
     run_menu(sup)
@@ -72,8 +79,8 @@ def cmd_agent(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     sup = _lazy_supervisor()
-    with console.status("[bold green]Processando..."):
-        result = sup.route(user_input)
+    console.print("[bold green]Processando...[/bold green]")
+    result = sup.route(user_input)
 
     audit_hook.record(f"cli:{command}", task, result.tokens_used, result.tool_calls_count)
     cost_guard_hook.track("general", result.tokens_used)
@@ -155,8 +162,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="subcommand")
 
-    # data-agent start
-    sub.add_parser("start", help="Menu interativo (padrão sem argumentos)")
+    # data-agent start (REPL — padrão sem argumentos)
+    sub.add_parser("start", help="REPL conversacional (padrão sem argumentos)")
+
+    # data-agent menu
+    sub.add_parser("menu", help="Menu interativo com seleção visual")
 
     # data-agent run <file|dir>
     p_run = sub.add_parser("run", help="Executar arquivo de tarefa (.yaml / .md)")
@@ -186,6 +196,8 @@ def main() -> None:
 
     if args.subcommand is None or args.subcommand == "start":
         cmd_start(args)
+    elif args.subcommand == "menu":
+        cmd_menu(args)
     elif args.subcommand == "run":
         cmd_run(args)
     elif args.subcommand == "health":

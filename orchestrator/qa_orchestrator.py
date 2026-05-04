@@ -63,6 +63,19 @@ class QAOrchestrator:
             return self._supervisor.route(user_input), None
         spec, _, neg_tokens, neg_calls = self.negotiate_spec(user_input)
         delivery = self.execute(user_input, spec)
+        if delivery.terminal_tool_executed:
+            logger.info("QA.verify pulado — tool terminal executada com sucesso")
+            total_tokens = neg_tokens + delivery.tokens_used
+            total_calls = neg_calls + delivery.tool_calls_count
+            return (
+                AgentResult(
+                    content=delivery.content,
+                    tool_calls_count=total_calls,
+                    tokens_used=total_tokens,
+                    terminal_tool_executed=True,
+                ),
+                None,
+            )
         report, ver_tokens, ver_calls = self.verify(spec, delivery)
         total_tokens = neg_tokens + delivery.tokens_used + ver_tokens
         total_calls = neg_calls + delivery.tool_calls_count + ver_calls
@@ -135,6 +148,7 @@ class QAOrchestrator:
             content=result.content,
             tool_calls_count=result.tool_calls_count,
             tokens_used=result.tokens_used,
+            terminal_tool_executed=result.terminal_tool_executed,
         )
 
     def verify(

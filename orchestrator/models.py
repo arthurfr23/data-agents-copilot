@@ -75,6 +75,7 @@ class DeliveryResult:
     content: str
     tool_calls_count: int
     tokens_used: int
+    terminal_tool_executed: bool = False
 
 
 @dataclass
