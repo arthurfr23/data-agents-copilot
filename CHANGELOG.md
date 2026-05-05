@@ -4,9 +4,25 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 Formato: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) | [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ---
 
 ## [Não liberado]
+
+### Documentação
+
+- README, LICENSE e CONTRIBUTING reposicionados para deixar claro que o upstream é a referência mais completa; este fork é experimental e propositalmente enxuto
+- Tabela honesta de equivalências entre fork e upstream (recursos que existem só no original)
+- Correção de afirmações erradas sobre paridade fork × upstream:
+  - Fork **tem** `kb/industry/` com 10 verticais (paridade com upstream — doc anterior dizia que não tinha)
+  - KB do fork tem **19 domínios** + indústria (era 18)
+  - Upstream tem WF-01 a WF-06 (não WF-05)
+  - Anthropic continua como dependência do fork (qa_reviewer Haiku, supervisor Sonnet, failover) — não foi 100% substituído por Copilot
+  - QA Reviewer é T3 + `claude-haiku-4-5-20251001` (não T1 + Sonnet como em ARCHITECTURE.md)
+  - Contagem de testes sincronizada para 263 (era 215/233/247/249 entre arquivos)
+- LICENSE.md: corrigida numeração das obrigações de atribuição e lista de dependências (anthropic, mcp, chainlit, azure-identity, questionary, pyyaml adicionados; Typer removido)
+- CONTRIBUTING.md: corrigido typo `71Covereage` → `Cobertura`; removido `mypy --strict` (pyproject.toml não habilita strict)
+- README.md: removida seção `📦 Estrutura` duplicada
 
 ### A fazer
 

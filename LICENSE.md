@@ -32,37 +32,25 @@ SOFTWARE.
 
 ## Referência ao Projeto Original
 
-Este projeto é uma adaptação e extensão do trabalho original:
+Este projeto é um fork pessoal e propositalmente reduzido de:
 
-**[data-agents](https://github.com/ThomazRossito/data-agents)** por Thomaz Rossito
+**[data-agents](https://github.com/ThomazRossito/data-agents)** por [Thomaz Rossito](https://github.com/ThomazRossito) — MIT License.
 
-### Modificações Principais
+### Diferenças deste fork
 
-Este fork adiciona:
+Adições:
 
-- ✅ Integração nativa com **GitHub Copilot Chat** (`/naming`, `/spark`, `/sql`, etc.)
-- ✅ **Naming Convention Governance** com auto-trigger em CREATE TABLE
-- ✅ **Cost-Aware Agent Selection** (Tier 3 para queries simples)
-- ✅ Documentação e infraestrutura Git completa
+- GitHub Copilot Chat API como LLM principal (Anthropic continua como dependência secundária — qa_reviewer usa Haiku, supervisor usa Sonnet)
+- Naming Guard com auto-trigger em DDL
+- Workflows extras WF-06 e WF-07 (no contexto local)
+- QA Orchestrator com score 0–1
+- Failover automático de modelo (Opus → Sonnet → Haiku) em `agents/base.py` com detecção de 529/overloaded
 
-### Obrigações de Atribuição
+Recursos do upstream **não reproduzidos** neste fork (lista parcial):
 
-Se você usar este projeto ou o repositório original, seja em forma modificada ou não:
-
-1. **Mantenha este arquivo** com referência ao original
-- **Credite Thomaz Rossito** no README ou documentação
-3. **Inclua a MIT License** integralmente em distribuições
-4. **Mencione modificações** — changelog clara
-
-Exemplo de atribuição:
-
-```markdown
-## Créditos
-
-Baseado em [data-agents](https://github.com/ThomazRossito/data-agents) de Thomaz Rossito.
-
-Modificações: Integração com GitHub Copilot Chat, Naming Governance, Cost Optimization.
-```
+- Catalog Intelligence, Migration Expert, Semantic Modeler, Business Analyst, Business Monitor
+- Genie Health Check, dashboard de monitoramento de 9 páginas
+- 13+ MCP servers adicionais (Genie, Fabric SQL, RTI, Tavily, Firecrawl, GitHub, Postgres, etc.)
 
 ---
 
@@ -71,11 +59,16 @@ Modificações: Integração com GitHub Copilot Chat, Naming Governance, Cost Op
 Este projeto depende de várias bibliotecas open-source sob suas respectivas licenças:
 
 - **OpenAI Python SDK** — MIT License
-- **Pydantic** — MIT License
+- **Anthropic Python SDK** — MIT License
+- **MCP Python SDK** — MIT License
+- **Pydantic / pydantic-settings** — MIT License
 - **Databricks SDK** — Apache 2.0
-- **Typer** — MIT License
+- **azure-identity** — MIT License
+- **Chainlit** — Apache 2.0
+- **Questionary** — MIT License
 - **Rich** — MIT License
 - **Python-dotenv** — BSD 3-Clause
+- **PyYAML** — MIT License
 
 Para lista completa, consulte `pyproject.toml` e `pip freeze`.
 
