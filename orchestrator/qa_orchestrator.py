@@ -123,11 +123,12 @@ class QAOrchestrator:
         )
         return spec, self._max_rounds, total_tokens, total_calls
 
-    def execute(self, user_input: str, spec: TaskSpec) -> DeliveryResult:
+    def execute(self, user_input: str, spec: TaskSpec, history_ctx: str = "") -> DeliveryResult:
         """Fase 3: executa via agente acordado na spec, não via supervisor.route().
 
         Honra o contrato negociado em vez de re-rotear (que ignoraria spec).
         Fallback para supervisor.route() apenas se agent_name não for válido.
+        history_ctx: histórico conversacional (REPL/Chainlit) — incluído no context.
         """
         agent = self._supervisor.get_agent(spec.agent_name)
         if agent is None:
@@ -135,13 +136,14 @@ class QAOrchestrator:
                 "QA.execute: agent '%s' inválido na spec, fallback para supervisor.route()",
                 spec.agent_name,
             )
-            result = self._supervisor.route(user_input)
+            result = self._supervisor.route(user_input, history=history_ctx)
         else:
-            spec_context = (
+            spec_block = (
                 f"## Spec acordada (QA round)\n{spec.to_json_str()}\n\n"
                 "Atenda às acceptance_criteria acima."
             )
-            result = agent.run(user_input, context=spec_context)
+            full_context = "\n\n".join(filter(None, [history_ctx, spec_block]))
+            result = agent.run(user_input, context=full_context)
         return DeliveryResult(
             task_id=spec.task_id,
             spec_version=spec.version,

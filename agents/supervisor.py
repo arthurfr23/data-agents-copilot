@@ -107,9 +107,22 @@ class Supervisor:
         self._memory_enabled = _try_init_memory()
         self._kg_enabled = _try_init_kg()
         self._session = _init_session()
+        self._history = ""
 
-    def route(self, user_input: str) -> AgentResult:
+    def route(self, user_input: str, history: str = "") -> AgentResult:
         """Roteia o input para o agente correto."""
+        self._history = history
+
+        # 0. Security check no input
+        from hooks import security_hook
+        ok, reason = security_hook.check_input(user_input)
+        if not ok:
+            return AgentResult(
+                content=f"⛔ Bloqueado pelo security hook: {reason}",
+                tool_calls_count=0,
+                tokens_used=0,
+            )
+
         parts = user_input.strip().split(maxsplit=1)
         command = parts[0].lower() if parts[0].startswith("/") else None
         task = parts[1] if (command and len(parts) > 1) else user_input
@@ -162,7 +175,7 @@ class Supervisor:
             # Injetar contexto externo se aplicável
             ext_ctx = self._load_external_context(agent_name, task)
             preflight = self._inject_preflight_context(agent_name, task, kb_ctx)
-            context = "\n\n".join(filter(None, [preflight, kb_ctx, ext_ctx, mem_ctx]))
+            context = "\n\n".join(filter(None, [preflight, kb_ctx, ext_ctx, mem_ctx, self._history]))
             result = agent.run(task, context=context)
             result = self._check_escalation(result, task)
             self._post_process(user_input, result, agent_name=agent_name)
@@ -187,7 +200,7 @@ class Supervisor:
 
         # 7. Geral
         agent = self._agents.get("geral", self._supervisor_agent)
-        result = agent.run(user_input)
+        result = agent.run(user_input, context=self._history)
         self._post_process(user_input, result, agent_name="geral")
         return _compress_result(result)
 
@@ -321,9 +334,8 @@ class Supervisor:
         naming_agent = self._agents.get("naming_guard", self._supervisor_agent)
         naming_ctx = self._load_naming_convention_context()
         kb_ctx = self._load_kb_context("naming_guard")
-        context = "\n\n".join(filter(None, [kb_ctx, naming_ctx]))
+        context = "\n\n".join(filter(None, [kb_ctx, naming_ctx, self._history]))
         result = naming_agent.run(user_input, context=context)
-        self._save_memory(user_input, result.content)
         return result
 
     def _plan_and_delegate(self, task: str) -> AgentResult:
@@ -374,7 +386,7 @@ class Supervisor:
             "O PRD deve incluir: Objetivo, Entradas esperadas, Saídas esperadas, "
             f"Agente responsável, Riscos.\n\nTarefa: {task}"
         )
-        supervisor_context = "\n\n".join(filter(None, [kb_ctx, mem_ctx]))
+        supervisor_context = "\n\n".join(filter(None, [kb_ctx, mem_ctx, self._history]))
         prd_result = self._supervisor_agent.run(
             prd_prompt, context=supervisor_context, json_mode=True
         )
@@ -415,7 +427,7 @@ class Supervisor:
         agent_kb_ctx = self._load_kb_context(agent_name)
         ext_ctx = self._load_external_context(agent_name, task)
         exec_context = "\n\n".join(
-            filter(None, [preflight, agent_kb_ctx, ext_ctx, prd_content, mem_ctx])
+            filter(None, [preflight, agent_kb_ctx, ext_ctx, prd_content, mem_ctx, self._history])
         )
         execution_result = agent.run(task, context=exec_context)
         execution_result = self._check_escalation(execution_result, task)
@@ -446,6 +458,10 @@ class Supervisor:
         fabric_status = f"ATIVO (workspace: {settings.fabric_workspace_id})" if settings.has_fabric() else "NÃO CONFIGURADO"
         databricks_status = f"ATIVO (host: {settings.databricks_host})" if settings.has_databricks() else "NÃO CONFIGURADO"
 
+        dbr_workspace_path = ""
+        if settings.has_databricks() and settings.databricks_workspace_path:
+            dbr_workspace_path = f"\n- Databricks Workspace Path: `{settings.databricks_workspace_path}` (use como base para criar notebooks/artefatos)\n"
+
         return (
             f"## Supervisor Pre-flight\n"
             f"AGENT: {agent_name} | TYPE: {criticality} | "
@@ -454,6 +470,7 @@ class Supervisor:
             f"## Plataformas Configuradas\n"
             f"- Microsoft Fabric: {fabric_status}\n"
             f"- Databricks: {databricks_status}\n"
+            f"{dbr_workspace_path}"
             f"Use APENAS as plataformas marcadas como ATIVO. "
             f"Não tente usar ferramentas de plataformas NÃO CONFIGURADAS.\n"
         )
@@ -727,7 +744,7 @@ class Supervisor:
         self, user_input: str, result: AgentResult, agent_name: str = "supervisor"
     ) -> None:
         # QW6: verificar output por padrões destrutivos
-        from hooks import audit_hook, security_hook
+        from hooks import audit_hook, cost_guard_hook, security_hook
 
         ok, reason = security_hook.check_output(result.content)
         if not ok:
@@ -739,13 +756,14 @@ class Supervisor:
                 "O agente gerou conteúdo com padrão potencialmente destrutivo. "
                 "Revise a tarefa e execute com /governance se necessário."
             )
-        # QW7: registrar agente real na auditoria
+        # QW7: registrar agente real na auditoria e controlar budget
         audit_hook.record(
             agent=agent_name,
             task=user_input,
             tokens_used=result.tokens_used,
             tool_calls=result.tool_calls_count,
         )
+        cost_guard_hook.track(agent_name, result.tokens_used)
         if self._session is not None:
             try:
                 self._session.record(user_input, result.content)

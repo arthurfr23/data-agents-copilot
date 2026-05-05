@@ -1,0 +1,63 @@
+# Etapa 2: Criar notebooks para cada tabela Gold
+# Estratégia: foca em criar notebooks, não em executar (avoid timeout)
+
+title: "📝 Gold Modelagem — Step 2: Criar Notebooks de Transformação"
+description: |
+  Passo 2 de 3 para criar a modelagem Gold:
+  Ler o mapeamento (output/gold_mapping.csv) e criar 1 notebook por tabela Gold
+  que processa as tabelas Silver e cria a Gold.
+
+tier: T1
+agent: fabric_expert
+mcps: ["fabric"]
+
+task: |
+  # Pré-requisito
+
+  O mapeamento deve estar em `output/gold_mapping.csv` (gerado no Step 1).
+
+  # Tarefa: Criar Notebooks
+
+  Para CADA tabela Gold listada em `output/modelagem.md`:
+
+  1. Nome do notebook: `gld_{tabela_gold}` (ex: `gld_fact_transacoes`)
+
+  2. Conteúdo base do notebook:
+     ```python
+     # Gold Layer: {tabela_gold}
+     # Fonte: {tabelas_silver_usadas}
+     # Responsabilidade: Agregar dados das tabelas Silver, aplicar SCD Type 2, garantir qualidade
+
+     from pyspark.sql import *
+     from pyspark.sql.functions import *
+     import datetime
+
+     # Ler tabelas Silver
+     # TODO: ler as fontes do mapeamento
+
+     # Aplicar transformações
+     # TODO: conforme schema em modelagem.md
+
+     # Gravar em Gold
+     spark.sql("CREATE TABLE IF NOT EXISTS gold.gld_{tabela_gold} ...")
+     ```
+
+  3. Workspace: `dev_eng`
+  4. Lakehouse: `dev_lakehouse` (com trident metadata)
+  5. Pasta: `src/gold` (criar se não existir)
+  6. Retorne lista de notebooks criados com IDs
+
+  # Saída Esperada
+
+  Crie arquivo `output/gold_notebooks_created.json` com:
+  ```json
+  {
+    "notebooks_criados": [
+      {"nome": "gld_fact_transacoes", "notebook_id": "xxx", "status": "created"},
+      {"nome": "gld_dim_cliente", "notebook_id": "yyy", "status": "created"}
+    ],
+    "pasta_destino": "src/gold",
+    "lakehouse": "dev_lakehouse",
+    "timestamp": "2026-05-03T..."
+  }
+  ```

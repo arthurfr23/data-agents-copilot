@@ -11,12 +11,23 @@ from rich.markdown import Markdown
 
 console = Console()
 
-_QUESTION_ENDINGS = ("?", "confirma", "confirmas", "confirme", "prosseguir", "prossigo")
+_MAX_HISTORY_CHARS = 12_000
 
 
-def _looks_like_question(text: str) -> bool:
-    last = text.rstrip().rsplit("\n", 1)[-1].lower().rstrip()
-    return any(last.endswith(e) for e in _QUESTION_ENDINGS)
+def _format_history(history: list[dict]) -> str:
+    if not history:
+        return ""
+    parts = ["## Histórico da conversa atual"]
+    for h in history:
+        role = "Usuário" if h["role"] == "user" else "Agente"
+        parts.append(f"**{role}:** {h['content'][:3000]}")
+    return "\n\n".join(parts)
+
+
+def _trim_history(history: list[dict]) -> None:
+    """Remove turnos antigos até o total ficar abaixo do limite."""
+    while history and sum(len(t["content"]) for t in history) > _MAX_HISTORY_CHARS:
+        history.pop(0)
 
 
 def run_repl(supervisor) -> None:
@@ -25,7 +36,7 @@ def run_repl(supervisor) -> None:
 
     console.print("[dim]data-agent › /menu para o menu completo · Ctrl+C para sair[/dim]\n")
 
-    pending_context: str | None = None  # guarda output anterior quando agente fez pergunta
+    conversation_history: list[dict] = []
 
     while True:
         try:
@@ -44,26 +55,22 @@ def run_repl(supervisor) -> None:
         if line in ("/menu", "menu"):
             from cli.menu import run_menu
             run_menu(supervisor)
-            pending_context = None
+            conversation_history.clear()
             continue
 
-        # Se há contexto pendente (agente fez pergunta), injetar como resposta
-        if pending_context is not None:
-            task_input = f"/resume {line}"
-            pending_context = None
-        else:
-            task_input = line
+        task_input = line
 
         ok, reason = security_hook.check_input(task_input)
         if not ok:
             console.print(f"[red]Bloqueado:[/red] {reason}")
             continue
 
-        with console.status("[bold green]Processando...[/bold green]"):
-            result = supervisor.route(task_input)
+        history_ctx = _format_history(conversation_history)
 
-        audit_hook.record("repl", task_input, result.tokens_used, result.tool_calls_count)
-        cost_guard_hook.track("general", result.tokens_used)
+        with console.status("[bold green]Processando...[/bold green]"):
+            result = supervisor.route(task_input, history=history_ctx)
+
+        # cost_guard e audit já são chamados em supervisor._post_process — não duplicar
 
         console.print(Markdown(result.content))
 
@@ -82,6 +89,7 @@ def run_repl(supervisor) -> None:
         )
         console.print(f"[dim]Sessão salva em output/sessions/{ts}.md[/dim]")
 
-        # Se o agente fez uma pergunta, manter contexto para a próxima entrada
-        if _looks_like_question(result.content):
-            pending_context = result.content
+        # Acumular histórico para continuidade entre turnos
+        conversation_history.append({"role": "user", "content": task_input})
+        conversation_history.append({"role": "assistant", "content": result.content})
+        _trim_history(conversation_history)

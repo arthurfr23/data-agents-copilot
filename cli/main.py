@@ -39,11 +39,11 @@ def cmd_menu(args: argparse.Namespace) -> None:
 def cmd_run(args: argparse.Namespace) -> None:
     """Executa arquivo(s) de tarefa."""
     from cli.runner import list_task_files, run_task_file
-    from hooks import audit_hook, cost_guard_hook
 
     target = Path(args.file)
     sup = _lazy_supervisor()
 
+    # cost_guard e audit já são chamados em supervisor._post_process — não duplicar aqui
     if target.is_dir():
         files = list_task_files(target)
         if not files:
@@ -53,21 +53,17 @@ def cmd_run(args: argparse.Namespace) -> None:
             console.print(f"\n[bold]▶ {f.name}[/bold]")
             result = run_task_file(f, sup)
             console.print(Markdown(result.content))
-            audit_hook.record("cli:run", str(f), result.tokens_used, result.tool_calls_count)
-            cost_guard_hook.track("general", result.tokens_used)
     else:
         if not target.exists():
             console.print(f"[red]Arquivo não encontrado: {target}[/red]")
             sys.exit(1)
         result = run_task_file(target, sup)
         console.print(Markdown(result.content))
-        audit_hook.record("cli:run", str(target), result.tokens_used, result.tool_calls_count)
-        cost_guard_hook.track("general", result.tokens_used)
 
 
 def cmd_agent(args: argparse.Namespace) -> None:
     """Atalho direto: data-agent spark "otimizar join"."""
-    from hooks import audit_hook, cost_guard_hook, security_hook
+    from hooks import cost_guard_hook, security_hook
 
     command = args.command
     task = " ".join(args.task)
@@ -80,10 +76,9 @@ def cmd_agent(args: argparse.Namespace) -> None:
 
     sup = _lazy_supervisor()
     console.print("[bold green]Processando...[/bold green]")
+    # cost_guard e audit já são chamados em supervisor._post_process — não duplicar
     result = sup.route(user_input)
 
-    audit_hook.record(f"cli:{command}", task, result.tokens_used, result.tool_calls_count)
-    cost_guard_hook.track("general", result.tokens_used)
     console.print(Markdown(result.content))
 
     summary = cost_guard_hook.session_summary()

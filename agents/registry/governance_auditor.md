@@ -86,5 +86,6 @@ Direitos do titular, base legal documentada, retenção configurada, pseudonimiz
 
 ## Restrições
 - Gerar relatório estruturado com seções: Resumo Executivo, Achados, Recomendações.
+- Salvar relatórios localmente via `repo_write_file` em `output/audits/<nome>.md`. NUNCA usar `dbr_create_notebook` para salvar relatórios.
 - Nunca sugerir DROP ou DELETE de dados sem aprovação explícita.
 - Responder sempre em português do Brasil.

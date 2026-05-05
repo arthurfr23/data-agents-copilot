@@ -1,0 +1,54 @@
+title: "🎯 Criar Gold Modelagem Completa"
+agent: fabric_expert
+tier: T1
+mcps: ["fabric"]
+
+task: |
+  # OBJETIVO
+  Criar 8 notebooks Gold em dev_lakehouse.
+
+  # TABELAS SILVER EXISTENTES (6 total)
+  - slv_clientes (210K rows)
+  - slv_contas (100K rows)
+  - slv_contas_correntes (400K rows)
+  - slv_transacoes (8.4M rows)
+  - slv_pix_devolucoes (200K rows)
+  - slv_tickets (1M rows)
+
+  # TABELAS GOLD A CRIAR (8 total)
+
+  FATOS (2):
+  - gld_fact_transacoes
+  - gld_fact_tickets
+
+  DIMENSÕES (6):
+  - gld_dim_cliente
+  - gld_dim_conta
+  - gld_dim_data
+  - gld_dim_canal
+  - gld_dim_tipo_transacao
+  - gld_dim_categoria_ticket
+
+  # PROCEDIMENTO
+
+  1. Criar pasta: src/gold no workspace dev_eng usando fabric_find_or_create_folder
+
+  2. Para cada uma das 8 tabelas acima, criar um notebook com:
+     - Nome: gld_{tabela_nome}
+     - Pasta: src/gold
+     - Workspace: dev_eng
+     - Lakehouse: dev_lakehouse
+     - Conteúdo: template Python comentado com estrutura base
+
+  3. Usar fabric_create_notebook com parâmetros:
+     - default_lakehouse_id: conforme settings
+     - default_lakehouse_name: dev_lakehouse
+
+  4. Retornar lista com 8 notebooks criados
+
+  # RESULTADO
+
+  Salvar em output/gold_notebooks_summary.txt com:
+  - Número de notebooks criados
+  - Lista de notebook IDs
+  - Status de cada um

@@ -31,7 +31,37 @@ class AgentConfig:
 # Tools cujo sucesso é o próprio entregável — QA verify é desnecessário após execução
 _TERMINAL_TOOLS: frozenset[str] = frozenset({
     "write_output_file",
+    "fabric_write_onelake_file",
+    "fabric_create_notebook",
+    "fabric_update_notebook_definition",
 })
+
+
+# Failover model map (three-layer cascade) — Opus → Sonnet → Haiku.
+# Quando o modelo primário sofre rate-limit/overload persistente (após 4 retries)
+# ou erro 529 explícito, faz downgrade para o próximo nível disponível.
+_FAILOVER_MODEL_MAP: dict[str, str] = {
+    "claude-opus-4-7": "claude-sonnet-4-6",
+    "claude-opus-4-6": "claude-sonnet-4-6",
+    "claude-sonnet-4-6": "claude-haiku-4-5-20251001",
+    "claude-haiku-4-5-20251001": "claude-haiku-4-5-20251001",  # já no menor nível
+}
+
+
+def _is_overload_error(exc: Exception) -> bool:
+    """Detecta erros 529 (overloaded) ou indicadores de sobrecarga.
+
+    Anthropic 529 é distinto de 429 (rate-limit por tokens/minuto):
+    529 indica sobrecarga do modelo na infra Anthropic — failover para outro modelo
+    tem chance maior de sucesso do que esperar.
+    """
+    msg = str(exc).lower()
+    if "overloaded" in msg or "529" in msg or "capacity" in msg:
+        return True
+    response = getattr(exc, "response", None)
+    if response is not None and getattr(response, "status_code", None) == 529:
+        return True
+    return False
 
 
 @dataclass
@@ -125,7 +155,7 @@ class BaseAgent:
 
     def _run_anthropic(self, task: str, system: str, json_mode: bool = False) -> AgentResult:
         import time
-        from anthropic import Anthropic, RateLimitError
+        from anthropic import Anthropic, APIStatusError, RateLimitError
 
         client = Anthropic(api_key=settings.anthropic_api_key)
         ant_tools = _openai_tools_to_anthropic(self.config.tools) if self.config.tools else []
@@ -135,6 +165,8 @@ class BaseAgent:
         total_tokens = 0
         total_tool_calls = 0
         terminal_executed = False
+        # Modelo ativo (pode mudar via failover) — começa com o modelo configurado
+        active_model = self.model
 
         # Limites de chars para o histórico de mensagens.
         # O conteúdo já foi processado — não precisa manter enorme na memória.
@@ -143,7 +175,7 @@ class BaseAgent:
 
         for _turn in range(self.max_turns):
             kwargs: dict[str, Any] = {
-                "model": self.model,
+                "model": active_model,
                 "max_tokens": settings.llm_max_tokens,
                 "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
                 "messages": messages,
@@ -157,7 +189,23 @@ class BaseAgent:
                         response = stream.get_final_message()
                     break
                 except RateLimitError as exc:
+                    # 429: rate-limit por tokens/minuto — aguardar é a única solução real
                     if attempt == 3:
+                        # Esgotamos retries — tenta failover para modelo menor
+                        fallback = _FAILOVER_MODEL_MAP.get(active_model)
+                        if fallback and fallback != active_model:
+                            logger.warning(
+                                "Rate limit persistente em %s após 4 tentativas — "
+                                "failover para %s", active_model, fallback,
+                            )
+                            active_model = fallback
+                            kwargs["model"] = active_model
+                            try:
+                                with client.messages.stream(**kwargs) as stream:
+                                    response = stream.get_final_message()
+                                break
+                            except Exception:
+                                raise
                         raise
                     retry_after = _parse_retry_after(exc) or (60 * 2 ** attempt)
                     logger.warning(
@@ -166,13 +214,21 @@ class BaseAgent:
                         retry_after, attempt + 1,
                     )
                     time.sleep(retry_after)
+                except APIStatusError as exc:
+                    # 529 (overloaded) — failover imediato para modelo menor
+                    if _is_overload_error(exc):
+                        fallback = _FAILOVER_MODEL_MAP.get(active_model)
+                        if fallback and fallback != active_model:
+                            logger.warning(
+                                "Modelo %s sobrecarregado (529) — failover para %s",
+                                active_model, fallback,
+                            )
+                            active_model = fallback
+                            kwargs["model"] = active_model
+                            continue  # nova tentativa com o modelo de fallback
+                    raise
             usage = response.usage
-            total_tokens += (
-                usage.input_tokens
-                + usage.output_tokens
-                + getattr(usage, "cache_read_input_tokens", 0)
-                + getattr(usage, "cache_creation_input_tokens", 0)
-            )
+            total_tokens += usage.input_tokens + usage.output_tokens
 
             tool_uses = [b for b in response.content if b.type == "tool_use"]
             text_blocks = [b for b in response.content if b.type == "text"]

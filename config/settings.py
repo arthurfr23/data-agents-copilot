@@ -17,16 +17,20 @@ class Settings(BaseSettings):
         alias="TIER_MODEL_MAP",
     )
     tier_turns_map: dict = Field(
-        default={"T1": 8, "T2": 5, "T3": 3},
+        default={"T1": 12, "T2": 12, "T3": 5},
         alias="TIER_TURNS_MAP",
     )
 
     # ── Databricks ──────────────────────────────────────────────────────────
     databricks_host: str = Field("", alias="DATABRICKS_HOST")
     databricks_token: str = Field("", alias="DATABRICKS_TOKEN")
+    databricks_client_id: str = Field("", alias="DATABRICKS_CLIENT_ID")
+    databricks_client_secret: str = Field("", alias="DATABRICKS_CLIENT_SECRET")
     databricks_sql_warehouse_id: str = Field("", alias="DATABRICKS_SQL_WAREHOUSE_ID")
     databricks_catalog: str = Field("main", alias="DATABRICKS_CATALOG")
     databricks_schema: str = Field("default", alias="DATABRICKS_SCHEMA")
+    databricks_cluster_id: str = Field("", alias="DATABRICKS_CLUSTER_ID")
+    databricks_workspace_path: str = Field("", alias="DATABRICKS_WORKSPACE_PATH")
 
     # ── Microsoft Fabric ────────────────────────────────────────────────────
     azure_tenant_id: str = Field("", alias="AZURE_TENANT_ID")
@@ -43,7 +47,7 @@ class Settings(BaseSettings):
     qa_max_rounds: int = Field(1, alias="QA_MAX_ROUNDS")
     qa_score_threshold: float = Field(0.7, alias="QA_SCORE_THRESHOLD")
 
-    max_budget_tokens: int = Field(500_000, alias="MAX_BUDGET_TOKENS")
+    max_budget_tokens: int = Field(1_000_000, alias="MAX_BUDGET_TOKENS")
     llm_max_tokens: int = Field(4096, alias="LLM_MAX_TOKENS")
     console_log_level: str = Field("WARNING", alias="CONSOLE_LOG_LEVEL")
     output_max_chars: int = Field(8000, alias="OUTPUT_MAX_CHARS")
@@ -109,10 +113,23 @@ class Settings(BaseSettings):
     def has_databricks(self) -> bool:
         host = self.databricks_host or ""
         token = self.databricks_token or ""
-        # Rejeita placeholders do .env de exemplo
+        client_id = self.databricks_client_id or ""
         if "workspace-name" in host or "xxx" in token.lower():
             return False
-        return bool(host and token)
+        return bool(host) and bool(token or (client_id and self.databricks_client_secret))
+
+    @cached_property
+    def databricks_client(self):
+        from databricks.sdk import WorkspaceClient
+        kwargs = {}
+        if self.databricks_host:
+            kwargs["host"] = self.databricks_host
+        if self.databricks_token:
+            kwargs["token"] = self.databricks_token
+        elif self.databricks_client_id and self.databricks_client_secret:
+            kwargs["client_id"] = self.databricks_client_id
+            kwargs["client_secret"] = self.databricks_client_secret
+        return WorkspaceClient(**kwargs)
 
     def has_fabric(self) -> bool:
         workspace = self.fabric_workspace_id or ""

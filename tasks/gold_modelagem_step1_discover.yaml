@@ -1,0 +1,41 @@
+# Etapa 1: Descobrir tabelas Silver e ler modelagem
+# Estratégia: evita timeout — separa em tarefas pequenas e focadas
+
+title: "📊 Gold Modelagem — Step 1: Descobrir Tabelas Silver"
+description: |
+  Passo 1 de 3 para criar a modelagem Gold:
+  1. Ler arquivo modelagem.md da pasta output/
+  2. Descobrir quais tabelas existem em dev_lakehouse.silver
+  3. Gerar CSV de mapeamento fonte → destino
+
+tier: T1
+agent: fabric_expert
+mcps: ["fabric", "filesystem"]
+
+task: |
+  # Passo 1: Ler Modelagem
+
+  Leia o arquivo `output/modelagem.md` e identifique:
+  - Quantas tabelas Gold serão criadas?
+  - Quais tabelas Silver são fontes?
+  - Qual é o schema esperado de cada Gold?
+
+  # Passo 2: Descobrir Tabelas Silver
+
+  Consulte o Fabric:
+  - Workspace: `dev_eng`
+  - Lakehouse: `dev_lakehouse`
+  - Schema: `silver`
+
+  Use a tool `fabric_list_onelake_files` para listar tabelas em `Tables/silver/`.
+
+  # Passo 3: Validar Mapeamento
+
+  Crie um mapeamento: `Tabela Silver → Usa em qual Gold?`
+  Salve em `output/gold_mapping.csv` com colunas:
+  - tabela_silver
+  - gold_destino
+  - status ("usar", "ignorar")
+
+  Se alguma tabela Silver não aparecer, retorne erro.
+  Se a modelagem.md não existir, retorne erro de arquivo missing.

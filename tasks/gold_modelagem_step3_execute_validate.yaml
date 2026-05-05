@@ -1,0 +1,56 @@
+# Etapa 3: Executar notebooks e validar modelagem Gold
+# Estratégia: executar com wait_for_completion, não queremos que fique travado
+
+title: "🚀 Gold Modelagem — Step 3: Executar Notebooks e Validar"
+description: |
+  Passo 3 de 3 para criar a modelagem Gold:
+  Executar cada notebook criado (Step 2) e validar que as tabelas Gold foram criadas.
+
+tier: T1
+agent: fabric_expert
+mcps: ["fabric"]
+
+task: |
+  # Pré-requisito
+
+  Lista de notebooks deve estar em `output/gold_notebooks_created.json` (gerado no Step 2).
+
+  # Tarefa: Executar e Validar
+
+  1. Para CADA notebook na lista:
+     - Use `fabric_run_notebook` com `wait_for_completion=true`
+     - Espere status final: "Succeeded" ou "Failed"
+     - Registre tempo de execução
+
+  2. Depois que TODOS os notebooks executarem:
+     - Liste tabelas em `Tables/gold/` usando `fabric_list_onelake_files`
+     - Verifique se cada tabela Gold foi criada
+     - Conte linhas (SELECT COUNT(*)) para cada Gold
+
+  3. Retorne relatório de validação
+
+  # Timeout
+  - timeout_seconds: 600 (10 min por notebook)
+  - Se algum notebook falhar, retorne o motivo (failureReason)
+
+  # Saída Esperada
+
+  Crie arquivo `output/gold_execution_report.json` com:
+  ```json
+  {
+    "data_execucao": "2026-05-03T...",
+    "notebooks_executados": [
+      {
+        "nome": "gld_fact_transacoes",
+        "status": "Succeeded",
+        "duracao_segundos": 45,
+        "linhas_criadas": 8400000
+      }
+    ],
+    "tabelas_gold_finais": [
+      {"tabela": "gld_fact_transacoes", "registros": 8400000},
+      {"tabela": "gld_dim_cliente", "registros": 210001}
+    ],
+    "status_geral": "OK" ou "ERRO"
+  }
+  ```
