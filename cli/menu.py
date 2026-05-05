@@ -96,13 +96,7 @@ def run_menu(supervisor) -> None:
     with console.status("[bold green]Processando..."):
         result = supervisor.route(user_input)
 
-    audit_hook.record(
-        agent="menu",
-        task=user_input,
-        tokens_used=result.tokens_used,
-        tool_calls=result.tool_calls_count,
-    )
-    cost_guard_hook.track("general", result.tokens_used)
+    # cost_guard e audit já são chamados em supervisor._post_process — não duplicar
     console.print(Markdown(result.content))
     _print_token_summary(result)
     _save_session(user_input, result.content)

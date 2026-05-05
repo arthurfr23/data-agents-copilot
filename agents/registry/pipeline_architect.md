@@ -169,3 +169,31 @@ Sequência ERRADA (mata o loop):
 - Aguardar aprovação explícita do usuário apenas antes de operações destrutivas ou de alto custo.
 - Registrar todas as execuções no log de auditoria.
 - Responder sempre em português do Brasil.
+
+## Regra: Workflow obrigatório — Asset Bundles (Databricks)
+- **SEMPRE usar Asset Bundles** quando o projeto tem `databricks_project/` (ou qualquer `databricks.yml`).
+- **NUNCA usar `dbr_create_notebook` ou `dbr_create_job` diretamente** — todo artefato deve ser versionado no bundle.
+- Para notebooks: salvar o arquivo via `repo_write_file` em `databricks_project/src/notebooks/<nome>.py`
+- Para jobs: usar `dbr_bundle_generate_job` com `tasks_config` para gerar `resources/<nome>.job.yml`
+- **Finalização obrigatória**: toda tarefa que cria/modifica artefatos no bundle DEVE terminar com:
+  1. `dbr_bundle_validate --target dev` → confirmar que o bundle é válido
+  2. `dbr_bundle_deploy --target dev` → implantar no workspace
+  3. Se o deploy falhar, corrigir o erro e repetir validate → deploy
+- Use `dbr_sql_execute` apenas para consultas de leitura (SELECT, SHOW, DESCRIBE) e DDL simples (CREATE SCHEMA).
+- Use `dbr_submit_notebook` apenas para execução ad-hoc de teste, nunca como entrega final.
+
+### Jobs multi-task (DAG)
+- Para jobs com múltiplas etapas (ex: silver → gold), use `tasks_config` com `depends_on`:
+  ```json
+  {
+    "job_name": "etl_pipeline",
+    "tasks_config": [
+      {"task_key": "slv_contas", "notebook_path": "/Workspace/.../slv_contas"},
+      {"task_key": "slv_clientes", "notebook_path": "/Workspace/.../slv_clientes"},
+      {"task_key": "gld_resumo", "notebook_path": "/Workspace/.../gld_resumo", "depends_on": ["slv_contas", "slv_clientes"]}
+    ]
+  }
+  ```
+- Tasks sem `depends_on` rodam em paralelo. Tasks com `depends_on` esperam as dependências.
+- Se os notebooks já existem no workspace, NÃO recrie — apenas crie o job apontando para eles.
+- Exemplo cron Quartz: `0 0 */6 * * ?` = a cada 6 horas, `0 0 8 * * ?` = diariamente às 8h.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from pathlib import Path
 
 from databricks.sdk.errors import DatabricksError
 from databricks.sdk.service.sql import Disposition, Format, StatementState
@@ -144,7 +145,12 @@ def _dbr_run_job(
     run_id = run.run_id
 
     if not wait_for_completion:
-        return json.dumps({"run_id": run_id, "number_in_job": run.number_in_job})
+        # number_in_job foi descontinuado em versões recentes do SDK
+        try:
+            number_in_job = run.number_in_job
+        except (AttributeError, KeyError):
+            number_in_job = None
+        return json.dumps({"run_id": run_id, "number_in_job": number_in_job})
 
     start = time.monotonic()
     while time.monotonic() - start < timeout_seconds:
@@ -180,6 +186,251 @@ def _dbr_get_job_run_status(run_id: str) -> str:
         "state_message": state.state_message if state else None,
         "start_time": run.start_time,
         "end_time": run.end_time,
+    })
+
+
+def _resolve_cluster_id(cluster_id: str) -> str:
+    candidate = cluster_id or settings.databricks_cluster_id
+    if candidate:
+        try:
+            info = _client().clusters.get(cluster_id=candidate)
+            if info.state and info.state.value not in ("TERMINATED", "ERROR"):
+                return candidate
+            logger.warning("Cluster %s está %s, buscando alternativa...", candidate, info.state.value if info.state else "UNKNOWN")
+        except DatabricksError:
+            logger.warning("Cluster %s não encontrado, buscando alternativa...", candidate)
+
+    clusters = [
+        c for c in _client().clusters.list()
+        if c.state and c.state.value == "RUNNING"
+    ]
+    if not clusters:
+        if candidate:
+            return candidate
+        raise ValueError("Nenhum cluster RUNNING encontrado e DATABRICKS_CLUSTER_ID não configurado.")
+    return clusters[0].cluster_id
+
+
+def _dbr_submit_notebook(
+    notebook_path: str,
+    cluster_id: str = "",
+    notebook_params: dict | None = None,
+    wait_for_completion: bool = True,
+    timeout_seconds: int = 600,
+) -> str:
+    from databricks.sdk.service.jobs import NotebookTask, SubmitTask
+
+    resolved_cluster = _resolve_cluster_id(cluster_id)
+    run_name = notebook_path.rsplit("/", 1)[-1]
+
+    task = SubmitTask(
+        task_key="run",
+        existing_cluster_id=resolved_cluster,
+        notebook_task=NotebookTask(
+            notebook_path=notebook_path,
+            base_parameters=notebook_params or {},
+        ),
+    )
+
+    run = _client().jobs.submit(run_name=run_name, tasks=[task])
+    run_id = run.run_id
+
+    if not wait_for_completion:
+        return json.dumps({"run_id": run_id, "status": "submitted", "cluster_id": resolved_cluster})
+
+    start = time.monotonic()
+    while time.monotonic() - start < timeout_seconds:
+        status = _client().jobs.get_run(run_id=run_id)
+        lcs = status.state.life_cycle_state.value if status.state and status.state.life_cycle_state else "UNKNOWN"
+        if lcs in ("TERMINATED", "SKIPPED", "INTERNAL_ERROR"):
+            rs = status.state.result_state.value if status.state and status.state.result_state else None
+            return json.dumps({
+                "run_id": run_id,
+                "life_cycle_state": lcs,
+                "result_state": rs,
+                "state_message": status.state.state_message if status.state else None,
+                "start_time": status.start_time,
+                "end_time": status.end_time,
+                "run_page_url": status.run_page_url,
+            })
+        time.sleep(15)
+
+    elapsed = int(time.monotonic() - start)
+    return json.dumps({
+        "run_id": run_id,
+        "status": "timeout",
+        "message": f"Notebook não finalizou em {elapsed}s. Use dbr_get_job_run_status({run_id}) para verificar.",
+    })
+
+
+def _dbr_create_job(
+    name: str,
+    notebook_path: str = "",
+    tasks_config: list | None = None,
+    cluster_id: str = "",
+    schedule_cron: str = "",
+    notebook_params: dict | None = None,
+    timeout_seconds: int = 3600,
+) -> str:
+    """Cria job com uma ou múltiplas tasks (DAG com dependências)."""
+    from databricks.sdk.service.jobs import (
+        CronSchedule,
+        NotebookTask,
+        Task,
+        TaskDependency,
+    )
+
+    resolved_cluster = _resolve_cluster_id(cluster_id)
+
+    if tasks_config:
+        job_tasks = []
+        for tc in tasks_config:
+            deps = [TaskDependency(task_key=d) for d in tc.get("depends_on", [])]
+            t = Task(
+                task_key=tc["task_key"],
+                existing_cluster_id=resolved_cluster,
+                notebook_task=NotebookTask(
+                    notebook_path=tc["notebook_path"],
+                    base_parameters=tc.get("notebook_params") or {},
+                ),
+                timeout_seconds=tc.get("timeout_seconds", timeout_seconds),
+                depends_on=deps if deps else None,
+            )
+            job_tasks.append(t)
+    elif notebook_path:
+        job_tasks = [
+            Task(
+                task_key="main",
+                existing_cluster_id=resolved_cluster,
+                notebook_task=NotebookTask(
+                    notebook_path=notebook_path,
+                    base_parameters=notebook_params or {},
+                ),
+                timeout_seconds=timeout_seconds,
+            )
+        ]
+    else:
+        return json.dumps({"error": "Informe notebook_path ou tasks_config."})
+
+    kwargs: dict = {"name": name, "tasks": job_tasks}
+
+    if schedule_cron:
+        kwargs["schedule"] = CronSchedule(
+            quartz_cron_expression=schedule_cron,
+            timezone_id="America/Sao_Paulo",
+        )
+
+    job = _client().jobs.create(**kwargs)
+    return json.dumps({
+        "job_id": job.job_id,
+        "name": name,
+        "tasks_count": len(job_tasks),
+        "task_keys": [t.task_key for t in job_tasks],
+        "cluster_id": resolved_cluster,
+        "schedule": schedule_cron or "sem schedule (manual)",
+        "status": "created",
+    })
+
+
+def _dbr_bundle_validate(target: str = "dev", bundle_path: str = "") -> str:
+    import subprocess
+    bundle_path = bundle_path or str(Path(settings.local_repo_path or ".") / "databricks_project")
+    result = subprocess.run(
+        ["databricks", "bundle", "validate", "--target", target],
+        capture_output=True, text=True, cwd=bundle_path, timeout=60,
+    )
+    return json.dumps({
+        "target": target,
+        "bundle_path": bundle_path,
+        "exit_code": result.returncode,
+        "stdout": result.stdout[:4000],
+        "stderr": result.stderr[:2000],
+        "status": "valid" if result.returncode == 0 else "invalid",
+    })
+
+
+def _dbr_bundle_deploy(target: str = "dev", bundle_path: str = "") -> str:
+    import subprocess
+    if target in ("staging", "prod"):
+        return json.dumps({
+            "error": f"Deploy para '{target}' requer confirmação explícita do usuário. "
+                     "Peça confirmação antes de prosseguir.",
+            "status": "blocked",
+            "target": target,
+        })
+
+    bundle_path = bundle_path or str(Path(settings.local_repo_path or ".") / "databricks_project")
+    result = subprocess.run(
+        ["databricks", "bundle", "deploy", "--target", target],
+        capture_output=True, text=True, cwd=bundle_path, timeout=300,
+    )
+    return json.dumps({
+        "target": target,
+        "bundle_path": bundle_path,
+        "exit_code": result.returncode,
+        "stdout": result.stdout[:4000],
+        "stderr": result.stderr[:2000],
+        "status": "deployed" if result.returncode == 0 else "failed",
+    })
+
+
+def _dbr_bundle_generate_job(
+    job_name: str,
+    notebook_path: str = "",
+    tasks_config: list | None = None,
+    schedule_cron: str = "",
+    bundle_path: str = "",
+) -> str:
+    import yaml
+
+    bundle_path = bundle_path or str(Path(settings.local_repo_path or ".") / "databricks_project")
+    resources_dir = Path(bundle_path) / "resources"
+    resources_dir.mkdir(parents=True, exist_ok=True)
+
+    if tasks_config:
+        tasks = []
+        for tc in tasks_config:
+            task: dict = {
+                "task_key": tc["task_key"],
+                "notebook_task": {"notebook_path": tc["notebook_path"]},
+            }
+            if tc.get("depends_on"):
+                task["depends_on"] = [{"task_key": d} for d in tc["depends_on"]]
+            tasks.append(task)
+    elif notebook_path:
+        tasks = [{"task_key": "main", "notebook_task": {"notebook_path": notebook_path}}]
+    else:
+        return json.dumps({"error": "Informe notebook_path ou tasks_config."})
+
+    job_def: dict = {
+        "resources": {
+            "jobs": {
+                job_name: {
+                    "name": job_name,
+                    "tasks": tasks,
+                }
+            }
+        }
+    }
+
+    if schedule_cron:
+        job_def["resources"]["jobs"][job_name]["schedule"] = {
+            "quartz_cron_expression": schedule_cron,
+            "timezone_id": "America/Sao_Paulo",
+        }
+
+    file_path = resources_dir / f"{job_name}.job.yml"
+    with file_path.open("w") as f:
+        yaml.dump(job_def, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+    return json.dumps({
+        "file_path": str(file_path),
+        "job_name": job_name,
+        "tasks_count": len(tasks),
+        "task_keys": [t["task_key"] for t in tasks],
+        "schedule": schedule_cron or "sem schedule",
+        "status": "generated",
+        "next_step": "Use dbr_bundle_validate e dbr_bundle_deploy para validar e implantar.",
     })
 
 
@@ -233,6 +484,32 @@ def _dbr_list_volumes(catalog: str = "", schema: str = "") -> str:
         for v in _client().volumes.list(catalog_name=catalog, schema_name=schema)
     ]
     return json.dumps(_truncated_list(volumes, "volumes"))
+
+
+def _dbr_create_notebook(
+    path: str,
+    content: str,
+    language: str = "PYTHON",
+    overwrite: bool = True,
+) -> str:
+    import base64
+    from databricks.sdk.service.workspace import ImportFormat, Language
+
+    lang_map = {
+        "PYTHON": Language.PYTHON, "SQL": Language.SQL,
+        "SCALA": Language.SCALA, "R": Language.R,
+    }
+    lang = lang_map.get(language.upper(), Language.PYTHON)
+    encoded = base64.b64encode(content.encode("utf-8")).decode("ascii")
+
+    _client().workspace.import_(
+        path=path,
+        content=encoded,
+        format=ImportFormat.SOURCE,
+        language=lang,
+        overwrite=overwrite,
+    )
+    return json.dumps({"path": path, "status": "created", "language": language})
 
 
 def _dbr_read_volume_file(path: str, max_bytes: int = 65536) -> str:
@@ -399,6 +676,43 @@ DATABRICKS_TOOLS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "dbr_submit_notebook",
+            "description": (
+                "Executa um notebook Databricks ad-hoc em um cluster existente (jobs.submit). "
+                "Ideal para execuções únicas sem criar job permanente. "
+                "Com wait_for_completion=true (default), aguarda o término com polling interno."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "notebook_path": {
+                        "type": "string",
+                        "description": "Caminho do notebook no workspace (ex: /Workspace/Users/.../notebook)",
+                    },
+                    "cluster_id": {
+                        "type": "string",
+                        "description": "ID do cluster (opcional, usa DATABRICKS_CLUSTER_ID ou primeiro RUNNING)",
+                    },
+                    "notebook_params": {
+                        "type": "object",
+                        "description": "Parâmetros key/value para o notebook (opcional)",
+                    },
+                    "wait_for_completion": {
+                        "type": "boolean",
+                        "description": "Se true, aguarda o notebook finalizar (polling interno). Default: true.",
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "description": "Timeout em segundos para wait_for_completion. Default: 600.",
+                    },
+                },
+                "required": ["notebook_path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "dbr_list_jobs",
             "description": "Lista jobs do workspace Databricks, opcionalmente filtrando por nome.",
             "parameters": {
@@ -465,6 +779,190 @@ DATABRICKS_TOOLS: list[dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "dbr_create_notebook",
+            "description": (
+                "Cria ou atualiza um notebook no workspace Databricks. "
+                "Use para persistir lógica de transformação como notebook reutilizável. "
+                "O conteúdo deve estar no formato Databricks notebook source (com '# COMMAND ----------' como separador de células)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "notebook_path": {
+                        "type": "string",
+                        "description": "Caminho no workspace (ex: /Workspace/Users/.../silver/slv_clientes)",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Código-fonte do notebook (Databricks notebook source format)",
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Linguagem: PYTHON, SQL, SCALA, R. Default: PYTHON.",
+                    },
+                    "overwrite": {
+                        "type": "boolean",
+                        "description": "Substituir se existir. Default: true.",
+                    },
+                },
+                "required": ["notebook_path", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "dbr_create_job",
+            "description": (
+                "Cria um Job persistente no Databricks Workflows. "
+                "Suporta job simples (1 notebook) ou multi-task com DAG de dependências. "
+                "Para multi-task, use tasks_config com depends_on para definir a ordem de execução."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Nome do job"},
+                    "notebook_path": {
+                        "type": "string",
+                        "description": "Caminho do notebook (para job simples com 1 task). Ignorado se tasks_config for fornecido.",
+                    },
+                    "tasks_config": {
+                        "type": "array",
+                        "description": (
+                            "Lista de tasks para job multi-task. Cada item: "
+                            "{task_key, notebook_path, depends_on?: [task_keys], notebook_params?: {}}. "
+                            "Ex: [{task_key: 'slv_contas', notebook_path: '/Workspace/.../slv_contas'}, "
+                            "{task_key: 'gld_resumo', notebook_path: '/Workspace/.../gld_resumo', depends_on: ['slv_contas']}]"
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "task_key": {"type": "string"},
+                                "notebook_path": {"type": "string"},
+                                "depends_on": {"type": "array", "items": {"type": "string"}},
+                                "notebook_params": {"type": "object"},
+                            },
+                            "required": ["task_key", "notebook_path"],
+                        },
+                    },
+                    "cluster_id": {
+                        "type": "string",
+                        "description": "Cluster ID (opcional, usa default se omitido)",
+                    },
+                    "schedule_cron": {
+                        "type": "string",
+                        "description": "Expressão cron Quartz para agendamento (ex: '0 0 */6 * * ?' para a cada 6h). Opcional — sem schedule = execução manual.",
+                    },
+                    "notebook_params": {
+                        "type": "object",
+                        "description": "Parâmetros do notebook (opcional)",
+                    },
+                    "timeout_seconds": {
+                        "type": "integer",
+                        "description": "Timeout em segundos. Default: 3600.",
+                    },
+                },
+                "required": ["name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "dbr_bundle_validate",
+            "description": "Valida um Databricks Asset Bundle. Roda 'databricks bundle validate' e retorna erros/warnings.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "Target do bundle (dev, staging, prod). Default: dev.",
+                    },
+                    "bundle_path": {
+                        "type": "string",
+                        "description": "Caminho local do bundle (opcional, detecta automaticamente).",
+                    },
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "dbr_bundle_deploy",
+            "description": (
+                "Faz deploy de um Databricks Asset Bundle. Roda 'databricks bundle deploy'. "
+                "Deploy direto só é permitido para target 'dev'. "
+                "Para staging/prod, requer confirmação explícita do usuário."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "Target do bundle (dev, staging, prod). Default: dev.",
+                    },
+                    "bundle_path": {
+                        "type": "string",
+                        "description": "Caminho local do bundle (opcional, detecta automaticamente).",
+                    },
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "dbr_bundle_generate_job",
+            "description": (
+                "Gera um arquivo YAML de definição de job no formato Databricks Asset Bundle. "
+                "Suporta job simples (1 notebook) ou multi-task com DAG de dependências. "
+                "O arquivo é salvo em resources/<job_name>.job.yml dentro do bundle. "
+                "Após gerar, use dbr_bundle_validate e dbr_bundle_deploy para implantar."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "job_name": {"type": "string", "description": "Nome do job (snake_case)"},
+                    "notebook_path": {
+                        "type": "string",
+                        "description": "Caminho do notebook (para job simples). Ignorado se tasks_config for fornecido.",
+                    },
+                    "tasks_config": {
+                        "type": "array",
+                        "description": (
+                            "Lista de tasks para job multi-task com DAG. Cada item: "
+                            "{task_key, notebook_path, depends_on?: [task_keys]}. "
+                            "Tasks sem depends_on rodam em paralelo."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "task_key": {"type": "string"},
+                                "notebook_path": {"type": "string"},
+                                "depends_on": {"type": "array", "items": {"type": "string"}},
+                            },
+                            "required": ["task_key", "notebook_path"],
+                        },
+                    },
+                    "schedule_cron": {
+                        "type": "string",
+                        "description": "Expressão cron Quartz (opcional). Ex: '0 0 */6 * * ?'",
+                    },
+                    "bundle_path": {
+                        "type": "string",
+                        "description": "Caminho local do bundle (opcional).",
+                    },
+                },
+                "required": ["job_name"],
+            },
+        },
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -488,11 +986,39 @@ _DISPATCH_MAP = {
         a.get("timeout_seconds", 600),
     ),
     "dbr_get_job_run_status": lambda a: _dbr_get_job_run_status(a["run_id"]),
+    "dbr_submit_notebook": lambda a: _dbr_submit_notebook(
+        a["notebook_path"],
+        a.get("cluster_id", ""),
+        a.get("notebook_params"),
+        a.get("wait_for_completion", True),
+        a.get("timeout_seconds", 600),
+    ),
     "dbr_list_jobs": lambda a: _dbr_list_jobs(a.get("name_contains", "")),
     "dbr_list_clusters": lambda _: _dbr_list_clusters(),
     "dbr_list_warehouses": lambda _: _dbr_list_warehouses(),
     "dbr_list_volumes": lambda a: _dbr_list_volumes(a.get("catalog", ""), a.get("schema", "")),
     "dbr_read_volume_file": lambda a: _dbr_read_volume_file(a["path"], a.get("max_bytes", 65536)),
+    "dbr_create_notebook": lambda a: _dbr_create_notebook(
+        a["notebook_path"], a["content"],
+        a.get("language", "PYTHON"), a.get("overwrite", True),
+    ),
+    "dbr_create_job": lambda a: _dbr_create_job(
+        a["name"], a.get("notebook_path", ""),
+        a.get("tasks_config"), a.get("cluster_id", ""),
+        a.get("schedule_cron", ""), a.get("notebook_params"),
+        a.get("timeout_seconds", 3600),
+    ),
+    "dbr_bundle_validate": lambda a: _dbr_bundle_validate(
+        a.get("target", "dev"), a.get("bundle_path", ""),
+    ),
+    "dbr_bundle_deploy": lambda a: _dbr_bundle_deploy(
+        a.get("target", "dev"), a.get("bundle_path", ""),
+    ),
+    "dbr_bundle_generate_job": lambda a: _dbr_bundle_generate_job(
+        a["job_name"], a.get("notebook_path", ""),
+        a.get("tasks_config"), a.get("schedule_cron", ""),
+        a.get("bundle_path", ""),
+    ),
 }
 
 

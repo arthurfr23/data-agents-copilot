@@ -46,6 +46,7 @@ venv.bak/
 .env
 .env.local
 .env.*.local
+.env.backup*
 
 # Project
 output/
@@ -54,12 +55,32 @@ logs/
 .cache/
 memory/data/progress/
 memory/data/architecture/
+.chainlit/
 
 # Databricks
 .databricks/
 .databricks_token
+.databrickscfg
 *.tfstate*
 .terraform/
+
+# Cloud / Secrets
+.azure/
+.aws/
+.gcloud/
+gcloud/credentials.json
+*.pem
+*.key
+*.crt
+*.cer
+*.pfx
+*.p12
+id_rsa*
+kubeconfig
+*.kubeconfig
+credentials.json
+secrets.yaml
+secrets.yml
 
 # OS
 Thumbs.db

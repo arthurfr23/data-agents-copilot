@@ -1,0 +1,20 @@
+title: "🚀 Executar 1 Notebook Gold — Teste"
+agent: fabric_expert
+tier: T1
+mcps: ["fabric"]
+
+task: |
+  # Teste de Execução
+
+  Execute UMA notebook para validar:
+  - Se consegue rodar sem erros
+  - Se retorna sucesso
+
+  Notebook a executar: gld_dim_data (mais simples, menor volume)
+  Workspace: dev_eng
+  Notebook ID: <NOTEBOOK_ID>
+
+  Use fabric_run_notebook com wait_for_completion=true.
+
+  Se conseguir, retorne apenas o status.
+  Se der erro em qualquer ponto, PARE aqui e retorne o erro.

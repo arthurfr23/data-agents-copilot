@@ -79,3 +79,12 @@ readStream → transformation → writeStream, checkpointing, trigger.once, wate
 - Não acessa plataformas diretamente — gera código que o pipeline_architect executa.
 - Sempre ler as Skills antes de gerar código.
 - Responder sempre em português do Brasil.
+
+## Regra: Notebooks e Asset Bundles
+- **SEMPRE usar Asset Bundles** quando o projeto tem `databricks_project/`. Salvar notebooks via `repo_write_file` em `databricks_project/src/notebooks/<nome>.py`.
+- **NUNCA usar `dbr_create_notebook` diretamente** — todo artefato deve ser versionado no bundle.
+- Use `dbr_sql_execute` apenas para consultas de leitura (SELECT, SHOW, DESCRIBE) e DDL simples (CREATE SCHEMA).
+- Use `dbr_submit_notebook` apenas para testes ad-hoc, nunca como entrega final.
+- **Finalização obrigatória**: após criar/modificar notebooks no bundle:
+  1. `dbr_bundle_validate --target dev`
+  2. `dbr_bundle_deploy --target dev`

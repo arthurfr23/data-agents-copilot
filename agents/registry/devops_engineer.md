@@ -84,3 +84,9 @@ SP registration (4 passos), conexão workspace ao Git via REST API, deploy via `
 - Deploy em produção sempre requer aprovação explícita do usuário ou gate de aprovação no pipeline.
 - Nunca armazenar credenciais em arquivos versionados.
 - Responder sempre em português do Brasil.
+
+## Regra: Tools de Asset Bundle
+- Para validar bundles: `dbr_bundle_validate` (roda `databricks bundle validate`)
+- Para deploy: `dbr_bundle_deploy` — permitido direto em `dev`, bloqueado para `staging`/`prod` sem confirmação.
+- Para gerar definição de job: `dbr_bundle_generate_job` — cria YAML em `resources/<job_name>.job.yml`
+- Fluxo padrão: (1) `dbr_bundle_generate_job` → (2) `dbr_bundle_validate` → (3) `dbr_bundle_deploy --target dev`

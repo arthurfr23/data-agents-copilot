@@ -17,7 +17,7 @@ class Settings(BaseSettings):
         alias="TIER_MODEL_MAP",
     )
     tier_turns_map: dict = Field(
-        default={"T1": 8, "T2": 5, "T3": 3},
+        default={"T1": 12, "T2": 12, "T3": 5},
         alias="TIER_TURNS_MAP",
     )
 
@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     databricks_sql_warehouse_id: str = Field("", alias="DATABRICKS_SQL_WAREHOUSE_ID")
     databricks_catalog: str = Field("main", alias="DATABRICKS_CATALOG")
     databricks_schema: str = Field("default", alias="DATABRICKS_SCHEMA")
+    databricks_cluster_id: str = Field("", alias="DATABRICKS_CLUSTER_ID")
+    databricks_workspace_path: str = Field("", alias="DATABRICKS_WORKSPACE_PATH")
 
     # ── Microsoft Fabric ────────────────────────────────────────────────────
     azure_tenant_id: str = Field("", alias="AZURE_TENANT_ID")
@@ -45,7 +47,7 @@ class Settings(BaseSettings):
     qa_max_rounds: int = Field(1, alias="QA_MAX_ROUNDS")
     qa_score_threshold: float = Field(0.7, alias="QA_SCORE_THRESHOLD")
 
-    max_budget_tokens: int = Field(500_000, alias="MAX_BUDGET_TOKENS")
+    max_budget_tokens: int = Field(1_000_000, alias="MAX_BUDGET_TOKENS")
     llm_max_tokens: int = Field(4096, alias="LLM_MAX_TOKENS")
     console_log_level: str = Field("WARNING", alias="CONSOLE_LOG_LEVEL")
     output_max_chars: int = Field(8000, alias="OUTPUT_MAX_CHARS")

@@ -1,4 +1,8 @@
-"""Hook de controle de custo — classificação por operação e alerta de tokens."""
+"""Hook de controle de custo — classificação por operação e alerta de tokens.
+
+Estado por sessão (não global) — multi-user no Chainlit não contamina contadores
+entre usuários. Callers passam session_id; REPL usa "default".
+"""
 
 import logging
 
@@ -12,8 +16,11 @@ _HIGH_COST_PATTERNS = [
 ]
 _MEDIUM_COST_PATTERNS = ["execute_sql", "run_query", "submit_run"]
 
-_session_high_count = 0
-_session_total_tokens = 0
+_SESSION_STATE: dict[str, dict] = {}
+
+
+def _state(session_id: str) -> dict:
+    return _SESSION_STATE.setdefault(session_id, {"total_tokens": 0, "high_count": 0})
 
 
 def classify_operation(tool_name: str) -> str:
@@ -25,47 +32,45 @@ def classify_operation(tool_name: str) -> str:
     return "LOW"
 
 
-def track(tool_name: str, tokens_used: int) -> None:
-    global _session_high_count, _session_total_tokens
-
+def track(tool_name: str, tokens_used: int, session_id: str = "default") -> None:
+    s = _state(session_id)
     level = classify_operation(tool_name)
-    _session_total_tokens += tokens_used
+    s["total_tokens"] += tokens_used
 
     if level == "HIGH":
-        _session_high_count += 1
-        if _session_high_count > 5:
+        s["high_count"] += 1
+        if s["high_count"] > 5:
             logger.warning(
-                "ALERTA: %d operações HIGH nesta sessão. Verifique o custo.",
-                _session_high_count,
+                "ALERTA[%s]: %d operações HIGH nesta sessão. Verifique o custo.",
+                session_id, s["high_count"],
             )
 
     budget = settings.max_budget_tokens
-    pct = _session_total_tokens / budget if budget else 0
+    pct = s["total_tokens"] / budget if budget else 0
     if pct >= 0.95:
         logger.error(
-            "CRÍTICO: 95%% do budget de tokens atingido (%d/%d).",
-            _session_total_tokens, budget,
+            "CRÍTICO[%s]: 95%% do budget de tokens atingido (%d/%d).",
+            session_id, s["total_tokens"], budget,
         )
     elif pct >= 0.80:
         logger.warning(
-            "AVISO: 80%% do budget de tokens atingido (%d/%d).",
-            _session_total_tokens, budget,
+            "AVISO[%s]: 80%% do budget de tokens atingido (%d/%d).",
+            session_id, s["total_tokens"], budget,
         )
 
 
-def session_summary() -> dict:
+def session_summary(session_id: str = "default") -> dict:
+    s = _state(session_id)
     return {
-        "total_tokens": _session_total_tokens,
-        "high_ops": _session_high_count,
+        "total_tokens": s["total_tokens"],
+        "high_ops": s["high_count"],
         "budget": settings.max_budget_tokens,
-        "budget_pct": round(_session_total_tokens / settings.max_budget_tokens * 100, 1)
+        "budget_pct": round(s["total_tokens"] / settings.max_budget_tokens * 100, 1)
         if settings.max_budget_tokens
         else 0,
     }
 
 
-def reset() -> None:
-    """Reseta contadores de sessão. Útil em testes e ao iniciar nova sessão."""
-    global _session_high_count, _session_total_tokens
-    _session_high_count = 0
-    _session_total_tokens = 0
+def reset(session_id: str = "default") -> None:
+    """Reseta contadores da sessão. Útil em testes e ao iniciar nova sessão."""
+    _SESSION_STATE.pop(session_id, None)

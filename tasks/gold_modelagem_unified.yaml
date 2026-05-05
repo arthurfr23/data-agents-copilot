@@ -1,0 +1,121 @@
+# Tarefa Consolidada: Criar Gold Modelagem Completa
+# Executor: /fabric (especialista Fabric)
+# Estratégia: Um agente especializado, tarefa clara e focada
+
+title: "🎯 Criar Gold Modelagem Completa — Fabric Expert"
+agent: fabric_expert
+tier: T1
+mcps: ["fabric"]
+
+task: |
+  # OBJETIVO
+  Criar tabelas GOLD em dev_lakehouse a partir das Silver conforme modelagem Star Schema.
+
+  # TABELAS SILVER DESCOBERTAS (6 no total)
+  Workspace: dev_eng | Lakehouse: dev_lakehouse | Schema: silver
+
+  Fonte:
+  - slv_clientes (210K rows)
+  - slv_contas (100K rows)
+  - slv_contas_correntes (400K rows)
+  - slv_transacoes (8.4M rows) ← FATO PRINCIPAL
+  - slv_pix_devolucoes (200K rows)
+  - slv_tickets (1M rows) ← FATO SECUNDÁRIA
+
+  # MODELAGEM GOLD — Star Schema
+
+  **FATOS:**
+  1. fact_transacoes
+     PK: transacao_sk (surrogate)
+     Campos: id_transacao, cliente_sk, conta_sk, data_sk, canal_sk, tipo_transacao_sk, valor, fl_devolvida, status
+     Fonte: slv_transacoes + slv_pix_devolucoes (join para devolvidas)
+
+  2. fact_tickets
+     PK: ticket_sk (surrogate)
+     Campos: ticket_id, cliente_sk, data_abertura_sk, data_fechamento_sk, categoria_sk, tempo_resolucao_min, fl_resolvido, satisfacao_score
+     Fonte: slv_tickets
+
+  **DIMENSÕES:**
+  1. dim_cliente ← slv_clientes (surrogate key: cliente_sk, natural key: id_cliente)
+  2. dim_conta ← slv_contas + slv_contas_correntes (surrogate: conta_sk, natural: nr_conta)
+  3. dim_data ← GERAR (date_sk YYYYMMDD, full_date, year, month, quarter, week, day_of_week, is_weekend)
+  4. dim_canal ← DERIVAR de slv_transacoes.canal_origem (api, web, mobile)
+  5. dim_tipo_transacao ← DERIVAR de slv_transacoes.tipo_transacao
+  6. dim_categoria_ticket ← DERIVAR de slv_tickets.categoria
+
+  # PASSOS
+
+  ## PASSO 1: Criar Pasta Destino
+  Use fabric_find_or_create_folder para criar `src/gold` no workspace
+
+  ## PASSO 2: Criar Notebooks (NÃO executar, só criar)
+  Para cada tabela (2 Fatos + 6 Dimensões = 8 notebooks):
+
+  Nome do notebook: `gld_{tabela_nome}`
+  Pasta: src/gold
+  Conteúdo template:
+  ```python
+  # ===== GOLD LAYER {tabela_nome} =====
+  # Fonte(s): {fontes_silver}
+  # Schema: {campos esperados}
+  # SCD Type 2: {sim/não}
+
+  from pyspark.sql import *
+  from delta.tables import *
+
+  # 1. LER TABELAS SILVER
+  # [TODO: implementar joins e lógica de negócio]
+
+  # 2. APLICAR TRANSFORMAÇÕES
+  # [TODO: surrogates keys, dimensions, agregações]
+
+  # 3. GRAVAR EM GOLD
+  df.write.format("delta").mode("overwrite").option("mergeSchema", "true").save(f"/Tables/gold/gld_{tabela_nome}")
+  ```
+
+  Use a tool fabric_create_notebook com default_lakehouse_id (do settings) e exatamente essas opções:
+  - workspace_id: dev_eng
+  - display_name: gld_{tabela_nome}
+  - folder_path: src/gold
+  - cells: [lista de 3 células markdown + código]
+  - default_lakehouse_id: {seu lakehouse padrão}
+  - default_lakehouse_name: dev_lakehouse
+
+  Retorne lista de notebooks criados com status "created".
+
+  ## PASSO 3: Validar Criação
+  Use fabric_list_onelake_files com path="Files/src/gold" para listar todos os notebooks criados.
+  Conte quantos foram criados (deve ser 8).
+
+  # SAÍDA ESPERADA
+
+  Arquivo: output/gold_notebooks_manual.md
+
+  ```markdown
+  # Gold Modelagem — Notebooks Criados
+
+  **Data:** 2026-05-03
+  **Agente:** Fabric Expert
+  **Status:** ✅ COMPLETO
+
+  ## Notebooks Criados (8)
+
+  ### FATOS
+  1. gld_fact_transacoes [notebook_id]
+  2. gld_fact_tickets [notebook_id]
+
+  ### DIMENSÕES
+  3. gld_dim_cliente [notebook_id]
+  4. gld_dim_conta [notebook_id]
+  5. gld_dim_data [notebook_id]
+  6. gld_dim_canal [notebook_id]
+  7. gld_dim_tipo_transacao [notebook_id]
+  8. gld_dim_categoria_ticket [notebook_id]
+
+  **Próximos passos:**
+  - [ ] Editar cada notebook com lógica de transformação
+  - [ ] Executar Step 3 (fabric_run_notebook com wait_for_completion=true)
+  - [ ] Validar contagem de linhas em cada Gold
+
+  ---
+  ```

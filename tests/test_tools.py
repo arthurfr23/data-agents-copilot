@@ -340,7 +340,71 @@ def test_dbr_sql_execute_returns_statement_id_on_pending():
 
 
 def test_dbr_tool_count():
-    assert len(DATABRICKS_TOOLS) == 14
+    assert len(DATABRICKS_TOOLS) == 20
+
+
+def test_dbr_submit_notebook_no_wait():
+    mock_client = MagicMock()
+    run_resp = MagicMock()
+    run_resp.run_id = 12345
+    mock_client.jobs.submit.return_value = run_resp
+    with patch("agents.tools.databricks._client", return_value=mock_client), \
+         patch("agents.tools.databricks.settings") as mock_s:
+        mock_s.databricks_cluster_id = "cluster-abc"
+        result = dispatch_databricks("dbr_submit_notebook", {
+            "notebook_path": "/Workspace/Users/test/notebook",
+            "wait_for_completion": False,
+        })
+    data = json.loads(result)
+    assert data["run_id"] == 12345
+    assert data["status"] == "submitted"
+    assert data["cluster_id"] == "cluster-abc"
+    mock_client.jobs.submit.assert_called_once()
+
+
+def test_dbr_submit_notebook_with_explicit_cluster():
+    mock_client = MagicMock()
+    run_resp = MagicMock()
+    run_resp.run_id = 99999
+    mock_client.jobs.submit.return_value = run_resp
+    with patch("agents.tools.databricks._client", return_value=mock_client), \
+         patch("agents.tools.databricks.settings") as mock_s:
+        mock_s.databricks_cluster_id = ""
+        result = dispatch_databricks("dbr_submit_notebook", {
+            "notebook_path": "/Workspace/Users/test/nb",
+            "cluster_id": "explicit-cluster-id",
+            "wait_for_completion": False,
+        })
+    data = json.loads(result)
+    assert data["cluster_id"] == "explicit-cluster-id"
+
+
+def test_dbr_submit_notebook_resolve_running_cluster():
+    mock_client = MagicMock()
+    cluster = MagicMock()
+    cluster.cluster_id = "running-123"
+    cluster.state = MagicMock()
+    cluster.state.value = "RUNNING"
+    mock_client.clusters.list.return_value = [cluster]
+    run_resp = MagicMock()
+    run_resp.run_id = 55555
+    mock_client.jobs.submit.return_value = run_resp
+    with patch("agents.tools.databricks._client", return_value=mock_client), \
+         patch("agents.tools.databricks.settings") as mock_s:
+        mock_s.databricks_cluster_id = ""
+        result = dispatch_databricks("dbr_submit_notebook", {
+            "notebook_path": "/Workspace/Users/test/nb",
+            "wait_for_completion": False,
+        })
+    data = json.loads(result)
+    assert data["cluster_id"] == "running-123"
+
+
+def test_dbr_submit_notebook_schema_exists():
+    names = [t["function"]["name"] for t in DATABRICKS_TOOLS]
+    assert "dbr_submit_notebook" in names
+    schema = next(t for t in DATABRICKS_TOOLS if t["function"]["name"] == "dbr_submit_notebook")
+    assert "notebook_path" in schema["function"]["parameters"]["required"]
 
 
 # ---------------------------------------------------------------------------
@@ -353,6 +417,27 @@ def test_fabric_list_workspaces():
         mock_get.return_value = {"value": [{"id": "ws1", "displayName": "Prod WS"}]}
         result = dispatch_fabric("fabric_list_workspaces", {})
     assert json.loads(result)[0]["id"] == "ws1"
+
+
+def test_dbr_create_notebook():
+    mock_client = MagicMock()
+    with patch("agents.tools.databricks._client", return_value=mock_client):
+        result = dispatch_databricks("dbr_create_notebook", {
+            "notebook_path": "/Workspace/Users/test/my_notebook",
+            "content": "# Databricks notebook source\nprint('hello')",
+        })
+    data = json.loads(result)
+    assert data["status"] == "created"
+    assert data["path"] == "/Workspace/Users/test/my_notebook"
+    mock_client.workspace.import_.assert_called_once()
+
+
+def test_dbr_create_notebook_schema_exists():
+    names = [t["function"]["name"] for t in DATABRICKS_TOOLS]
+    assert "dbr_create_notebook" in names
+    schema = next(t for t in DATABRICKS_TOOLS if t["function"]["name"] == "dbr_create_notebook")
+    assert "notebook_path" in schema["function"]["parameters"]["required"]
+    assert "content" in schema["function"]["parameters"]["required"]
 
 
 def test_fabric_list_items():
