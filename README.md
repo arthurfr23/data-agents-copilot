@@ -10,20 +10,6 @@ Sistema de despacho automático que roteia tarefas de dados (SQL, PySpark, pipel
 
 `data-agents-copilot` é um fork do projeto original [data-agents](https://github.com/ThomazRossito/data-agents) de **Thomaz Rossito** — adaptado para operar com **GitHub Copilot Chat API**, adicionando governança automática de nomenclatura, workflows colaborativos multi-agente, Knowledge Base estruturada, sistema de memória episódica, e protocolo QA peer-to-peer.
 
-### Principais Diferenças em Relação ao Original
-
-| Aspecto | Original | data-agents-copilot |
-|---------|----------|---------------------|
-| **LLM SDK** | Anthropic Claude SDK | GitHub Copilot Chat API (GPT-4.1 / claude-sonnet-4-6) |
-| **Agentes** | 13 agentes | **15 agentes especializados** |
-| **Workflows** | WF-01 a WF-05 | **WF-01 a WF-07 implementados** com auto-trigger |
-| **Memória** | Episódica | Episódica + decay temporal + Knowledge Graph |
-| **KB** | Sem KB | **`kb/` com 18 domínios** + constitution |
-| **QA** | — | **QA Orchestrator automático** (score 0-1, threshold 0.7) |
-| **MCPs** | 15 MCPs | 2 MCPs (Databricks, Fabric) + 2 servidores MCP standalone |
-| **Evals** | — | **13 queries canônicas**, 9 domínios |
-
----
 
 ## 📦 Estrutura
 
