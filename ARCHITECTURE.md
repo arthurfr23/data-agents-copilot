@@ -114,7 +114,7 @@ data-agents-copilot/
 │   ├── quality/
 │   ├── devops/
 │   └── workflows/
-├── tests/                      # 233 testes, cobertura 83%
+├── tests/                      # 263 testes
 ├── ui/
 │   └── chainlit_app.py         # Web UI (Chainlit, lazy init)
 ├── resources/
@@ -283,8 +283,8 @@ data-agents-copilot/
 - **Skills**: [databricks-asset-bundles, databricks-ci-integration]
 - **MCPs**: [databricks]
 
-#### QA Reviewer (T1)
-- **Model**: claude-sonnet-4-6
+#### QA Reviewer (T3)
+- **Model**: claude-haiku-4-5-20251001
 - **Purpose**: Revisar spec e delivery (score 0-1, threshold 0.7)
 - Ativo automaticamente em todos os inputs não-comando
 

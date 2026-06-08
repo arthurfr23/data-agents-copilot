@@ -20,6 +20,8 @@ from agents.tools.databricks import (
     _dbr_list_schemas,
     _dbr_list_tables,
     _dbr_run_job,
+    _dbr_spark_sql,
+    _dbr_spark_table_sample,
     _dbr_sql_execute,
 )
 
@@ -78,6 +80,18 @@ def dbr_list_jobs(name_contains: str = "") -> str:
 def dbr_list_clusters() -> str:
     """Lista clusters do workspace Databricks."""
     return _dbr_list_clusters()
+
+
+@mcp.tool()
+def dbr_spark_sql(statement: str, catalog: str = "", schema: str = "") -> str:
+    """Executa SQL no cluster Databricks via Spark Connect (requer DATABRICKS_CLUSTER_ID)."""
+    return _dbr_spark_sql(statement, catalog, schema)
+
+
+@mcp.tool()
+def dbr_spark_table_sample(full_name: str, n: int = 20) -> str:
+    """Retorna amostra de linhas de catalog.schema.table via Spark Connect."""
+    return _dbr_spark_table_sample(full_name, n)
 
 
 if __name__ == "__main__":

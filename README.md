@@ -1,15 +1,46 @@
 # data-agents-copilot
 
-**Orquestrador multi-agente para engenharia de dados com GitHub Copilot integrado.**
+**Versão enxuta e pessoal de [ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents), adaptada para rodar via GitHub Copilot Chat API.**
 
-Sistema de despacho automático que roteia tarefas de dados (SQL, PySpark, pipelines, governança) para 15 agentes IA especializados. Executado via CLI, Chainlit web, ou diretamente no VS Code Chat.
+Sistema multi-agente para engenharia de dados (SQL, PySpark, pipelines, governança) que roteia tarefas para agentes IA especializados. Executável via CLI, Chainlit web ou diretamente no VS Code Chat.
+
+> ℹ️ **Antes de tudo:** este é um fork pessoal e propositalmente reduzido do projeto original **[data-agents](https://github.com/ThomazRossito/data-agents)** de [Thomaz Rossito](https://github.com/ThomazRossito). * Este fork é uma adaptação ao meu fluxo de trabalho e aprendizado pessoal.
 
 ---
 
 ## 🎯 O Que É
 
-`data-agents-copilot` é um fork do projeto original [data-agents](https://github.com/ThomazRossito/data-agents) de **Thomaz Rossito** — adaptado para operar com **GitHub Copilot Chat API**, adicionando governança automática de nomenclatura, workflows colaborativos multi-agente, Knowledge Base estruturada, sistema de memória episódica, e protocolo QA peer-to-peer.
+Roteador automático que despacha tarefas de dados para agentes IA especializados, com governança de nomenclatura, workflows colaborativos, KB local, memória episódica e protocolo QA peer-to-peer — tudo plugado em GitHub Copilot Chat ao invés do Claude SDK direto.
 
+---
+
+## 🔁 Relação com o Projeto Original
+
+O upstream **[ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents)** é a fonte e referência canônica. Este fork:
+
+- **Mantém:** Supervisor + agentes especialistas, Party Mode, hooks de segurança/auditoria/custo, integração MCP com Databricks e Fabric, Chainlit como UI principal, sistema de memória, evals.
+- **Substitui (parcial):** Anthropic Claude SDK direto → GitHub Copilot Chat API como LLM principal. Anthropic continua como dependência secundária (`qa_reviewer` usa Haiku 4.5; `supervisor` usa Sonnet 4.6 via failover).
+- **Adiciona:** Naming Guard com auto-trigger em DDL, workflows WF-06 e WF-07 (no contexto local), QA Orchestrator com score 0–1, failover automático de modelo (Opus → Sonnet → Haiku) com detecção de 529/overloaded.
+- **Não tem:** Catalog Intelligence, Migration Expert, Semantic Modeler, Business Analyst, Business Monitor, Genie Health Check, dashboard de monitoramento de 9 páginas, ~13 MCPs adicionais (Genie, Fabric SQL, RTI, Tavily, Firecrawl, Postgres, GitHub, Migration Source, etc.).
+
+### Mapa de equivalências
+
+| Domínio | data-agents (upstream) | data-agents-copilot (fork) |
+|---|---|---|
+| **LLM** | Anthropic Claude SDK direto | GitHub Copilot Chat API (principal) + Anthropic API (qa_reviewer Haiku, supervisor Sonnet, failover) |
+| **Agentes especialistas** | 13 agentes (inclui Catalog Intelligence, Migration Expert, Semantic Modeler, Business Analyst, Business Monitor) | 15 nomes — porém vários compactados; **escopo funcional menor** |
+| **MCP servers** | 15+ (Databricks, Genie, Fabric REST, Fabric SQL, RTI, OneLake, Tavily, GitHub, Firecrawl, Postgres, Migration Source, Context7, Memory, Semantic, Community) | 2 servidores standalone (Databricks, Fabric) + tools nativas inline em `agents/tools/` |
+| **Workflows** | WF-01 a WF-06 | WF-01 a WF-07 (escopo local; WF-06 e WF-07 são adições experimentais) |
+| **Knowledge Base** | KBs internos + **KBs de 10 verticais de indústria** (Financial, Retail, Manufacturing, Healthcare, Energy, Telecom, Agribusiness, Insurance, Logistics, Education) com KPIs e regulação local | `kb/` com 19 domínios técnicos **+ KBs de 10 verticais de indústria** (paridade com upstream) |
+| **Memória** | Episódica + Knowledge Graph (memory_mcp) | Episódica com decay temporal + Knowledge Graph local |
+| **QA / Review** | Auto-revisão de DDL (10 verificações), Genie Health Check (20 verificações) | QA Orchestrator com score 0–1, threshold 0.7 (mais simples) |
+| **Confiabilidade** | Failover Opus → Sonnet → Haiku automático | Failover Opus → Sonnet → Haiku automático (`agents/base.py`, detecção 529/overloaded) |
+| **Dashboard** | Monitoring próprio (porta 8501, 9 páginas) + Chainlit (8503) | Apenas Chainlit |
+| **Comandos extras** | `/catalog`, `/genie`, `/dashboard`, `/migrate`, `/brief`, `/ship`, `/monitor`, `/export`, `/eval`, `/sessions`, `/resume`, `/mcp` | Subset menor — sem `/catalog`, `/migrate`, `/genie`, `/dashboard`, `/brief`, `/ship` |
+| **Evals** | Framework v1 com queries canônicas | 13 queries em 9 domínios |
+| **Bootstrap** | `make bootstrap` (wizard interativo) + `make demo` (smoke E2E) | `cp .env.example .env` manual |
+
+---
 
 ## 📦 Estrutura
 
@@ -65,8 +96,9 @@ data-agents-copilot/
 ├── evals/
 │   ├── canonical_queries.yaml  # 13 queries, 9 domínios
 │   └── runner.py               # CLI --domain, --id, --limit, --dry-run
-├── kb/                     # 18 domínios de conhecimento
+├── kb/                     # 19 domínios técnicos + 10 verticais de indústria
 │   ├── constitution.md
+│   ├── industry/           # 10 verticais (financial-services, retail, healthcare, ...)
 │   ├── sql-patterns/
 │   ├── spark-patterns/
 │   ├── spark-internals/
@@ -92,7 +124,7 @@ data-agents-copilot/
 ├── resources/
 │   ├── naming convention.md   # Convenções editáveis
 │   └── jobs.yml               # Config de jobs Databricks
-├── tests/                  # 215 testes, cobertura 83%
+├── tests/                  # 233 testes, cobertura 83%
 ├── output/
 │   ├── prd/                # PRDs gerados (sha1 filename)
 │   └── workflows/          # Outputs de workflows
@@ -171,6 +203,7 @@ Ver [QUICK_START.md](QUICK_START.md) para guia completo incluindo formato dos ar
 | `/sessions` | — | Histórico de sessões |
 | `/resume [task]` | — | Retomar última sessão |
 
+
 **Auto-triggers** (sem comando):
 - `CREATE TABLE / ALTER TABLE / DROP TABLE` → Naming Guard
 - `pipeline`, `bronze`, `silver`, `gold`, `lakehouse`, `fabric`... → PRD + delegação
@@ -233,15 +266,22 @@ Ver [ARCHITECTURE.md](ARCHITECTURE.md) para diagramas de sistema, fluxo de rotea
 - [Convenções de Nomenclatura](resources/naming%20convention.md) — Editável, fonte de verdade
 - [Knowledge Base](kb/) — 18 domínios + constitution
 
+### Documentação canônica do upstream
+
+Para entender o sistema original (mais maduro e completo):
+
+- [Repositório upstream](https://github.com/ThomazRossito/data-agents)
+- [Manual Técnico Completo (upstream)](https://github.com/ThomazRossito/data-agents/blob/main/Manual_Relatorio_Tecnico_Projeto_Data_Agents.md)
+- [PRODUCT.md (upstream)](https://github.com/ThomazRossito/data-agents/blob/main/PRODUCT.md)
+
 ---
 
 ## 🤝 Contribuindo
 
-Ver [CONTRIBUTING.md](CONTRIBUTING.md).
+Ver [CONTRIBUTING.md](CONTRIBUTING.md). Para contribuições significativas em arquitetura ou novos agentes, considere abrir issue/PR diretamente no [upstream](https://github.com/ThomazRossito/data-agents) — esse fork tende a permanecer enxuto e focado em uso pessoal.
 
 ---
 
 ## 📄 Licença
 
-Fork de [ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents) — MIT License. Ver [LICENSE.md](LICENSE.md).
-
+Fork de [ThomazRossito/data-agents](https://github.com/ThomazRossito/data-agents) — MIT License. Crédito e atribuição ao autor original. Ver [LICENSE.md](LICENSE.md).

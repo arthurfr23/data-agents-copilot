@@ -2,6 +2,7 @@
 
 Muito obrigado por querer contribuir! Este documento descreve como participar dos esforços de desenvolvimento.
 
+
 ## Código de Conduta
 
 Somos dedicados a fornecer um ambiente acolhedor, independentemente de idade, corpo, deficiência, etnia, gênero, nível de experiência, nacionalidade, aparência pessoal, raça, religião, identidade sexual ou orientação sexual.
@@ -41,7 +42,7 @@ Somos dedicados a fornecer um ambiente acolhedor, independentemente de idade, co
 2. **Testes**
    ```bash
    pytest tests/ -v
-   mypy --strict agents/
+   mypy agents/
    ruff check agents/ config/ hooks/ ui/
    ```
 
@@ -123,7 +124,7 @@ def validate_name(name: str) -> bool:
 
 ## Testing
 
-- **71Covereage** ≥ 80% para módulos novos
+- **Cobertura** ≥ 80% para módulos novos
 - **Fixtures** — Use `conftest.py` para setup compartilhado
 - **Nomenclatura** — `test_<funcao>_<cenario>.py`
 
