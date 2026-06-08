@@ -6,9 +6,18 @@ import argparse
 import sys
 from pathlib import Path
 
+import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
+_PROJECTS_DIR = Path(__file__).parent.parent / "projects"
+_active_project = os.environ.get("PROJECT", "").strip()
+if _active_project:
+    _project_env = _PROJECTS_DIR / _active_project / ".env"
+    if _project_env.exists():
+        load_dotenv(_project_env, override=True)
 
 from rich.console import Console  # noqa: E402
 from rich.markdown import Markdown  # noqa: E402

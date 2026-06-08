@@ -963,7 +963,104 @@ DATABRICKS_TOOLS: list[dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "dbr_spark_sql",
+            "description": (
+                "Executa SQL diretamente no cluster Databricks via Spark Connect. "
+                "Use quando precisar de execução interativa no cluster (sem SQL Warehouse), "
+                "acesso a tabelas Delta, ou queries complexas com funções Spark nativas. "
+                "Requer DATABRICKS_CLUSTER_ID configurado."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "statement": {"type": "string", "description": "SQL a executar no cluster"},
+                    "catalog": {"type": "string", "description": "Catalog (opcional)"},
+                    "schema": {"type": "string", "description": "Schema (opcional)"},
+                },
+                "required": ["statement"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "dbr_spark_table_sample",
+            "description": (
+                "Retorna uma amostra de linhas de uma tabela Delta via Spark Connect. "
+                "Útil para inspecionar dados sem precisar de SQL Warehouse. "
+                "Requer DATABRICKS_CLUSTER_ID configurado."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "full_name": {
+                        "type": "string",
+                        "description": "Nome completo da tabela: catalog.schema.table",
+                    },
+                    "n": {"type": "integer", "description": "Número de linhas (default 20)"},
+                },
+                "required": ["full_name"],
+            },
+        },
+    },
 ]
+
+# ---------------------------------------------------------------------------
+# Spark Connect (databricks-connect) — execução direta no cluster
+# ---------------------------------------------------------------------------
+
+def _get_spark_session():
+    try:
+        from databricks.connect import DatabricksSession
+    except ImportError:
+        raise RuntimeError(
+            "databricks-connect não instalado. "
+            "Execute: pip install databricks-connect==<versão do DBR do cluster>"
+        )
+    return (
+        DatabricksSession.builder
+        .remote(
+            host=settings.databricks_host,
+            token=settings.databricks_token,
+            cluster_id=settings.databricks_cluster_id,
+        )
+        .getOrCreate()
+    )
+
+
+def _dbr_spark_sql(statement: str, catalog: str = "", schema: str = "") -> str:
+    if not settings.databricks_cluster_id:
+        return "DATABRICKS_CLUSTER_ID não configurado. Necessário para Spark Connect."
+    spark = _get_spark_session()
+    effective_catalog = catalog or settings.databricks_catalog
+    effective_schema = schema or settings.databricks_schema
+    if effective_catalog:
+        spark.catalog.setCurrentCatalog(effective_catalog)
+    if effective_schema:
+        spark.catalog.setCurrentDatabase(effective_schema)
+    df = spark.sql(statement)
+    cols = df.columns
+    rows = [[str(v) for v in row] for row in df.limit(200).collect()]
+    result: dict = {"columns": cols, "rows": rows, "row_count": len(rows)}
+    if len(rows) == 200:
+        result["truncated"] = True
+        result["message"] = "Resultado truncado em 200 linhas."
+    return json.dumps(result, ensure_ascii=False)
+
+
+def _dbr_spark_table_sample(full_name: str, n: int = 20) -> str:
+    if not settings.databricks_cluster_id:
+        return "DATABRICKS_CLUSTER_ID não configurado. Necessário para Spark Connect."
+    spark = _get_spark_session()
+    df = spark.table(full_name)
+    cols = df.columns
+    rows = [[str(v) for v in row] for row in df.limit(n).collect()]
+    result: dict = {"table": full_name, "columns": cols, "rows": rows, "row_count": len(rows)}
+    return json.dumps(result, ensure_ascii=False)
+
 
 # ---------------------------------------------------------------------------
 # Dispatcher
@@ -1018,6 +1115,12 @@ _DISPATCH_MAP = {
         a["job_name"], a.get("notebook_path", ""),
         a.get("tasks_config"), a.get("schedule_cron", ""),
         a.get("bundle_path", ""),
+    ),
+    "dbr_spark_sql": lambda a: _dbr_spark_sql(
+        a["statement"], a.get("catalog", ""), a.get("schema", ""),
+    ),
+    "dbr_spark_table_sample": lambda a: _dbr_spark_table_sample(
+        a["full_name"], a.get("n", 20),
     ),
 }
 

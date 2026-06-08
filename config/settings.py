@@ -1,13 +1,16 @@
 import json
 from functools import cached_property
+from pathlib import Path
 
 from openai import OpenAI
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_PROJECT_ROOT = Path(__file__).parent.parent
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=str(_PROJECT_ROOT / ".env"), extra="ignore")
 
     # ── GitHub Copilot ──────────────────────────────────────────────────────
     github_token: str = Field("", alias="GITHUB_TOKEN")
@@ -118,6 +121,10 @@ class Settings(BaseSettings):
             return False
         return bool(host) and bool(token or (client_id and self.databricks_client_secret))
 
+    def has_spark_connect(self) -> bool:
+        cluster_id = self.databricks_cluster_id or ""
+        return self.has_databricks() and bool(cluster_id)
+
     @cached_property
     def databricks_client(self):
         from databricks.sdk import WorkspaceClient
@@ -145,6 +152,7 @@ class Settings(BaseSettings):
             "copilot": bool(self.github_token),
             "anthropic": bool(self.anthropic_api_key),
             "databricks": self.has_databricks(),
+            "spark_connect": self.has_spark_connect(),
             "fabric": self.has_fabric(),
         }
 

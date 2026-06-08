@@ -95,3 +95,6 @@ htmlcov/
 # Temp
 *.tmp
 *.bak
+
+# Projects — configs privados de cliente, nunca publicar
+projects/

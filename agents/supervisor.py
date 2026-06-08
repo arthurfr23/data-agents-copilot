@@ -23,6 +23,7 @@ logger = logging.getLogger("data_agents.supervisor")
 OUTPUT_DIR = Path(__file__).parent.parent / "output" / "prd"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 KB_DIR = Path(__file__).parent.parent / "kb"
+PROJECTS_DIR = Path(__file__).parent.parent / "projects"
 NAMING_CONVENTION_FILE = (
     Path(__file__).parent.parent / "resources" / "naming convention.md"
 )
@@ -172,10 +173,11 @@ class Supervisor:
             agent = self._agents.get(agent_name, self._supervisor_agent)
             kb_ctx = self._load_kb_context(agent_name)
             mem_ctx = self._load_memory_context(task)
+            proj_ctx = self._load_project_context()
             # Injetar contexto externo se aplicável
             ext_ctx = self._load_external_context(agent_name, task)
             preflight = self._inject_preflight_context(agent_name, task, kb_ctx)
-            context = "\n\n".join(filter(None, [preflight, kb_ctx, ext_ctx, mem_ctx, self._history]))
+            context = "\n\n".join(filter(None, [preflight, kb_ctx, proj_ctx, ext_ctx, mem_ctx, self._history]))
             result = agent.run(task, context=context)
             result = self._check_escalation(result, task)
             self._post_process(user_input, result, agent_name=agent_name)
@@ -425,9 +427,10 @@ class Supervisor:
         agent = self._agents.get(agent_name, self._supervisor_agent)
         preflight = self._inject_preflight_context(agent_name, task, kb_ctx)
         agent_kb_ctx = self._load_kb_context(agent_name)
+        proj_ctx = self._load_project_context()
         ext_ctx = self._load_external_context(agent_name, task)
         exec_context = "\n\n".join(
-            filter(None, [preflight, agent_kb_ctx, ext_ctx, prd_content, mem_ctx, self._history])
+            filter(None, [preflight, agent_kb_ctx, proj_ctx, ext_ctx, prd_content, mem_ctx, self._history])
         )
         execution_result = agent.run(task, context=exec_context)
         execution_result = self._check_escalation(execution_result, task)
@@ -699,6 +702,22 @@ class Supervisor:
             "  " + structure,
         ]
         return "\n".join(lines)
+
+    # ── Projeto ──────────────────────────────────────────────────────────────
+
+    def _load_project_context(self) -> str:
+        """Injeta context.md do projeto ativo (env PROJECT=<nome>)."""
+        import os
+        project = os.environ.get("PROJECT", "").strip()
+        if not project:
+            return ""
+        ctx_file = PROJECTS_DIR / project / "context.md"
+        if not ctx_file.exists():
+            return ""
+        content = ctx_file.read_text(encoding="utf-8").strip()
+        if not content:
+            return ""
+        return f"## Contexto do Projeto: {project}\n\n{content}"
 
     # ── Memória ─────────────────────────────────────────────────────────────
 
